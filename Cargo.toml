@@ -1,0 +1,7 @@
+[package]
+name = "emulator-2a"
+version = "0.1.0"
+authors = ["Malte Tammena <malte.tammena@gmx.de>"]
+edition = "2018"
+
+[dependencies]
