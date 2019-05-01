@@ -1,46 +1,33 @@
 use std::cell::RefCell;
-use std::ops::DerefMut;
 use std::rc::Rc;
 
 #[macro_use]
 mod block_macro;
-
-pub use block_macro::DFlipFlop;
+mod cache;
 
 pub trait Node
 where
     Self::Output: Clone,
 {
     type Output;
-    fn get(&self, index: usize, clock: usize) -> Self::Output;
+    unsafe fn get(&self, index: usize, clock: usize) -> Self::Output;
 }
 
-pub trait Wire
+#[derive(Clone)]
+pub struct Wire<'a, O>
 where
-    Self::Output: Clone,
+    O: Clone,
 {
-    type Output;
-    fn out(&self, clock: usize) -> Self::Output;
-}
-
-#[derive(Debug, Clone)]
-pub struct Handle<T>
-where
-    T: Node,
-{
+    node: Rc<RefCell<dyn Node<Output = O> + 'a>>,
     index: usize,
-    block: Rc<RefCell<T>>,
 }
 
-
-impl<T> Wire for Handle<T>
+impl<'a, O> Wire<'a, O>
 where
-    T: Node,
+    O: Clone,
 {
-    type Output = T::Output;
-
-    fn out(&self, clock: usize) -> Self::Output {
-        self.block.borrow().get(self.index, clock)
+    pub fn get(&mut self, clock: usize) -> O {
+        unsafe { self.node.borrow().get(self.index, clock) }
     }
 }
 
@@ -58,6 +45,16 @@ define_node! {
         I2: in2 -> 1;
         1 {
             out -> 0
+        }
+    }
+}
+
+define_node! {
+    pub DFlipFlop {
+        I1: input -> 0,
+        I2: clk -> 1;
+        1 {
+            out_q -> 0,
         }
     }
 }

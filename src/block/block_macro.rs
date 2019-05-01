@@ -1,50 +1,3 @@
-#[derive(Debug, Clone)]
-pub enum Cache<T> {
-    Empty,
-    Cached(usize, T),
-}
-
-impl<T> Cache<T> {
-    pub fn is_valid(&self, cache_id: usize) -> bool {
-        match *self {
-            Cache::Empty => false,
-            Cache::Cached(id, _) => cache_id == id,
-        }
-    }
-    pub fn as_ref(&self) -> Cache<&T> {
-        match self {
-            Cache::Empty => Cache::Empty,
-            Cache::Cached(id, ref value) => Cache::Cached(*id, value),
-        }
-    }
-    pub fn unwrap(self) -> T {
-        match self {
-            Cache::Empty => panic!("Unwrapped empty cache"),
-            Cache::Cached(_, value) => value,
-        }
-    }
-    pub fn update(&mut self, id: usize, value: T) {
-        *self = Cache::Cached(id, value);
-    }
-    pub fn map<F, U>(self, f: F) -> Cache<U>
-        where F: FnOnce(T) -> U {
-            match self {
-                Cache::Empty => Cache::Empty,
-                Cache::Cached(id, value) => Cache::Cached(id, f(value)),
-            }
-        }
-}
-
-impl<T> Cache<T>
-where T: Default {
-    pub fn unwrap_or_default(self) -> T {
-        match self {
-            Cache::Empty => Default::default(),
-            Cache::Cached(_, value) => value,
-        }
-    }
-}
-
 macro_rules! define_node {
     ($visibility:vis $struct_name:ident {
         $output_number:literal {
@@ -69,65 +22,73 @@ macro_rules! define_node {
     => {
 
         #[derive(Clone)]
-        $visibility struct $struct_name<F, $($input_type,)* O>
+        $visibility struct $struct_name<'a, F, $($input_type,)* O>
         where
             F: FnMut($(&$input_type),*) -> [O; $output_number],
             O: Clone,
+            $($input_type: Clone,)*
         {
             id: String,
             am_i_in_a_cycle: ::std::cell::RefCell<()>,
-            cache: ::std::cell::RefCell<$crate::block::block_macro::Cache<[O; $output_number]>>,
+            lifetime: ::std::marker::PhantomData<&'a O>,
+            cache: ::std::cell::RefCell<$crate::block::cache::Cache<[O; $output_number]>>,
             $(
-                $input_name: Option<::std::rc::Rc<::std::cell::RefCell<
-                    $crate::block::Wire<Output = $input_type>>>>,
+                $input_name: Option<::std::cell::RefCell<$crate::block::Wire<'a, $input_type>>>,
             )*
             f: ::std::cell::RefCell<F>,
         }
 
         paste::item! {
-            impl<F, $($input_type,)* O> $struct_name<F, $($input_type,)* O>
+            impl<'a, F, $($input_type,)* O> $struct_name<'a, F, $($input_type,)* O>
             where
-                F: FnMut($(&$input_type),*) -> [O; $output_number],
-                $($input_type: Clone,)*
+                F: FnMut($(&$input_type),*) -> [O; $output_number] + 'a,
+                $($input_type: Clone + 'a,)*
                 O: Clone + Default + ::std::fmt::Debug,
             {
                 pub fn new(id: &str, f: F) ->
                     (::std::rc::Rc<::std::cell::RefCell<Self>>,
-                     [::std::rc::Rc<::std::cell::RefCell<$crate::block::Handle<Self>>>;
-                     $output_number]) {
+                     [$crate::block::Wire<'a, O>; $output_number]
+                ) {
+                    use std::cell::RefCell;
+                    use std::rc::Rc;
+                    use std::marker::PhantomData;
+                    use $crate::block::cache::Cache;
+
                     let id = id.into();
-                    let cache = ::std::cell::RefCell::new($crate::block::block_macro::Cache::Empty);
-                    let am_i_in_a_cycle = ::std::cell::RefCell::new(());
-                    let block = ::std::rc::Rc::new(::std::cell::RefCell::new($struct_name {
+                    let cache = RefCell::new(Cache::Empty);
+                    let am_i_in_a_cycle = RefCell::new(());
+                    let lifetime = PhantomData{};
+                    let node = Rc::new(RefCell::new($struct_name {
                         id,
                         f: f.into(),
                         $($input_name: None,)*
                         cache,
+                        lifetime,
                         am_i_in_a_cycle,
                     }));
                     $(
                         let $output_name =
-                        ::std::rc::Rc::new(::std::cell::RefCell::new($crate::block::Handle {
+                        $crate::block::Wire {
                             index: $output_index,
-                            block: block.clone(),
-                        }));
+                            node: node.clone(),
+                        };
                     )+
-                    (block, [$($output_name,)+])
+                    (node, [$($output_name,)+])
                 }
                 $(
                     pub fn [<plug_ $input_name>](
                         &mut self,
-                        inp: ::std::rc::Rc<::std::cell::RefCell<
-                            $crate::block::Wire<Output = $input_type>>>
+                        inp: $crate::block::Wire<'a, $input_type>
                     ) -> &mut Self {
-                        self.$input_name = Some(inp);
+                        use std::cell::RefCell;
+                        self.$input_name = Some(RefCell::new(inp));
                         self
                     }
                 )*
             }
         }
 
-        impl<F, $($input_type,)* O> $crate::block::Node for $struct_name<F, $($input_type,)* O>
+        impl<'a, F, $($input_type,)* O> $crate::block::Node for $struct_name<'a, F, $($input_type,)* O>
         where
             F: FnMut($(&$input_type,)*) -> [O; $output_number],
             $($input_type: Clone,)*
@@ -135,7 +96,7 @@ macro_rules! define_node {
         {
             type Output = O;
 
-            fn get(&self, index: usize, cache_id: usize) -> Self::Output {
+            unsafe fn get(&self, index: usize, cache_id: usize) -> Self::Output {
                 // Detect recursion
                 if self.am_i_in_a_cycle.try_borrow_mut().is_err() {
                     return self.cache
@@ -154,9 +115,9 @@ macro_rules! define_node {
                         let $input_name = self.$input_name
                         .as_ref()
                         .expect(stringify!(A $struct_name needs to have all inputs defined))
-                        .try_borrow()
-                        .expect(stringify!(Borrow of $input_name in $struct_name failed))
-                        .out(cache_id);
+                        .try_borrow_mut()
+                        .expect(stringify!(Mutable borrow failed for $input_name on $crate_name))
+                        .get(cache_id);
                     )*;
                     // Interior mutability for f
                     let mut f = self.f
@@ -175,16 +136,6 @@ macro_rules! define_node {
                     .unwrap()[index]
                     .clone()
             }
-        }
-    }
-}
-
-define_node! {
-    pub DFlipFlop {
-        I1: input -> 0,
-        I2: clk -> 1;
-        1 {
-            out_q -> 0,
         }
     }
 }
