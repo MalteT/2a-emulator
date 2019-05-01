@@ -75,7 +75,7 @@ macro_rules! define_node {
             O: Clone,
         {
             id: String,
-            cycle_detection: ::std::cell::RefCell<()>,
+            am_i_in_a_cycle: ::std::cell::RefCell<()>,
             cache: ::std::cell::RefCell<$crate::block::block_macro::Cache<[O; $output_number]>>,
             $(
                 $input_name: Option<::std::rc::Rc<::std::cell::RefCell<
@@ -97,13 +97,13 @@ macro_rules! define_node {
                      $output_number]) {
                     let id = id.into();
                     let cache = ::std::cell::RefCell::new($crate::block::block_macro::Cache::Empty);
-                    let cycle_detection = ::std::cell::RefCell::new(());
+                    let am_i_in_a_cycle = ::std::cell::RefCell::new(());
                     let block = ::std::rc::Rc::new(::std::cell::RefCell::new($struct_name {
                         id,
                         f: f.into(),
                         $($input_name: None,)*
                         cache,
-                        cycle_detection,
+                        am_i_in_a_cycle,
                     }));
                     $(
                         let $output_name =
@@ -136,21 +136,16 @@ macro_rules! define_node {
             type Output = O;
 
             fn get(&self, index: usize, cache_id: usize) -> Self::Output {
-                // Detect recursion using the error returned, when trying to
-                // borrow mutable multible times.
-                let cycle_detection = self.cycle_detection.try_borrow_mut();
-                match cycle_detection {
-                    Ok(_) => {},
-                    Err(_) => {
-                        let x = self.cache
-                            .try_borrow()
-                            .expect("Borrowing cache failed")
-                            .as_ref()
-                            .map(|cached| cached[index].clone())
-                            .unwrap_or_default();
-                        return x
-                    }
+                // Detect recursion
+                if self.am_i_in_a_cycle.try_borrow_mut().is_err() {
+                    return self.cache
+                        .try_borrow()
+                        .expect("Borrowing cache failed")
+                        .as_ref()
+                        .map(|cached| cached[index].clone())
+                        .unwrap_or_default();
                 }
+                let _x = self.am_i_in_a_cycle.borrow_mut();
                 if ! self.cache
                     .try_borrow()
                     .expect("Borrow of cache failed #1")
