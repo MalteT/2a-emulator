@@ -5,12 +5,14 @@ use std::rc::Rc;
 #[macro_use]
 mod block_macro;
 
+pub use block_macro::DFlipFlop;
+
 pub trait Node
 where
     Self::Output: Clone,
 {
     type Output;
-    fn get(&mut self, index: usize, clock: usize) -> Self::Output;
+    fn get(&self, index: usize, clock: usize) -> Self::Output;
 }
 
 pub trait Wire
@@ -18,7 +20,7 @@ where
     Self::Output: Clone,
 {
     type Output;
-    fn out(&mut self, clock: usize) -> Self::Output;
+    fn out(&self, clock: usize) -> Self::Output;
 }
 
 #[derive(Debug, Clone)]
@@ -37,10 +39,25 @@ where
 {
     type Output = T::Output;
 
-    fn out(&mut self, clock: usize) -> Self::Output {
-        self.block.borrow_mut().get(self.index, clock)
+    fn out(&self, clock: usize) -> Self::Output {
+        self.block.borrow().get(self.index, clock)
     }
 }
 
-block! { pub Input;; 1 }
-block! { pub Node2x1; in1: I1, in2: I2; 1 }
+define_node! {
+    pub Input {
+        1 {
+            out_q -> 0,
+        }
+    }
+}
+
+define_node! {
+    pub Node2x1 {
+        I1: in1 -> 0,
+        I2: in2 -> 1;
+        1 {
+            out -> 0
+        }
+    }
+}

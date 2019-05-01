@@ -4,27 +4,17 @@ mod fns;
 use block::Node2x1;
 use block::Input;
 use block::Wire;
+use block::DFlipFlop;
 
 fn main() {
-    let (_, in1) = Input::new("Always TRUE", |c| {
-        let now = c % 4 == 2 || c % 4 == 3;
-        print!("CLOCK: {}, IN1 {},\t", c, now);
-        now
-    });
-    let (_, in2) = Input::new("Always FALSE", |c| {
-        let now = c % 2 == 1;
-        print!("IN2 {},\t", now);
-        now
-    });
-    let (_, and_out) = Node2x1::new("AND", in1, in2, fns::and);
-    let (_, eq_1) = Node2x1::new("EQ", and_out.clone(), and_out.clone(), |_, &x, &y| {
-        x == y
-    });
+    let (_, [in_true]) = Input::new("Always TRUE", || [true]);
+    let (xor, [xor_out]) = Node2x1::new("IL2", |&x, &y| [(x || y) && (!x || !y)]);
+    let (iff2, [iff2_q]) = DFlipFlop::new("IFF2", |&inp, &clk| [clk && inp]);
 
-    for clock in 0..4 {
-        println!("{}", and_out.borrow_mut().out(clock));
-    }
-    for clock in 0..4 {
-        println!("{}", eq_1.borrow_mut().out(clock));
+    xor.borrow_mut().plug_in1(in_true.clone()).plug_in2(xor_out.clone());
+    //iff2.borrow_mut().plug_input(xor_out.clone()).plug_clk(in_true);
+
+    for id in 0..8 {
+        println!("{}", xor_out.borrow().out(id));
     }
 }

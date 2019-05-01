@@ -5,3 +5,4 @@ authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
 [dependencies]
+paste = "0.1"

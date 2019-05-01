@@ -1,131 +1,195 @@
-macro_rules! block {
-    ($visibility:vis $name:ident;
-     $($input_name:ident: $input:tt),*;
-     $outputs:expr;
-     $($out_name:ident: $out_index:expr);*) => {
+#[derive(Debug, Clone)]
+pub enum Cache<T> {
+    Empty,
+    Cached(usize, T),
+}
 
-        #[derive(Debug, Clone)]
-        $visibility struct $name<F, $($input,)* O>
-        where
-            $($input: Wire,)*
-            F: FnMut(usize, $(&$input::Output),*) -> [O; $outputs],
-            O: Clone,
-        {
-            id: String,
-            last_clock: usize,
-            last_output: Option<[O; $outputs]>,
-            $($input_name: Rc<RefCell<$input>>,)*
-            f: Box<F>,
+impl<T> Cache<T> {
+    pub fn is_valid(&self, cache_id: usize) -> bool {
+        match *self {
+            Cache::Empty => false,
+            Cache::Cached(id, _) => cache_id == id,
         }
-
-        impl<F, $($input,)* O> $name<F, $($input,)* O>
-        where
-            $($input: Wire,)*
-            F: FnMut(usize, $(&$input::Output),*) -> [O; $outputs],
-            O: Clone,
-        {
-            pub fn new(id: &str, $($input_name: Rc<RefCell<$input>>,)* f: F) ->
-                (Rc<RefCell<Self>>, [Rc<RefCell<Handle<Self>>>; $outputs]) {
-                let id = id.into();
-                let last_clock = 0;
-                let block = Rc::new(RefCell::new($name {
-                    id,
-                    f: f.into(),
-                    $($input_name,)*
-                    last_clock,
-                    last_output: None,
-                }));
-                $(
-                    let $out_name = Rc::new(RefCell::new(Handle {
-                        index: $out_index,
-                        block: block.clone(),
-                    }));
-                )+
-                (block, [$($out_name,)+])
+    }
+    pub fn as_ref(&self) -> Cache<&T> {
+        match self {
+            Cache::Empty => Cache::Empty,
+            Cache::Cached(id, ref value) => Cache::Cached(*id, value),
+        }
+    }
+    pub fn unwrap(self) -> T {
+        match self {
+            Cache::Empty => panic!("Unwrapped empty cache"),
+            Cache::Cached(_, value) => value,
+        }
+    }
+    pub fn update(&mut self, id: usize, value: T) {
+        *self = Cache::Cached(id, value);
+    }
+    pub fn map<F, U>(self, f: F) -> Cache<U>
+        where F: FnOnce(T) -> U {
+            match self {
+                Cache::Empty => Cache::Empty,
+                Cache::Cached(id, value) => Cache::Cached(id, f(value)),
             }
         }
+}
 
-        impl<F, $($input,)* O> Node for $name<F, $($input,)* O>
-        where
-            $($input: Wire,)*
-            F: FnMut(usize, $(&$input::Output,)*) -> [O; $outputs],
-            O: Clone,
-        {
-            type Output = O;
+impl<T> Cache<T>
+where T: Default {
+    pub fn unwrap_or_default(self) -> T {
+        match self {
+            Cache::Empty => Default::default(),
+            Cache::Cached(_, value) => value,
+        }
+    }
+}
 
-            fn get(&mut self, index: usize, clock: usize) -> Self::Output {
-                if self.last_clock != clock || self.last_output.is_none() {
-                    self.last_clock = clock;
-                    $(
-                        let $input_name = self.$input_name.borrow_mut().out(clock);
-                    )*
-                    self.last_output = Some(self.f.deref_mut()(clock, $(&$input_name,)*));
+macro_rules! define_node {
+    ($visibility:vis $struct_name:ident {
+        $output_number:literal {
+            $($output_name:ident -> $output_index:literal),+ $(,)?
+        }
+    }) => {
+        define_node! {
+            $visibility $struct_name {
+                ;$output_number {
+                    $($output_name -> $output_index),+
                 }
-                self.last_output.as_ref().unwrap()[index].clone()
             }
         }
     };
-    ($visibility:vis $name:ident;
-     $($input_name:ident: $input:tt),*;
-     1) => {
+    ($visibility:vis $struct_name:ident
+     {
+         $( $input_type:ident: $input_name:ident -> $input_index:literal ),*
+           ;$output_number:literal {
+               $($output_name:ident -> $output_index:literal),+ $(,)?
+           }
+     } )
+    => {
 
-        #[derive(Debug, Clone)]
-        $visibility struct $name<F, $($input,)* O>
+        #[derive(Clone)]
+        $visibility struct $struct_name<F, $($input_type,)* O>
         where
-            $($input: Wire,)*
-            F: FnMut(usize, $(&$input::Output),*) -> O,
+            F: FnMut($(&$input_type),*) -> [O; $output_number],
             O: Clone,
         {
             id: String,
-            last_clock: usize,
-            last_output: Option<O>,
-            $($input_name: Rc<RefCell<$input>>,)*
-            f: Box<F>,
+            cycle_detection: ::std::cell::RefCell<()>,
+            cache: ::std::cell::RefCell<$crate::block::block_macro::Cache<[O; $output_number]>>,
+            $(
+                $input_name: Option<::std::rc::Rc<::std::cell::RefCell<
+                    $crate::block::Wire<Output = $input_type>>>>,
+            )*
+            f: ::std::cell::RefCell<F>,
         }
 
-        impl<F, $($input,)* O> $name<F, $($input,)* O>
-        where
-            $($input: Wire,)*
-            F: FnMut(usize, $(&$input::Output),*) -> O,
-            O: Clone,
-        {
-            pub fn new(id: &str, $($input_name: Rc<RefCell<$input>>,)* f: F) ->
-                (Rc<RefCell<Self>>, Rc<RefCell<Handle<Self>>>) {
-                let id = id.into();
-                let last_clock = 0;
-                let block = Rc::new(RefCell::new($name {
-                    id,
-                    f: f.into(),
-                    $($input_name,)*
-                    last_clock,
-                    last_output: None,
-                }));
-                let out = Rc::new(RefCell::new(Handle {
-                    index: 0,
-                    block: block.clone(),
-                }));
-                (block, out)
+        paste::item! {
+            impl<F, $($input_type,)* O> $struct_name<F, $($input_type,)* O>
+            where
+                F: FnMut($(&$input_type),*) -> [O; $output_number],
+                $($input_type: Clone,)*
+                O: Clone + Default + ::std::fmt::Debug,
+            {
+                pub fn new(id: &str, f: F) ->
+                    (::std::rc::Rc<::std::cell::RefCell<Self>>,
+                     [::std::rc::Rc<::std::cell::RefCell<$crate::block::Handle<Self>>>;
+                     $output_number]) {
+                    let id = id.into();
+                    let cache = ::std::cell::RefCell::new($crate::block::block_macro::Cache::Empty);
+                    let cycle_detection = ::std::cell::RefCell::new(());
+                    let block = ::std::rc::Rc::new(::std::cell::RefCell::new($struct_name {
+                        id,
+                        f: f.into(),
+                        $($input_name: None,)*
+                        cache,
+                        cycle_detection,
+                    }));
+                    $(
+                        let $output_name =
+                        ::std::rc::Rc::new(::std::cell::RefCell::new($crate::block::Handle {
+                            index: $output_index,
+                            block: block.clone(),
+                        }));
+                    )+
+                    (block, [$($output_name,)+])
+                }
+                $(
+                    pub fn [<plug_ $input_name>](
+                        &mut self,
+                        inp: ::std::rc::Rc<::std::cell::RefCell<
+                            $crate::block::Wire<Output = $input_type>>>
+                    ) -> &mut Self {
+                        self.$input_name = Some(inp);
+                        self
+                    }
+                )*
             }
         }
 
-        impl<F, $($input,)* O> Node for $name<F, $($input,)* O>
+        impl<F, $($input_type,)* O> $crate::block::Node for $struct_name<F, $($input_type,)* O>
         where
-            $($input: Wire,)*
-            F: FnMut(usize, $(&$input::Output,)*) -> O,
-            O: Clone,
+            F: FnMut($(&$input_type,)*) -> [O; $output_number],
+            $($input_type: Clone,)*
+            O: Clone + Default + ::std::fmt::Debug,
         {
             type Output = O;
 
-            fn get(&mut self, _index: usize, clock: usize) -> Self::Output {
-                if self.last_clock != clock || self.last_output.is_none() {
-                    self.last_clock = clock;
-                    $(
-                        let $input_name = self.$input_name.borrow_mut().out(clock);
-                    )*
-                    self.last_output = Some(self.f.deref_mut()(clock, $(&$input_name,)*));
+            fn get(&self, index: usize, cache_id: usize) -> Self::Output {
+                // Detect recursion using the error returned, when trying to
+                // borrow mutable multible times.
+                let cycle_detection = self.cycle_detection.try_borrow_mut();
+                match cycle_detection {
+                    Ok(_) => {},
+                    Err(_) => {
+                        let x = self.cache
+                            .try_borrow()
+                            .expect("Borrowing cache failed")
+                            .as_ref()
+                            .map(|cached| cached[index].clone())
+                            .unwrap_or_default();
+                        return x
+                    }
                 }
-                self.last_output.as_ref().unwrap().clone()
+                if ! self.cache
+                    .try_borrow()
+                    .expect("Borrow of cache failed #1")
+                    .is_valid(cache_id) {
+                    $(
+                        let $input_name = self.$input_name
+                        .as_ref()
+                        .expect(stringify!(A $struct_name needs to have all inputs defined))
+                        .try_borrow()
+                        .expect(stringify!(Borrow of $input_name in $struct_name failed))
+                        .out(cache_id);
+                    )*;
+                    // Interior mutability for f
+                    let mut f = self.f
+                        .try_borrow_mut()
+                        .expect("Mutable borrow of function failed");
+                    let f = ::std::ops::DerefMut::deref_mut(&mut f);
+                    self.cache
+                        .try_borrow_mut()
+                        .expect("Mutable borrow of cache failed")
+                        .update(cache_id, f($(&$input_name,)*));
+                }
+                self.cache
+                    .try_borrow()
+                    .expect("Borrow of cache failed #2")
+                    .as_ref()
+                    .unwrap()[index]
+                    .clone()
             }
+        }
+    }
+}
+
+define_node! {
+    pub DFlipFlop {
+        I1: input -> 0,
+        I2: clk -> 1;
+        1 {
+            out_q -> 0,
         }
     }
 }
