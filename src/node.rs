@@ -2,8 +2,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 #[macro_use]
-mod block_macro;
+mod node_macro;
 mod cache;
+
+pub use cache::Cache;
 
 pub trait Node
 where
@@ -32,29 +34,36 @@ where
 }
 
 define_node! {
-    pub Input {
-        1 {
-            out_q -> 0,
-        }
-    }
+    pub Input { }
 }
 
 define_node! {
     pub Node2x1 {
         I1: in1 -> 0,
-        I2: in2 -> 1;
-        1 {
-            out -> 0
-        }
+        I2: in2 -> 1,
     }
 }
 
 define_node! {
     pub DFlipFlop {
         I1: input -> 0,
-        I2: clk -> 1;
-        1 {
-            out_q -> 0,
-        }
+        I2: clk -> 1,
+    }
+}
+
+define_node! {
+    pub DFlipFlopC {
+        I1: input -> 0,
+        I2: clk -> 1,
+        I3: clear -> 2,
+    }
+}
+
+define_node! {
+    pub Node4x1 {
+        I1: in1 -> 0,
+        I2: in2 -> 1,
+        I3: in3 -> 2,
+        I4: in4 -> 3,
     }
 }

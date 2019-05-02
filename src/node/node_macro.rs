@@ -1,3 +1,21 @@
+/// Decide which output type to use for [`define_node`].
+macro_rules! out {
+    [$type:ty; $number:literal, $x:ident] => { $type };
+    [$type:ty; $number:literal, $($x:ident),+] => { [ $type; $number ] };
+    [$el:expr $(,)?] => { $el };
+    [$($el:expr),+ $(,)?] => { [ $($el),+ ] };
+}
+
+/// Return `$if`, if more than one token is given in `$x` and `$else` otherwise.
+macro_rules! iftwo {
+    ($x:tt; $if:tt; $else:tt $(;)?) => {
+        $else
+    };
+    ($($x:tt),+; $if:tt; $else:tt $(;)?) => {
+        $if
+    };
+}
+
 macro_rules! define_node {
     ($visibility:vis $struct_name:ident {
         $output_number:literal {
@@ -12,28 +30,37 @@ macro_rules! define_node {
             }
         }
     };
-    ($visibility:vis $struct_name:ident
-     {
+    ($visibility:vis $struct_name:ident {
+         $( $input_type:ident: $input_name:ident -> $input_index:literal ),* $(,)?
+    }) => {
+        define_node! {
+            $visibility $struct_name {
+                $( $input_type: $input_name -> $input_index ),*;
+                1 {
+                    out -> 0
+                }
+            }
+        }
+    };
+    ($visibility:vis $struct_name:ident {
          $( $input_type:ident: $input_name:ident -> $input_index:literal ),*
            ;$output_number:literal {
                $($output_name:ident -> $output_index:literal),+ $(,)?
            }
-     } )
-    => {
+     }) => {
 
-        #[derive(Clone)]
         $visibility struct $struct_name<'a, F, $($input_type,)* O>
         where
-            F: FnMut($(&$input_type),*) -> [O; $output_number],
+            F: FnMut($(&$input_type),*) -> out![O; $output_number, $($output_name),*],
             O: Clone,
-            $($input_type: Clone,)*
+            $($input_type: Clone + ::std::fmt::Debug,)*
         {
             id: String,
             am_i_in_a_cycle: ::std::cell::RefCell<()>,
             lifetime: ::std::marker::PhantomData<&'a O>,
-            cache: ::std::cell::RefCell<$crate::block::cache::Cache<[O; $output_number]>>,
+            cache: ::std::cell::RefCell<$crate::node::Cache<out![O; $output_number, $($output_name),*]>>,
             $(
-                $input_name: Option<::std::cell::RefCell<$crate::block::Wire<'a, $input_type>>>,
+                $input_name: Option<::std::cell::RefCell<$crate::node::Wire<'a, $input_type>>>,
             )*
             f: ::std::cell::RefCell<F>,
         }
@@ -41,18 +68,18 @@ macro_rules! define_node {
         paste::item! {
             impl<'a, F, $($input_type,)* O> $struct_name<'a, F, $($input_type,)* O>
             where
-                F: FnMut($(&$input_type),*) -> [O; $output_number] + 'a,
-                $($input_type: Clone + 'a,)*
+                F: FnMut($(&$input_type),*) -> out![O; $output_number, $($output_name),+] + 'a,
+                $($input_type: Clone + ::std::fmt::Debug + 'a,)*
                 O: Clone + Default + ::std::fmt::Debug,
             {
                 pub fn new(id: &str, f: F) ->
                     (::std::rc::Rc<::std::cell::RefCell<Self>>,
-                     [$crate::block::Wire<'a, O>; $output_number]
+                     out![$crate::node::Wire<'a, O>; $output_number, $($output_name),+]
                 ) {
                     use std::cell::RefCell;
                     use std::rc::Rc;
                     use std::marker::PhantomData;
-                    use $crate::block::cache::Cache;
+                    use $crate::node::Cache;
 
                     let id = id.into();
                     let cache = RefCell::new(Cache::Empty);
@@ -68,17 +95,17 @@ macro_rules! define_node {
                     }));
                     $(
                         let $output_name =
-                        $crate::block::Wire {
+                        $crate::node::Wire {
                             index: $output_index,
                             node: node.clone(),
                         };
                     )+
-                    (node, [$($output_name,)+])
+                    (node, out![$($output_name,)+])
                 }
                 $(
                     pub fn [<plug_ $input_name>](
                         &mut self,
-                        inp: $crate::block::Wire<'a, $input_type>
+                        inp: $crate::node::Wire<'a, $input_type>
                     ) -> &mut Self {
                         use std::cell::RefCell;
                         self.$input_name = Some(RefCell::new(inp));
@@ -88,10 +115,10 @@ macro_rules! define_node {
             }
         }
 
-        impl<'a, F, $($input_type,)* O> $crate::block::Node for $struct_name<'a, F, $($input_type,)* O>
+        impl<'a, F, $($input_type,)* O> $crate::node::Node for $struct_name<'a, F, $($input_type,)* O>
         where
-            F: FnMut($(&$input_type,)*) -> [O; $output_number],
-            $($input_type: Clone,)*
+            F: FnMut($(&$input_type,)*) -> out![O; $output_number, $($output_name),+],
+            $($input_type: Clone + ::std::fmt::Debug,)*
             O: Clone + Default + ::std::fmt::Debug,
         {
             type Output = O;
@@ -99,12 +126,18 @@ macro_rules! define_node {
             unsafe fn get(&self, index: usize, cache_id: usize) -> Self::Output {
                 // Detect recursion
                 if self.am_i_in_a_cycle.try_borrow_mut().is_err() {
-                    return self.cache
+                    let last_value = self.cache
                         .try_borrow()
                         .expect("Borrowing cache failed")
                         .as_ref()
-                        .map(|cached| cached[index].clone())
+                        .map(|cached| iftwo! { $($output_name),+;
+                            { cached[index].clone() };
+                            { cached.clone() };
+                        })
                         .unwrap_or_default();
+                    log::trace!(target: &format!("{} > {}", stringify!($struct_name), self.id),
+                                "Cycle detected. Returning {:?}", last_value);
+                    return last_value;
                 }
                 let _x = self.am_i_in_a_cycle.borrow_mut();
                 if ! self.cache
@@ -116,8 +149,10 @@ macro_rules! define_node {
                         .as_ref()
                         .expect(stringify!(A $struct_name needs to have all inputs defined))
                         .try_borrow_mut()
-                        .expect(stringify!(Mutable borrow failed for $input_name on $crate_name))
+                        .expect(stringify!(Mutable borrow failed for $input_name on $struct_name))
                         .get(cache_id);
+                        log::trace!(target: &format!("{} > {}", stringify!($struct_name), self.id),
+                                    "Got {:?} from input {}", $input_name, stringify!($input_name));
                     )*;
                     // Interior mutability for f
                     let mut f = self.f
@@ -129,13 +164,25 @@ macro_rules! define_node {
                         .expect("Mutable borrow of cache failed")
                         .update(cache_id, f($(&$input_name,)*));
                 }
-                self.cache
-                    .try_borrow()
-                    .expect("Borrow of cache failed #2")
-                    .as_ref()
-                    .unwrap()[index]
-                    .clone()
+                iftwo! { $($output_name),+;
+                    {
+                        self.cache
+                            .try_borrow()
+                            .expect("Borrow of cache failed #2")
+                            .as_ref()
+                            .unwrap()[index]
+                            .clone()
+                    };
+                    {
+                        self.cache
+                            .try_borrow()
+                            .expect("Borrow of cache failed #2")
+                            .as_ref()
+                            .unwrap()
+                            .clone()
+                    };
+                }
             }
         }
-    }
+    };
 }

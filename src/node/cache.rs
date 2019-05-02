@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone)]
 pub enum Cache<T> {
     Empty,
@@ -49,4 +48,3 @@ where
         }
     }
 }
-
