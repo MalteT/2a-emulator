@@ -52,8 +52,6 @@ macro_rules! define_node {
         $visibility struct $struct_name<'a, F, $($input_type,)* O>
         where
             F: FnMut($(&$input_type),*) -> out![O; $output_number, $($output_name),*],
-            O: Clone,
-            $($input_type: Clone + ::std::fmt::Debug,)*
         {
             id: String,
             am_i_in_a_cycle: ::std::cell::RefCell<()>,
@@ -118,12 +116,12 @@ macro_rules! define_node {
         impl<'a, F, $($input_type,)* O> $crate::node::Node for $struct_name<'a, F, $($input_type,)* O>
         where
             F: FnMut($(&$input_type,)*) -> out![O; $output_number, $($output_name),+],
-            $($input_type: Clone + ::std::fmt::Debug,)*
+            $($input_type: ::std::fmt::Debug,)*
             O: Clone + Default + ::std::fmt::Debug,
         {
             type Output = O;
 
-            unsafe fn get(&self, index: usize, cache_id: usize) -> Self::Output {
+            unsafe fn get(&self, _index: usize, cache_id: usize) -> Self::Output {
                 // Detect recursion
                 if self.am_i_in_a_cycle.try_borrow_mut().is_err() {
                     let last_value = self.cache
@@ -131,7 +129,7 @@ macro_rules! define_node {
                         .expect("Borrowing cache failed")
                         .as_ref()
                         .map(|cached| iftwo! { $($output_name),+;
-                            { cached[index].clone() };
+                            { cached[_index].clone() };
                             { cached.clone() };
                         })
                         .unwrap_or_default();
@@ -170,7 +168,7 @@ macro_rules! define_node {
                             .try_borrow()
                             .expect("Borrow of cache failed #2")
                             .as_ref()
-                            .unwrap()[index]
+                            .unwrap()[_index]
                             .clone()
                     };
                     {
@@ -182,6 +180,15 @@ macro_rules! define_node {
                             .clone()
                     };
                 }
+            }
+        }
+
+        impl<'a, F, $($input_type,)* O> ::std::fmt::Display for $struct_name<'a, F, $($input_type,)* O>
+        where
+            F: FnMut($(&$input_type,)*) -> out![O; $output_number, $($output_name),+],
+        {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                write!(f, "hi")
             }
         }
     };

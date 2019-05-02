@@ -1,37 +1,25 @@
 use pretty_env_logger;
+use termion::raw::IntoRawMode;
+use tui::backend::TermionBackend;
+use tui::style::Color;
+use tui::widgets::canvas::Canvas;
+use tui::widgets::Widget;
+use tui::Terminal;
 
-use std::fmt::Debug;
-use std::sync::mpsc::{channel, Sender};
+use std::io;
 
-mod fns;
-mod node;
+pub mod fns;
+pub mod node;
+pub mod schematic;
 
+use node::channel;
 use node::DFlipFlop;
 use node::DFlipFlopC;
 use node::Input;
 use node::Node2x1;
 use node::Node4x1;
-use node::Wire;
 
-fn input_channel<'a, O>(id: &str) -> (Sender<O>, Wire<'a, O>)
-where
-    O: Clone + Debug + Default + 'a,
-{
-    let (sender, receiver) = channel();
-    let mut last = Default::default();
-    (
-        sender,
-        Input::new(id, move || {
-            while let Ok(value) = receiver.try_recv() {
-                last = value;
-            }
-            last.clone()
-        })
-        .1,
-    )
-}
-
-fn main() {
+fn main() -> Result<(), io::Error> {
     pretty_env_logger::init();
 
     let mac1 = true;
@@ -41,9 +29,9 @@ fn main() {
     let (_, mac1) = Input::new("MAC1", || mac1);
     let (_, mac0) = Input::new("MAC0", || mac0);
     let (_, na0) = Input::new("NA0", || na0);
-    let (reset_send, reset) = input_channel("reset");
-    let (int_send, int) = input_channel("INTERRUPT");
-    let (clk_send, clk) = input_channel("CLK");
+    let (reset_send, reset) = channel("reset");
+    let (int_send, int) = channel("INTERRUPT");
+    let (clk_send, clk) = channel("CLK");
     let (_, high) = Input::new("HIGH", || true);
     let (il1, il1_out) = Node4x1::new("IL1", |&x, &y, &z, &a| x && y && z && a);
     let (il2, il2_out) = Node2x1::new("IL2", |&x, &y| x || y);
@@ -67,11 +55,11 @@ fn main() {
     });
 
     il1.borrow_mut()
-        .plug_in1(iff1_out.clone())
-        .plug_in2(mac1)
-        .plug_in3(mac0)
-        .plug_in4(na0);
-    il2.borrow_mut().plug_in1(iff2_out).plug_in2(reset);
+        .plug_in0(iff1_out.clone())
+        .plug_in1(mac1)
+        .plug_in2(mac0)
+        .plug_in3(na0);
+    il2.borrow_mut().plug_in0(iff2_out).plug_in1(reset);
     iff1.borrow_mut()
         .plug_input(high)
         .plug_clk(int)
@@ -83,6 +71,21 @@ fn main() {
         int_send.send(cache == 0).unwrap();
         reset_send.send(cache == 7).unwrap();
         iff1_out.get(cache);
-        //println!("{}", iff1_out.get(cache));
+        println!("{}", iff1_out.get(cache));
     }
+
+    let stdout = io::stdout().into_raw_mode()?;
+    let backend = TermionBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    terminal.draw(|mut f| {
+        let size = f.size();
+        Canvas::default()
+            .paint(move |ctx| {
+                ctx.print(0.0, 0.0, "hi", Color::Red);
+            })
+            .render(&mut f, size);
+    })?;
+
+    Ok(())
 }
