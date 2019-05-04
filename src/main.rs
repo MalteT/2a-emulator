@@ -6,7 +6,9 @@ use tui::widgets::canvas::Canvas;
 use tui::widgets::Widget;
 use tui::Terminal;
 
+use std::fmt;
 use std::io;
+use std::ops;
 
 pub mod fns;
 pub mod node;
@@ -19,12 +21,20 @@ use node::Input;
 use node::Node2x1;
 use node::Node4x1;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Signal {
+    High,
+    Low,
+}
+
+use Signal::*;
+
 fn main() -> Result<(), io::Error> {
     pretty_env_logger::init();
 
-    let mac1 = true;
-    let mac0 = true;
-    let na0 = false;
+    let mac1 = High;
+    let mac0 = High;
+    let na0 = High;
 
     let (_, mac1) = Input::new("MAC1", || mac1);
     let (_, mac0) = Input::new("MAC0", || mac0);
@@ -32,23 +42,23 @@ fn main() -> Result<(), io::Error> {
     let (reset_send, reset) = channel("reset");
     let (int_send, int) = channel("INTERRUPT");
     let (clk_send, clk) = channel("CLK");
-    let (_, high) = Input::new("HIGH", || true);
-    let (il1, il1_out) = Node4x1::new("IL1", |&x, &y, &z, &a| x && y && z && a);
-    let (il2, il2_out) = Node2x1::new("IL2", |&x, &y| x || y);
+    let (_, high) = Input::new("HIGH", || High);
+    let (il1, il1_out) = Node4x1::new("IL1", |&x, &y, &z, &a| x & y & z & a);
+    let (il2, il2_out) = Node2x1::new("IL2", |&x, &y| x | y);
 
     let mut last_value = Default::default();
-    let (iff1, mut iff1_out) = DFlipFlopC::new("IFF1", move |&d, &clk, &clear: &bool| {
-        if clk && !clear {
+    let (iff1, mut iff1_out) = DFlipFlopC::new("IFF1", move |&d, &clk, &clear: &Signal| {
+        if clk & !clear == High {
             last_value = d;
-        } else if clear {
-            last_value = false;
+        } else if clear == High {
+            last_value = Low;
         }
         last_value
     });
 
     let mut last_value = Default::default();
     let (iff2, iff2_out) = DFlipFlop::new("IFF2", move |&d, &clk| {
-        if clk {
+        if clk == High {
             last_value = d
         };
         last_value
@@ -67,25 +77,104 @@ fn main() -> Result<(), io::Error> {
     iff2.borrow_mut().plug_input(il1_out).plug_clk(clk);
 
     for cache in 0..10 {
-        clk_send.send(cache % 2 == 1).unwrap();
-        int_send.send(cache == 0).unwrap();
-        reset_send.send(cache == 7).unwrap();
-        iff1_out.get(cache);
-        println!("{}", iff1_out.get(cache));
+        let int_raw: Signal = (cache == 0 || cache == 1).into();
+        let clk_raw: Signal = (cache % 2 == 1).into();
+        clk_send.send(clk_raw).unwrap();
+        int_send.send(int_raw).unwrap();
+        reset_send.send((cache == 7).into()).unwrap();
+        let _ = iff1_out.get(cache);
+        println!("{}", il1.borrow());
+        println!("{}", iff2.borrow());
     }
 
-    let stdout = io::stdout().into_raw_mode()?;
-    let backend = TermionBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    // let stdout = io::stdout().into_raw_mode()?;
+    // let backend = TermionBackend::new(stdout);
+    // let mut terminal = Terminal::new(backend)?;
 
-    terminal.draw(|mut f| {
-        let size = f.size();
-        Canvas::default()
-            .paint(move |ctx| {
-                ctx.print(0.0, 0.0, "hi", Color::Red);
-            })
-            .render(&mut f, size);
-    })?;
+    // terminal.draw(|mut f| {
+    //     let size = f.size();
+    //     Canvas::default()
+    //         .paint(|ctx| {
+    //             ctx.print(0.0, 0.0, "test", Color::Red);
+    //         })
+    //         .render(&mut f, size);
+    // })?;
 
     Ok(())
+}
+
+impl Default for Signal {
+    fn default() -> Self {
+        Signal::Low
+    }
+}
+
+impl fmt::Display for Signal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match *self {
+                Signal::Low => "○",
+                Signal::High => "●",
+            }
+        )
+    }
+}
+
+impl ops::BitAnd for Signal {
+    type Output = Self;
+
+    fn bitand(self, other: Self) -> Self::Output {
+        use Signal::*;
+        match (self, other) {
+            (High, High) => High,
+            _ => Low,
+        }
+    }
+}
+
+impl ops::BitOr for Signal {
+    type Output = Self;
+
+    fn bitor(self, other: Self) -> Self::Output {
+        use Signal::*;
+        match (self, other) {
+            (Low, Low) => Low,
+            _ => High,
+        }
+    }
+}
+
+impl ops::Not for Signal {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        use Signal::*;
+        match self {
+            High => Low,
+            Low => High,
+        }
+    }
+}
+
+impl From<bool> for Signal {
+    fn from(b: bool) -> Self {
+        use Signal::*;
+        if b {
+            High
+        } else {
+            Low
+        }
+    }
+}
+
+impl From<Signal> for bool {
+    fn from(s: Signal) -> Self {
+        use Signal::*;
+        match s {
+            High => true,
+            Low => false,
+        }
+    }
 }
