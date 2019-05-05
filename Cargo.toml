@@ -4,4 +4,15 @@ version = "0.1.0"
 authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
+[dependencies.node]
+path = "../node"
+
+
 [dependencies]
+paste = "0.1"
+log = "0.4"
+pretty_env_logger = "0.3"
+tui = "0.5"
+termion = "1.5"
+strfmt = "0.1"
+
