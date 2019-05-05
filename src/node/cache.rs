@@ -1,3 +1,5 @@
+use super::Display;
+
 #[derive(Debug, Clone)]
 pub enum Cache<T> {
     Empty,
@@ -45,6 +47,24 @@ where
         match self {
             Cache::Empty => Default::default(),
             Cache::Cached(_, value) => value,
+        }
+    }
+}
+
+impl<T> Display for Cache<T>
+where
+    T: Display,
+{
+    fn to_ascii_string(&self) -> String {
+        match self {
+            Cache::Empty => "?".into(),
+            Cache::Cached(_, value) => Display::to_ascii_string(value),
+        }
+    }
+    fn to_utf8_string(&self) -> String {
+        match self {
+            Cache::Empty => "?".into(),
+            Cache::Cached(_, value) => Display::to_utf8_string(value),
         }
     }
 }
