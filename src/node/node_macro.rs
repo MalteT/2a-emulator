@@ -96,7 +96,7 @@ macro_rules! define_node {
             id: String,
             am_i_in_a_cycle: ::std::cell::RefCell<()>,
             lifetime: ::std::marker::PhantomData<&'a O>,
-            cache: ::std::cell::RefCell<$crate::node::Cache<out![O; $output_number, $($output_name),*]>>,
+            cache: ::std::cell::RefCell<$crate::node::Cache<out![O; $output_number, $($output_name),+]>>,
             $(
                 $input_name: (Option<::std::cell::RefCell<$crate::node::Wire<'a, $input_type>>>,
                               ::std::cell::RefCell<Option<$input_type>>),

@@ -1,7 +1,9 @@
+use ::node::node;
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
 use std::sync::mpsc::{channel as mpsc_channel, Receiver, Sender};
+use std::marker::PhantomData;
 
 #[macro_use]
 mod node_macro;
@@ -9,9 +11,57 @@ mod cache;
 
 pub use cache::Cache;
 
+pub trait Node2 {
+    fn update(&mut self, cache_id: usize);
+}
+
 pub trait Node {
     type Output;
     unsafe fn get(&self, index: usize, clock: usize) -> Self::Output;
+}
+
+#[derive(Clone)]
+pub struct Wire2<'a, O>
+where
+    O: Clone,
+{
+    node: Rc<RefCell<dyn Node2 + 'a>>,
+    last_output: Rc<RefCell<Cache<O>>>,
+}
+
+impl<'a, O> fmt::Debug for Wire2<'a, O>
+where O: Clone + fmt::Debug {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Wire")
+            .field("last_output", &self.last_output)
+            .field("node", &"[hidden]".to_string())
+            .finish()
+    }
+}
+
+impl<'a, O> Wire2<'a, O>
+where
+    O: Clone + Default,
+{
+    pub fn get(&mut self, cache_id: usize) -> O {
+        if self
+            .last_output
+            .try_borrow()
+            .expect("Ref borrow of last_output failed in Wire")
+            .is_valid(cache_id)
+        {
+            self.last_output.borrow().clone().unwrap()
+        } else {
+            let node = self.node.try_borrow_mut();
+            match node {
+                Ok(mut node) => {
+                    node.update(cache_id);
+                    self.last_output.borrow().clone().unwrap()
+                }
+                Err(_) => self.last_output.borrow().clone().unwrap_or_default(),
+            }
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -31,6 +81,20 @@ define_node! {
         display {
             "TODO {}",
         },
+    }
+}
+
+node! {
+    pub struct Test {
+        inputs { in1 },
+        outputs { out1 },
+    }
+}
+
+node! {
+    pub struct Inp {
+        inputs {},
+        outputs { out1 },
     }
 }
 

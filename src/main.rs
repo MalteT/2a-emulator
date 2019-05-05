@@ -14,12 +14,14 @@ pub mod fns;
 pub mod node;
 pub mod schematic;
 
-use node::channel;
-use node::DFlipFlop;
-use node::DFlipFlopC;
-use node::Input;
-use node::Node2x1;
-use node::Node4x1;
+use crate::node::channel;
+use crate::node::DFlipFlop;
+use crate::node::DFlipFlopC;
+use crate::node::Input;
+use crate::node::Node2x1;
+use crate::node::Node4x1;
+use crate::node::Test;
+use crate::node::Inp;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Signal {
@@ -76,7 +78,7 @@ fn main() -> Result<(), io::Error> {
         .plug_clear(il2_out);
     iff2.borrow_mut().plug_input(il1_out).plug_clk(clk);
 
-    for cache in 0..10 {
+    for cache in 1..10 {
         let int_raw: Signal = (cache == 0 || cache == 1).into();
         let clk_raw: Signal = (cache % 2 == 1).into();
         clk_send.send(clk_raw).unwrap();
@@ -86,6 +88,18 @@ fn main() -> Result<(), io::Error> {
         println!("{}", il1.borrow());
         println!("{}", iff2.borrow());
     }
+
+    //let (test, test_out)   = Inp::new("test", || true);
+    //let (test1, test1_out) = Test::new("test", |y: bool| !y);
+    let (test2, mut test2_out) = Test::new("test", |y: bool| ! y);
+
+    test2.borrow_mut().plug_in1(test2_out.clone());
+    //test1.borrow_mut().plug_in1(test2_out.clone());
+
+    for x in 0..10 {
+        println!("{}", test2_out.get(x));
+    }
+    println!("{:#?}", test2);
 
     // let stdout = io::stdout().into_raw_mode()?;
     // let backend = TermionBackend::new(stdout);
