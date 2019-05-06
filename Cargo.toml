@@ -4,10 +4,6 @@ version = "0.1.0"
 authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
-[dependencies.node]
-path = "../node"
-
-
 [dependencies]
 paste = "0.1"
 log = "0.4"
@@ -16,3 +12,10 @@ tui = "0.5"
 termion = "1.5"
 strfmt = "0.1"
 
+[dependencies.node]
+path = "../node"
+
+[features]
+# The std::fmt::Display implementation defaults to Display::to_utf8_string
+# instead of Display::to_ascii_string
+utf8 = []

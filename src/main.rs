@@ -9,16 +9,14 @@ use pretty_env_logger;
 use std::io;
 
 pub mod fns;
-pub mod node;
 pub mod schematic;
 
-use crate::node::channel;
-use crate::node::DFlipFlop;
-use crate::node::DFlipFlopC;
-use crate::node::Display;
-use crate::node::Input;
-use crate::node::Node2x1;
-use crate::node::Node4x1;
+use schematic::channel;
+use schematic::DFlipFlop;
+use schematic::DFlipFlopC;
+use schematic::Input;
+use schematic::Node2x1;
+use schematic::Node4x1;
 
 fn main() -> Result<(), io::Error> {
     pretty_env_logger::init();
@@ -74,8 +72,8 @@ fn main() -> Result<(), io::Error> {
         int_send.send(int_raw).unwrap();
         reset_send.send((cache == 7).into()).unwrap();
         let _ = iff1_out.get(cache);
-        println!("{}", il1.borrow().to_utf8_string());
-        println!("{}", iff2.borrow().to_utf8_string());
+        println!("{}", il1.borrow());
+        println!("{}", iff2.borrow());
     }
 
     // let stdout = io::stdout().into_raw_mode()?;
