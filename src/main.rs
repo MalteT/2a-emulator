@@ -5,6 +5,7 @@ use pretty_env_logger;
 //use tui::widgets::canvas::Canvas;
 //use tui::widgets::Widget;
 //use tui::Terminal;
+use node::Display;
 
 use std::io;
 
@@ -72,8 +73,8 @@ fn main() -> Result<(), io::Error> {
         int_send.send(int_raw).unwrap();
         reset_send.send((cache == 7).into()).unwrap();
         let _ = iff1_out.get(cache);
-        println!("{}", il1.borrow());
-        println!("{}", iff2.borrow());
+        println!("{}", il1.borrow().to_utf8_string());
+        println!("{}", iff2.borrow().to_utf8_string());
     }
 
     // let stdout = io::stdout().into_raw_mode()?;

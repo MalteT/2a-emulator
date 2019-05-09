@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::mpsc::{channel as mpsc_channel, Receiver, Sender};
 
-pub fn channel<'a, O>(id: &str) -> (Sender<O>, Wire<'a, O>)
+pub fn channel<'a, O>(id: &'static str) -> (Sender<O>, Wire<'a, O>)
 where
     O: Clone + fmt::Debug + Default + 'a,
 {
@@ -31,124 +31,114 @@ pub type Xor<'a, F, I1, I2, O> = Node2x1<'a, F, I1, I2, O>;
 pub type And2<'a, F, I1, I2, O> = Node2x1<'a, F, I1, I2, O>;
 pub type And4<'a, F, I1, I2, I3, I4, O> = Node4x1<'a, F, I1, I2, I3, I4, O>;
 
-node! {
-    pub struct Input {
-        inputs {},
-        outputs { out },
-        display {
-            ascii { "TODO {}", id }
-            utf8 { "TODO {}", id }
-        },
-    }
+#[node {
+    ascii("TODO {}", id),
+    utf8("TODO {}", id),
+    add_new(id),
+}]
+pub struct Input {
+    pub id: &'static str,
+    out: Output,
 }
 
-node! {
-    pub struct Node2x1 {
-        inputs { in0, in1, },
-        outputs { out },
-        display {
-            ascii { "TODO {}", id },
-            utf8 { "TODO {}", id },
-        },
-    }
+#[node {
+    ascii("TODO {}", id),
+    utf8("TODO {}", id),
+    add_new(id),
+}]
+pub struct Node2x1 {
+    pub id: &'static str,
+    in0: Input,
+    in1: Input,
+    out: Output,
 }
 
-node! {
-    pub struct Node4x1 {
-        inputs { in0, in1, in2, in3, },
-        outputs { out }
-        display {
-            ascii { "TODO {}", id },
-            utf8 { include_str!("../displays/and4.utf8"), id, in0, in1, in2, in3, },
-        }
-    }
+#[node {
+    ascii("TODO {}", id),
+    utf8(file("../displays/and4.utf8"), id, in0, in1, in2, in3),
+    add_new(id),
+}]
+pub struct Node4x1 {
+    pub id: &'static str,
+    in0: Input,
+    in1: Input,
+    in2: Input,
+    in3: Input,
+    out: Output,
 }
 
-node! {
-    pub struct DFlipFlop {
-        inputs {
-            input,
-            clk,
-        },
-        outputs { out },
-        display {
-            ascii { "TODO {}", id },
-            utf8 { include_str!("../displays/dflipflop.utf8"), id, input, clk, out, }
-        }
-    }
+#[node {
+    ascii("TODO {}", id),
+    utf8(file("../displays/dflipflop.utf8"), id, input, clk, out),
+    add_new(id),
+}]
+pub struct DFlipFlop {
+    pub id: &'static str,
+    input: Input,
+    clk: Input,
+    out: Output,
 }
 
-node! {
-    pub struct DFlipFlopC {
-        inputs {
-            input,
-            clk,
-            clear,
-        },
-        outputs { out }
-        display {
-            ascii { "TODO {}", id },
-            utf8 { "TODO {}", id },
-        },
-    }
+#[node {
+    ascii("TODO {}", id),
+    utf8("TODO {}", id),
+    add_new(id),
+}]
+pub struct DFlipFlopC {
+    pub id: &'static str,
+    input: Input,
+    clk: Input,
+    clear: Input,
+    out: Output,
 }
 
-node! {
-    pub struct Mux2x1 {
-        inputs {
-            in0,
-            in1,
-            select,
-        },
-        outputs { out },
-        display {
-            ascii { "TODO {}", id },
-            utf8 { "TODO {}", id },
-        },
-    }
+#[node {
+    ascii("TODO {}", id),
+    utf8("TODO {}", id),
+    add_new(id),
+}]
+pub struct Mux2x1 {
+    pub id: &'static str,
+    in0: Input,
+    in1: Input,
+    select: Input,
+    out: Output,
 }
 
-node! {
-    pub struct Mux4x1 {
-        inputs {
-            in0,
-            in1,
-            in2,
-            in3,
-            select0,
-            select1,
-        },
-        outputs {
-            out,
-        },
-        display {
-            ascii { "TODO {}", id },
-            utf8 { "TODO {}", id },
-        },
-    }
+#[node {
+    ascii("TODO {}", id),
+    utf8("TODO {}", id),
+    add_new(id),
+}]
+pub struct Mux4x1 {
+    pub id: &'static str,
+    in0: Input,
+    in1: Input,
+    in2: Input,
+    in3: Input,
+    select0: Input,
+    select1: Input,
+    out: Output,
 }
 
-node! {
-    pub struct Mux8x1 {
-        inputs {
-            in0,
-            in1,
-            in2,
-            in3,
-            in4,
-            in5,
-            in6,
-            in7,
-            select0,
-            select1,
-            select2,
-        },
-        outputs {
-            out,
-        },
-        display {
-            ascii { "TODO {}", id },
-            utf8 { "TODO {}", id },
-        },
-    }
+#[node {
+    ascii("TODO {}", id),
+    utf8("TODO {}", id),
+    add_new(id),
+}]
+pub struct Mux8x1 {
+    pub id: &'static str,
+    in0: Input,
+    in1: Input,
+    in2: Input,
+    in3: Input,
+    in4: Input,
+    in5: Input,
+    in6: Input,
+    in7: Input,
+    select0: Input,
+    select1: Input,
+    select2: Input,
+    select3: Input,
+    out: Output,
 }
