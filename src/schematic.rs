@@ -10,6 +10,8 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::mpsc::{channel as mpsc_channel, Receiver, Sender};
 
+pub mod fns;
+
 pub fn channel<'a, O>(id: &'static str) -> (Sender<O>, Wire<'a, O>)
 where
     O: Clone + fmt::Debug + Default + 'a,
@@ -26,14 +28,26 @@ where
     (sender, out)
 }
 
-pub type Or2<'a, F, I1, I2, O> = Node2x1<'a, F, I1, I2, O>;
 pub type Xor<'a, F, I1, I2, O> = Node2x1<'a, F, I1, I2, O>;
 pub type And2<'a, F, I1, I2, O> = Node2x1<'a, F, I1, I2, O>;
 pub type And4<'a, F, I1, I2, I3, I4, O> = Node4x1<'a, F, I1, I2, I3, I4, O>;
 
+#[node{
+    ascii("TODO"),
+    utf8(file("../displays/or2.utf8"), id, in0, in1, out),
+    add_new(id)
+}]
+pub struct Or2 {
+    pub id: &'static str,
+    in0: Input,
+    in1: Input,
+    out: Output,
+}
+
+// TODO: ASCII
 #[node {
-    ascii("TODO {}", id),
-    utf8("TODO {}", id),
+    ascii(file("../displays/input.utf8"), id, out),
+    utf8(file("../displays/input.utf8"), id, out),
     add_new(id),
 }]
 pub struct Input {
@@ -55,7 +69,7 @@ pub struct Node2x1 {
 
 #[node {
     ascii("TODO {}", id),
-    utf8(file("../displays/and4.utf8"), id, in0, in1, in2, in3),
+    utf8(file("../displays/and4.utf8"), id, in0, in1, in2, in3, out),
     add_new(id),
 }]
 pub struct Node4x1 {
@@ -81,7 +95,7 @@ pub struct DFlipFlop {
 
 #[node {
     ascii("TODO {}", id),
-    utf8("TODO {}", id),
+    utf8(file("../displays/dflipflopc.utf8"), id, input, clk, clear, out),
     add_new(id),
 }]
 pub struct DFlipFlopC {
@@ -107,7 +121,7 @@ pub struct Mux2x1 {
 
 #[node {
     ascii("TODO {}", id),
-    utf8("TODO {}", id),
+    utf8(file("../displays/mux4x1.utf8"), id, in0, in1, in2, in3, select0, select1, out),
     add_new(id),
 }]
 pub struct Mux4x1 {
@@ -141,4 +155,23 @@ pub struct Mux8x1 {
     select2: Input,
     select3: Input,
     out: Output,
+}
+
+#[node {
+    ascii("TODO {}", reg0),
+    utf8(file("../displays/register.utf8"), id, reg0, reg1, reg2, reg3, reg4, reg5, reg6, reg7),
+    add_new(id),
+    add_input(reg0, reg1, reg2, reg3),
+}]
+pub struct Register {
+    pub id: &'static str,
+    reg0: u8,
+    reg1: u8,
+    reg2: u8,
+    reg3: u8,
+    reg4: u8,
+    reg5: u8,
+    reg6: u8,
+    reg7: u8,
+    test_out: Output,
 }
