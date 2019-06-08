@@ -5,16 +5,26 @@ authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
 [dependencies]
-paste = "0.1"
-log = "0.4"
-pretty_env_logger = "0.3"
-tui = "0.5"
-termion = "1.5"
-strfmt = "0.1"
-bitflags = "1.0"
+paste = "0.1.0"
+log = "0.4.0"
+pretty_env_logger = "0.3.0"
+tui = "0.5.0"
+termion = "1.5.0"
+strfmt = "0.1.0"
+bitflags = "1.0.0"
+pest = "2.1.0"
+pest_derive = "2.1.0"
+failure = "0.1.0"
+
+[dependencies.mr2a_asm_parser]
+path = "../mr2a-asm-parser"
 
 [dependencies.node]
 path = "../node"
+
+[dependencies.clap]
+version = "~2.33.0"
+features = ["yaml"]
 
 [features]
 # The std::fmt::Display implementation defaults to Display::to_utf8_string
