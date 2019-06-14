@@ -15,8 +15,10 @@ use std::time::{Duration, Instant};
 
 pub mod events;
 
-use crate::schematic::fns;
-use crate::schematic::{channel, And4, DFlipFlop, DFlipFlopC, Input, Or2, Register};
+use crate::schematic as fns;
+use crate::schematic::MPRam;
+use crate::schematic::Machine;
+use crate::schematic::{channel, And4, DFlipFlop, DFlipFlopC, Input, Or2};
 use events::{Event, Events};
 use node::Display;
 use node::Node;
@@ -33,106 +35,99 @@ pub fn run() -> Result<(), IOError> {
     terminal.clear()?;
     terminal.hide_cursor()?;
 
-    let (reset, reset_out) = channel("Reset");
-    let (interrupt, interrupt_out) = channel("Interrupt");
-    let (clk, clk_out) = channel("CLK");
-    let (_, high) = Input::new("HIGH", fns::make_high());
-    let (il1, il1_out) = And4::new("IL1", fns::make_and4());
-    let (iff2, iff2_out) = DFlipFlop::new("IFF2", fns::make_dflipflop());
-    let (iff1, mut iff1_out) = DFlipFlopC::new("IFF1", fns::make_dflipflopc());
-    let (il2, il2_out) = Or2::new("IL2", fns::make_or2());
-    il1.borrow_mut()
-        .plug_in0(iff1_out.clone())
-        .plug_in1(high.clone())
-        .plug_in2(high.clone())
-        .plug_in3(high.clone());
-    il2.borrow_mut()
-        .plug_in0(iff2_out.clone())
-        .plug_in1(reset_out.clone());
-    iff2.borrow_mut().plug_input(il1_out).plug_clk(clk_out);
-    iff1.borrow_mut()
-        .plug_input(high)
-        .plug_clk(interrupt_out)
-        .plug_clear(il2_out.clone());
+    // let (reset, reset_out) = channel("Reset");
+    // let (interrupt, interrupt_out) = channel("Interrupt");
+    // let (clk, clk_out) = channel("CLK");
+    // let (_, high) = Input::new("HIGH", fns::make_high());
+    // let (il1, il1_out) = And4::new("IL1", fns::make_and4());
+    // let (iff2, iff2_out) = DFlipFlop::new("IFF2", fns::make_dflipflop());
+    // let (iff1, mut iff1_out) = DFlipFlopC::new("IFF1", fns::make_dflipflopc());
+    // let (il2, il2_out) = Or2::new("IL2", fns::make_or2());
+    // il1.borrow_mut()
+    //     .plug_in0(iff1_out.clone())
+    //     .plug_in1(high.clone())
+    //     .plug_in2(high.clone())
+    //     .plug_in3(high.clone());
+    // il2.borrow_mut()
+    //     .plug_in0(iff2_out.clone())
+    //     .plug_in1(reset_out.clone());
+    // iff2.borrow_mut().plug_input(il1_out).plug_clk(clk_out);
+    // iff1.borrow_mut()
+    //     .plug_input(high)
+    //     .plug_clk(interrupt_out)
+    //     .plug_clear(il2_out.clone());
 
-    let mut intlogic = InterruptLogic {
-        il1: il1,
-        il2: il2,
-        iff1: iff1,
-        iff2: iff2.clone(),
-    };
+    // let mut intlogic = InterruptLogic {
+    //     il1: il1,
+    //     il2: il2,
+    //     iff1: iff1,
+    //     iff2: iff2.clone(),
+    // };
 
-    let (register, mut register_out) = Register::new("Register", |r0, r1, r2, r3| {
-        *r0 = (*r0 + 1) % 0xf0;
-        *r1 = (*r1 + 2) % 0xf0;
-        *r2 = (*r2 + 3) % 0xf0;
-        *r3 = (*r3 + 4) % 0xf0;
-        false
-    });
-    let mut register: NodeWidget<_> = register.into();
+    // let (mpram, _) = MPRam::new(fns::make_mpram());
+    // mpram.borrow();
 
-    let events = Events::new();
-    let mut events = events.try_iter();
-    let mut frame: usize = 0;
-    let mut frame_invalid = false;
-    let mut auto_run = false;
-    let mut last_event = None;
+    // let events = Events::new();
+    // let mut events = events.try_iter();
+    // let mut frame: usize = 0;
+    // let mut frame_invalid = false;
+    // let mut auto_run = false;
+    // let mut last_event = None;
 
     loop {
-        if let Some(event) = events.next() {
-            match event {
-                Event::Quit => break,
-                Event::Clock => {
-                    clk.send(true).expect("Send clk failed");
-                    frame_invalid = true;
-                    last_event = Some(Instant::now());
-                }
-                Event::Step => frame += 1,
-                Event::ToggleAutoRun => auto_run = !auto_run,
-                Event::Interrupt => {
-                    interrupt.send(true).expect("Send interrupt failed");
-                    frame_invalid = true;
-                    last_event = Some(Instant::now());
-                }
-                Event::Reset => {
-                    reset.send(true).expect("Send reset failed");
-                    frame_invalid = true;
-                    last_event = Some(Instant::now());
-                }
-                Event::Other(_) => {}
-            }
-            eprintln!("{:?}", event);
-        }
+        //     if let Some(event) = events.next() {
+        //         match event {
+        //             Event::Quit => break,
+        //             Event::Clock => {
+        //                 clk.send(true).expect("Send clk failed");
+        //                 frame_invalid = true;
+        //                 last_event = Some(Instant::now());
+        //             }
+        //             Event::Step => frame += 1,
+        //             Event::ToggleAutoRun => auto_run = !auto_run,
+        //             Event::Interrupt => {
+        //                 interrupt.send(true).expect("Send interrupt failed");
+        //                 frame_invalid = true;
+        //                 last_event = Some(Instant::now());
+        //             }
+        //             Event::Reset => {
+        //                 reset.send(true).expect("Send reset failed");
+        //                 frame_invalid = true;
+        //                 last_event = Some(Instant::now());
+        //             }
+        //             Event::Other(_) => {}
+        //         }
+        //         eprintln!("{:?}", event);
+        //     }
 
-        if let Some(ref inst) = last_event {
-            if inst.elapsed().as_millis() > 300 {
-                reset.send(false).expect("Send reset failed");
-                interrupt.send(false).expect("Send interrupt failed");
-                clk.send(false).expect("Send clk failed");
-                frame_invalid = true;
-                last_event = None;
-            }
-        }
+        //     if let Some(ref inst) = last_event {
+        //         if inst.elapsed().as_millis() > 300 {
+        //             reset.send(false).expect("Send reset failed");
+        //             interrupt.send(false).expect("Send interrupt failed");
+        //             clk.send(false).expect("Send clk failed");
+        //             frame_invalid = true;
+        //             last_event = None;
+        //         }
+        //     }
 
-        if frame_invalid {
-            frame_invalid = false;
-            frame += 1;
-        }
+        //     if frame_invalid {
+        //         frame_invalid = false;
+        //         frame += 1;
+        //     }
 
-        if auto_run {
-            clk.send(true).expect("Send clk failed");
-            frame += 1;
-        }
+        //     if auto_run {
+        //         clk.send(true).expect("Send clk failed");
+        //         frame += 1;
+        //     }
 
-        iff1_out.get(frame);
-        register_out.get(frame);
+        // iff1_out.get(frame);
+
+        //let machine = Machine::compose();
+
         terminal.draw(|mut f| {
-            let size = f.size().inner(1);
-            intlogic.render(&mut f, size);
-            register.render(
-                &mut f,
-                Rect::new(size.x, size.y + 30, size.width, size.height),
-            );
+            // let size = f.size().inner(1);
+            // intlogic.render(&mut f, size);
+
         })?;
         thread::sleep(Duration::from_millis(10));
     }
@@ -140,6 +135,35 @@ pub fn run() -> Result<(), IOError> {
     terminal.clear()?;
     Ok(())
 }
+
+// impl<'node> Widget for Machine<'node>
+// {
+//
+//     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
+//         let mut x = area.x;
+//         let mut y = area.y;
+//         self.al1
+//             .borrow()
+//             .to_utf8_string()
+//             .lines()
+//             .take(area.height as usize)
+//             .for_each(|line| {
+//                 x = area.x;
+//                 line.char_indices()
+//                     .take(area.width as usize)
+//                     .for_each(|(_, c)| {
+//                         let style = match c {
+//                             '○' => Style::default().fg(Color::Gray),
+//                             '●' => Style::default().fg(Color::Yellow),
+//                             _ => Style::default(),
+//                         };
+//                         buf.set_string(x, y, c.to_string(), style);
+//                         x += 1;
+//                     });
+//                 y += 1;
+//             });
+//     }
+// }
 
 impl<N> Widget for NodeWidget<N>
 where

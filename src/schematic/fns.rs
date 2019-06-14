@@ -8,6 +8,8 @@ use log::{debug, trace};
 
 use std::ops::{Index, IndexMut};
 
+use super::mp_ram::{MP28BitWord, Ram};
+
 /// Create a logical `HIGH` function.
 pub fn make_high() -> impl FnMut() -> bool {
     || true
@@ -97,7 +99,8 @@ pub fn make_mux4x1() -> impl FnMut(&bool, &bool, &bool, &bool, &bool, &bool) -> 
 /// - `in0`..`in7`: MUX inputs
 /// - `select0`..`select2`: MUX input selectors
 pub fn make_mux8x1(
-) -> impl FnMut(&bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool) -> bool {
+) -> impl FnMut(&bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool) -> bool
+{
     |&in0, &in1, &in2, &in3, &in4, &in5, &in6, &in7, &select0, &select1, &select2| {
         let out = match (select2, select1, select0) {
             (false, false, false) => in0,
@@ -122,7 +125,7 @@ pub fn make_mux8x1(
 pub fn make_dflipflop() -> impl FnMut(&bool, &bool) -> bool {
     let mut state = false;
     move |&input, &clk| {
-        debug!( "DFLIPFLOP: input: {}, clk: {}", input, clk);
+        debug!("DFLIPFLOP: input: {}, clk: {}", input, clk);
         if clk {
             state = input
         }
@@ -139,7 +142,10 @@ pub fn make_dflipflop() -> impl FnMut(&bool, &bool) -> bool {
 pub fn make_dflipflopc() -> impl FnMut(&bool, &bool, &bool) -> bool {
     let mut state = false;
     move |&input, &clk, &clear| {
-        debug!( "DFLIPFLOP: input: {}, clk: {}, clear: {}", input, clk, clear);
+        debug!(
+            "DFLIPFLOP: input: {}, clk: {}, clear: {}",
+            input, clk, clear
+        );
         if clear {
             state = false
         } else if clk {
@@ -199,7 +205,6 @@ impl IndexMut<usize> for Register {
 ///
 /// - Inputs: `15`
 ///   - `AA2`..`AA0`: Register selection for `DOA`
-///   - `AB2`..`AB0`: Register selection for `DOB`
 ///   - `WE`: Enable write for selected registers
 ///   - `WS`: Select which register (A=0/B=1) to use for write operation
 ///   - `FWE`: Enable write for flag register
@@ -207,6 +212,7 @@ impl IndexMut<usize> for Register {
 ///   - `DI`: Data input to write to selected register
 ///   - `CLK`: Clock
 ///   - `CLR`: Reset registers
+///   - `AB2`..`AB0`: Register selection for `DOB`
 /// - Outputs: `6`
 ///   - `DOA`: Data output from register selection A
 ///   - `DOB`: Data output from register selection B
@@ -221,13 +227,13 @@ pub fn make_register() -> impl FnMut(
     &bool,
     &bool,
     &bool,
-    &bool,
-    &bool,
-    &bool,
     &u8,
     &bool,
     &bool,
-) -> (u8, u8, bool, bool, bool, bool) {
+    &bool,
+    &bool,
+    &bool,
+) -> (u8, bool, bool, bool, bool, u8) {
     // Internal state
     // - R0: free
     // - R1: free
@@ -241,7 +247,7 @@ pub fn make_register() -> impl FnMut(
     let mut last_index_a = 0;
     let mut last_index_b = 0;
     // Return function
-    move |&aa2, &aa1, &aa0, &ab2, &ab1, &ab0, &we, &ws, &fwe, &f0i, &f1i, &f2i, &di, &clk, &clr| {
+    move |&aa0, &aa1, &aa2, &we, &ws, &fwe, &f0i, &f1i, &f2i, &di, &clk, &clr, &ab2, &ab1, &ab0| {
         if clr {
             reg.reset();
             last_index_a = 0;
@@ -274,11 +280,226 @@ pub fn make_register() -> impl FnMut(
         let flags = reg.flags();
         (
             reg[last_index_a],
-            reg[last_index_b],
             flags.contains(Flags::CARRY),
             flags.contains(Flags::ZERO),
             flags.contains(Flags::NEGATIVE),
             flags.contains(Flags::INT_ENABLE),
+            reg[last_index_b],
+        )
+    }
+}
+
+pub fn make_mpram(
+) -> impl FnMut(&bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool) -> MP28BitWord {
+    let ram = Ram::new();
+    move |&a8, &a7, &a6, &a5, &a4, &a3, &a2, &a1, &a0| {
+        let index = (a8 as u16)
+            << 8 + (a7 as u16)
+            << 7 + (a6 as u16)
+            << 6 + (a5 as u16)
+            << 5 + (a4 as u16)
+            << 4 + (a3 as u16)
+            << 3 + (a2 as u16)
+            << 2 + (a1 as u16)
+            << 1 + (a0 as u16);
+        ram[index]
+    }
+}
+
+pub fn make_instruction_register() -> impl FnMut(&u8, &bool, &bool) -> u8 {
+    let mut state = 0;
+    move |&memdi, &enable, &clear| {
+        debug!(
+            "Instruction Register: input: {}, enable: {}, clear: {}",
+            memdi, enable, clear
+        );
+        if clear {
+            state = 0;
+        } else if enable {
+            state = memdi;
+        }
+        state
+    }
+}
+
+pub fn make_mpff() -> impl FnMut(
+    &MP28BitWord,
+    &bool,
+    &bool,
+) -> (
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+) {
+    let mut state = MP28BitWord::empty();
+    move |&word, &enable, &clear| {
+        if clear {
+            state = MP28BitWord::empty();
+        } else if enable {
+            state = word;
+        }
+        (
+            state.contains(MP28BitWord::MRGAA3),
+            state.contains(MP28BitWord::MRGAA2),
+            state.contains(MP28BitWord::MRGAA1),
+            state.contains(MP28BitWord::MRGAA0),
+            state.contains(MP28BitWord::MRGAB3),
+            state.contains(MP28BitWord::MRGAB2),
+            state.contains(MP28BitWord::MRGAB1),
+            state.contains(MP28BitWord::MRGAB0),
+            state.contains(MP28BitWord::MCHFLG),
+            state.contains(MP28BitWord::MALUS3),
+            state.contains(MP28BitWord::MALUS2),
+            state.contains(MP28BitWord::MALUS1),
+            state.contains(MP28BitWord::MALUS0),
+            state.contains(MP28BitWord::MRGWE),
+            state.contains(MP28BitWord::MRGWS),
+            state.contains(MP28BitWord::MALUIA),
+            state.contains(MP28BitWord::MALUIB),
+            state.contains(MP28BitWord::MAC3),
+            state.contains(MP28BitWord::MAC2),
+            state.contains(MP28BitWord::MAC1),
+            state.contains(MP28BitWord::MAC0),
+            state.contains(MP28BitWord::NA4),
+            state.contains(MP28BitWord::NA3),
+            state.contains(MP28BitWord::NA2),
+            state.contains(MP28BitWord::NA1),
+            state.contains(MP28BitWord::NA0),
+            state.contains(MP28BitWord::BUSEN),
+            state.contains(MP28BitWord::BUSWR),
+        )
+    }
+}
+
+pub fn make_memory_controller() -> impl FnMut(&bool, &bool, &bool) -> (bool, bool, bool, bool) {
+    // TODO: How does the memory controller work?
+    let mut wait = false;
+    move |&enable, &write, &clk| {
+        if !enable && wait && clk {
+            wait = false;
+        } else if enable && clk {
+            wait = true;
+        }
+        (enable, enable, write, wait)
+    }
+}
+
+pub fn make_arithmetic_logical_unit(
+) -> impl FnMut(&bool, &u8, &u8, &bool, &bool, &bool, &bool) -> (bool, bool, bool, u8) {
+    move |&cin, &a, &b, &malus3, &malus2, &malus1, &malus0| {
+        let selection =
+            (malus3 as u8) << 3 + (malus2 as u8) << 2 + (malus1 as u8) << 1 + malus0 as u8;
+        let mut cout = None;
+        let zout = None;
+        let nout = None;
+        let out;
+
+        match selection {
+            0b0000 => {
+                let (o, c) = a.overflowing_add(b);
+                out = o;
+                cout = Some(c || cin);
+            }
+            0b0001 => {
+                out = a;
+            }
+            0b0010 => {
+                out = !(a | b);
+            }
+            0b0011 => {
+                out = 0;
+            }
+            0b0100 => {
+                let (o, c) = a.overflowing_add(b);
+                out = o;
+                cout = Some(c);
+            }
+            0b0101 => {
+                let (o, c1) = a.overflowing_add(b);
+                let (o, c2) = o.overflowing_add(1);
+                out = o;
+                cout = Some(!(c1 || c2));
+            }
+            0b0110 => {
+                let (o, c1) = a.overflowing_add(b);
+                let (o, c2) = o.overflowing_add(cin.into());
+                out = o;
+                cout = Some(c1 || c2);
+            }
+            0b0111 => {
+                let (o, c1) = a.overflowing_add(b);
+                let (o, c2) = o.overflowing_add((!cin).into());
+                out = o;
+                cout = Some(!(c1 || c2));
+            }
+            0b1000 => {
+                out = a >> 1;
+                cout = Some(a & 1 == 1);
+            }
+            0b1001 => {
+                let (o, c) = a.overflowing_shr(1);
+                out = o | (c as u8) << 7;
+                cout = Some(c);
+            }
+            0b1010 => {
+                let (o, c) = a.overflowing_shr(1);
+                out = o | (cin as u8) << 7;
+                cout = Some(c);
+            }
+            0b1011 => {
+                let (o, c) = a.overflowing_shr(1);
+                out = o | a & 0b10000000;
+                cout = Some(c);
+            }
+            0b1100 => {
+                out = b;
+                cout = Some(false);
+            }
+            0b1101 => {
+                out = b;
+                cout = Some(true);
+            }
+            0b1110 => {
+                out = b;
+                cout = Some(cin);
+            }
+            0b1111 => {
+                out = b;
+                cout = Some(!cin);
+            }
+            16..=255 => unreachable!(),
+        }
+
+        (
+            cout.unwrap_or(false),
+            zout.unwrap_or(out == 0),
+            nout.unwrap_or(out & 0b10000000 != 0),
+            out,
         )
     }
 }

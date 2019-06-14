@@ -22,12 +22,11 @@
 //!     <PROGRAM>    File to load and verify
 //! ```
 
-
 use pretty_env_logger;
 
+pub mod cli;
 pub mod schematic;
 pub mod tui;
-pub mod cli;
 
 use std::process;
 

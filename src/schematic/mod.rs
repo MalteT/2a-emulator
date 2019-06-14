@@ -1,16 +1,100 @@
-use node::node;
-use node::Cache;
-use node::Display;
-use node::Node;
-use node::Wire;
+use node::{Display, Node, Wire};
 
 use std::cell::RefCell;
 use std::fmt;
-use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::mpsc::{channel as mpsc_channel, Receiver, Sender};
 
-pub mod fns;
+mod fns;
+mod mp_ram;
+mod types;
+
+pub use fns::*;
+pub use mp_ram::MPRam;
+pub use types::*;
+
+pub struct Machine {
+    //pub al1: Rc<RefCell<Or2<'node, bool, bool, bool, dyn FnMut(&bool, &bool) -> bool + 'node>>>,
+// pub al2: Rc<RefCell<Al2>>,
+// pub al3: Rc<RefCell<Al3>>,
+}
+
+// impl<'node> Machine<'node>
+// {
+//
+//     pub fn compose() -> Machine<'node> {
+//         // Create all nodes
+//         let (al1_n, al1) = Or2::new("AL1", make_or2());
+//         let (al2_n, al2) = And2::new("AL2", make_and2());
+//         let (al3_n, al3) = Xor2::new("AL3", make_xor2());
+//         let (bl1_n, bl1) = And2::new("BL1", make_and2());
+//         let (bl2_n, bl2) = And2::new("BL2", make_and2());
+//         let (bl3_n, bl3) = Or2::new("BL3", make_or2());
+//         let (br_n, br) = InstructionRegister::new("BR", make_instruction_register());
+//         let (am1_n, am1) = Mux8x1::new("AM1", make_mux8x1());
+//         let (am2_n, am2) = Mux4x1::new("AM2", make_mux4x1());
+//         let (am3_n, am3) = Mux2x1::new("AM3", make_mux2x1());
+//         let (am4_n, am4) = Mux2x1::new("AM4", make_mux2x1());
+//         let (il1_n, il1) = And4::new("IL1", make_and4());
+//         let (il2_n, il2) = Or2::new("IL2", make_or2());
+//         let (iff1_n, iff1) = DFlipFlopC::new("IFF1", make_dflipflopc());
+//         let (iff2_n, iff2) = DFlipFlop::new("IFF2", make_dflipflop());
+//         let (mpram_n, mpram) = MPRam::new(make_mpram());
+//         let (
+//             mpff_n,
+//             mrgaa3,
+//             mrgaa2,
+//             mrgaa1,
+//             mrgaa0,
+//             mrgab3,
+//             mrgab2,
+//             mrgab1,
+//             mrgab0,
+//             mchflg,
+//             malus3,
+//             malus2,
+//             malus1,
+//             malus0,
+//             mrgwe,
+//             mrgws,
+//             maluia,
+//             maluib,
+//             mac3,
+//             mac2,
+//             mac1,
+//             mac0,
+//             na4,
+//             na3,
+//             na2,
+//             na1,
+//             na0,
+//             busen,
+//             buswr,
+//         ) = MicroprogramFlipFlopC::new("MPFF", make_mpff());
+//         let (mctr_n, ce, oe, we, wait) = MemoryController::new("MCTR", make_memory_controller());
+//         let (rm1_n, rm1) = Mux2x1::new("RM1", make_mux2x1());
+//         let (rm2_n, rm2) = Mux2x1::new("RM2", make_mux2x1());
+//         let (rm3_n, rm3) = Mux2x1::new("RM3", make_mux2x1());
+//         let (rm4_n, rm4) = Mux2x1::new("RM4", make_mux2x1());
+//         let (rm5_n, rm5) = Mux2x1::new("RM5", make_mux2x1());
+//         let (rm6_n, rm6) = Mux2x1::new("RM6", make_mux2x1());
+//         let (dm1_n, dm1) = Mux2x1::new("DM1", make_mux2x1());
+//         let (dm2_n, dm2) = Mux2x1::new("DM2", make_mux2x1());
+//         let (reg_n, doa, cf, zf, nf, ief, dob) = Register::new("REG", make_register());
+//         let (alu_n, co, zo, no, alu_out) =
+//             ArithmeticLogicalUnit::new("ALU", make_arithmetic_logical_unit());
+//         // Fake entry
+//         let (fake_n, fake) = Fake::new(|| true);
+//         // Compose everything
+//         al1_n.borrow_mut().plug_in0(fake.clone()).plug_in1(iff1.clone());
+//         al2_n.borrow_mut().plug_in0(ief.clone()).plug_in1(al1);
+//         al3_n.borrow_mut().plug_in0(fake.clone()).plug_in1(am3);
+//
+//         Machine {
+//             al1: al1_n,
+//         }
+//     }
+// }
 
 pub fn channel<'a, O>(id: &'static str) -> (Sender<O>, Wire<'a, O>)
 where
@@ -26,152 +110,4 @@ where
     };
     let (_, out) = Input::new(id, f);
     (sender, out)
-}
-
-pub type Xor<'a, F, I1, I2, O> = Node2x1<'a, F, I1, I2, O>;
-pub type And2<'a, F, I1, I2, O> = Node2x1<'a, F, I1, I2, O>;
-pub type And4<'a, F, I1, I2, I3, I4, O> = Node4x1<'a, F, I1, I2, I3, I4, O>;
-
-#[node{
-    ascii("TODO"),
-    utf8(file("../displays/or2.utf8"), id, in0, in1, out),
-    add_new(id)
-}]
-pub struct Or2 {
-    pub id: &'static str,
-    in0: Input,
-    in1: Input,
-    out: Output,
-}
-
-// TODO: ASCII
-#[node {
-    ascii(file("../displays/input.utf8"), id, out),
-    utf8(file("../displays/input.utf8"), id, out),
-    add_new(id),
-}]
-pub struct Input {
-    pub id: &'static str,
-    out: Output,
-}
-
-#[node {
-    ascii("TODO {}", id),
-    utf8("TODO {}", id),
-    add_new(id),
-}]
-pub struct Node2x1 {
-    pub id: &'static str,
-    in0: Input,
-    in1: Input,
-    out: Output,
-}
-
-#[node {
-    ascii("TODO {}", id),
-    utf8(file("../displays/and4.utf8"), id, in0, in1, in2, in3, out),
-    add_new(id),
-}]
-pub struct Node4x1 {
-    pub id: &'static str,
-    in0: Input,
-    in1: Input,
-    in2: Input,
-    in3: Input,
-    out: Output,
-}
-
-#[node {
-    ascii("TODO {}", id),
-    utf8(file("../displays/dflipflop.utf8"), id, input, clk, out),
-    add_new(id),
-}]
-pub struct DFlipFlop {
-    pub id: &'static str,
-    input: Input,
-    clk: Input,
-    out: Output,
-}
-
-#[node {
-    ascii("TODO {}", id),
-    utf8(file("../displays/dflipflopc.utf8"), id, input, clk, clear, out),
-    add_new(id),
-}]
-pub struct DFlipFlopC {
-    pub id: &'static str,
-    input: Input,
-    clk: Input,
-    clear: Input,
-    out: Output,
-}
-
-#[node {
-    ascii("TODO {}", id),
-    utf8("TODO {}", id),
-    add_new(id),
-}]
-pub struct Mux2x1 {
-    pub id: &'static str,
-    in0: Input,
-    in1: Input,
-    select: Input,
-    out: Output,
-}
-
-#[node {
-    ascii("TODO {}", id),
-    utf8(file("../displays/mux4x1.utf8"), id, in0, in1, in2, in3, select0, select1, out),
-    add_new(id),
-}]
-pub struct Mux4x1 {
-    pub id: &'static str,
-    in0: Input,
-    in1: Input,
-    in2: Input,
-    in3: Input,
-    select0: Input,
-    select1: Input,
-    out: Output,
-}
-
-#[node {
-    ascii("TODO {}", id),
-    utf8("TODO {}", id),
-    add_new(id),
-}]
-pub struct Mux8x1 {
-    pub id: &'static str,
-    in0: Input,
-    in1: Input,
-    in2: Input,
-    in3: Input,
-    in4: Input,
-    in5: Input,
-    in6: Input,
-    in7: Input,
-    select0: Input,
-    select1: Input,
-    select2: Input,
-    select3: Input,
-    out: Output,
-}
-
-#[node {
-    ascii("TODO {}", reg0),
-    utf8(file("../displays/register.utf8"), id, reg0, reg1, reg2, reg3, reg4, reg5, reg6, reg7),
-    add_new(id),
-    add_input(reg0, reg1, reg2, reg3),
-}]
-pub struct Register {
-    pub id: &'static str,
-    reg0: u8,
-    reg1: u8,
-    reg2: u8,
-    reg3: u8,
-    reg4: u8,
-    reg5: u8,
-    reg6: u8,
-    reg7: u8,
-    test_out: Output,
 }
