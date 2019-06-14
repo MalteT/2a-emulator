@@ -1,5 +1,4 @@
 use node::node;
-use node::Display;
 
 pub type Xor2<'a, I1, I2, O> = Node2x1<'a, I1, I2, O>;
 pub type And2<'a, I1, I2, O> = Node2x1<'a, I1, I2, O>;
