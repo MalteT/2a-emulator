@@ -5,6 +5,7 @@ use tui::layout::Rect;
 use tui::style::{Color, Style};
 use tui::widgets::Widget;
 use tui::Terminal;
+use log::trace;
 
 use std::cell::RefCell;
 use std::io;
@@ -46,7 +47,7 @@ pub fn run() -> Result<(), IOError> {
             match event {
                 Event::Quit => break,
                 Event::Clock => {
-                    machine.clk(Signal::Rising);
+                    machine.clk(true);
                     frame_invalid = true;
                     last_event = Some(Instant::now());
                 }
@@ -64,14 +65,14 @@ pub fn run() -> Result<(), IOError> {
                 }
                 Event::Other(_) => {}
             }
-            eprintln!("{:?}", event);
+            trace!("{:?}", event);
         }
 
         if let Some(ref inst) = last_event {
             if inst.elapsed().as_millis() > 300 {
                 // reset.send(false).expect("Send reset failed");
                 // interrupt.send(false).expect("Send interrupt failed");
-                machine.clk(Signal::Falling);
+                machine.clk(false);
 
                 frame_invalid = true;
                 last_event = None;

@@ -1,13 +1,11 @@
-use node::{Display, Node};
+use node::{Display, Node, Wire};
 use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::style::{Color, Style};
 use tui::widgets::Widget;
 
 use std::cell::RefCell;
-use std::fmt;
 use std::rc::Rc;
-use std::sync::mpsc::{channel as mpsc_channel, Receiver, Sender};
 
 mod fns;
 mod mp_ram;
@@ -31,6 +29,9 @@ pub enum Part {
 #[derive(Debug)]
 pub struct Machine<'node> {
     displaying_part: Part,
+    last_cache_id: usize,
+    al1_out: Wire<'node, bool>,
+    clk: Rc<RefCell<Input<'node, bool>>>,
     al1: Rc<RefCell<Or2<'node, bool, bool, bool>>>,
     al2: Rc<RefCell<And2<'node, bool, bool, bool>>>,
     al3: Rc<RefCell<Xor2<'node, bool, bool, bool>>>,
@@ -106,18 +107,23 @@ impl<'node> Machine<'node> {
         let (_reg_n, _doa, _cf, _zf, _nf, ief, _dob) = Register::new("REG", make_register());
         let (_alu_n, _co, _zo, _no, _alu_out) =
             ArithmeticLogicalUnit::new("ALU", make_arithmetic_logical_unit());
+        // Clk
+        let (clk_n, clk) = Input::with_name("CLK");
         // Fake entry
         let (_fake_n, fake) = Fake::new(|| true);
         // Compose everything
         al1_n
             .borrow_mut()
-            .plug_in0(fake.clone())
-            .plug_in1(iff1.clone());
-        al2_n.borrow_mut().plug_in0(ief.clone()).plug_in1(al1);
+            .plug_in0(clk.clone())
+            .plug_in1(fake.clone());
+        al2_n.borrow_mut().plug_in0(ief.clone()).plug_in1(al1.clone());
         al3_n.borrow_mut().plug_in0(fake.clone()).plug_in1(am3);
 
         Machine {
             displaying_part: Part::Al1,
+            last_cache_id: 0,
+            clk: clk_n,
+            al1_out: al1,
             al1: al1_n,
             al2: al2_n,
             al3: al3_n,
@@ -132,9 +138,16 @@ impl<'node> Machine<'node> {
         }
     }
     /// Send a clk signal to the machine.
-    pub fn clk(&mut self, signal: Signal) {
-        // TODO: Implement
-        unimplemented!()
+    pub fn clk(&mut self, signal: bool) {
+        self.clk.borrow_mut().set(signal);
+        // TODO: Change this to be usefull.
+        self.invalidate_cache();
+        self.al1_out.get(self.last_cache_id);
+    }
+    /// Invalidate the current cache.
+    /// Usually after an input changed.
+    pub fn invalidate_cache(&mut self) {
+        self.last_cache_id = (self.last_cache_id + 1) % usize::max_value();
     }
 }
 
@@ -163,20 +176,4 @@ impl Widget for Machine<'_> {
                 y += 1;
             });
     }
-}
-
-pub fn channel<'a, O>(id: &'static str) -> (Sender<O>, node::Wire<'a, O>)
-where
-    O: Clone + fmt::Debug + Default + 'a,
-{
-    let (sender, receiver): (Sender<O>, Receiver<O>) = mpsc_channel();
-    let mut last = Default::default();
-    let f = move || {
-        while let Ok(value) = receiver.try_recv() {
-            last = value;
-        }
-        last.clone()
-    };
-    let (_, out) = Input::new(id, f);
-    (sender, out)
 }

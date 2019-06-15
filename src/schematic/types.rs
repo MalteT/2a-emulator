@@ -1,5 +1,8 @@
 use node::node;
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 pub type Xor2<'a, I1, I2, O> = Node2x1<'a, I1, I2, O>;
 pub type And2<'a, I1, I2, O> = Node2x1<'a, I1, I2, O>;
 pub type And4<'a, I1, I2, I3, I4, O> = Node4x1<'a, I1, I2, I3, I4, O>;
@@ -13,17 +16,6 @@ pub struct Or2 {
     pub id: &'static str,
     pub in0: Input,
     in1: Input,
-    out: Output,
-}
-
-// TODO: ASCII
-#[node {
-    ascii(file("../../displays/input.utf8"), id, out),
-    utf8(file("../../displays/input.utf8"), id, out),
-    add_new(id),
-}]
-pub struct Input {
-    pub id: &'static str,
     out: Output,
 }
 
@@ -261,4 +253,31 @@ pub struct ArithmeticLogicalUnit {
 }]
 pub struct Fake {
     out: Output,
+}
+
+#[node {
+    ascii("In: {}", current_value),
+    utf8(file("../../displays/input.utf8"), id, current_value),
+    add_new(id),
+    add_input(current_value),
+}]
+pub struct Input
+{
+    pub id: &'static str,
+    current_value: O0,
+    out: Output,
+}
+
+impl<'node, O> Input<'node, O>
+where O: Clone + Default {
+    /// Create an input from a value
+    pub fn with_name(name: &'static str) -> (Rc<RefCell<Self>>, node::Wire<'node, O>) {
+        Input::new(name, |value: &mut O| {
+            value.clone()
+        })
+    }
+    /// Set the value of the input.
+    pub fn set(&mut self, value: O) {
+        self.current_value = value
+    }
 }
