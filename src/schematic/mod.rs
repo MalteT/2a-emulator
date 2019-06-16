@@ -48,19 +48,19 @@ impl<'node> Machine<'node> {
     pub fn compose() -> Machine<'node> {
         // Create all nodes
         let (al1_n, al1) = Or2::new("AL1", make_or2());
-        let (al2_n, _al2) = And2::new("AL2", make_and2());
-        let (al3_n, _al3) = Xor2::new("AL3", make_xor2());
+        let (al2_n, al2) = And2::new("AL2", make_and2());
+        let (al3_n, al3) = Xor2::new("AL3", make_xor2());
         let (_bl1_n, _bl1) = And2::new("BL1", make_and2());
         let (_bl2_n, _bl2) = And2::new("BL2", make_and2());
         let (_bl3_n, _bl3) = Or2::new("BL3", make_or2());
         let (_br_n, _br) = InstructionRegister::new("BR", make_instruction_register());
-        let (_am1_n, _am1) = Mux8x1::new("AM1", make_mux8x1());
+        let (am1_n, _am1) = Mux8x1::new("AM1", make_mux8x1());
         let (_am2_n, _am2) = Mux4x1::new("AM2", make_mux4x1());
         let (_am3_n, am3) = Mux2x1::new("AM3", make_mux2x1());
         let (_am4_n, _am4) = Mux2x1::new("AM4", make_mux2x1());
         let (_il1_n, _il1) = And4::new("IL1", make_and4());
         let (_il2_n, _il2) = Or2::new("IL2", make_or2());
-        let (_iff1_n, iff1) = DFlipFlopC::new("IFF1", make_dflipflopc());
+        let (_iff1_n, _iff1) = DFlipFlopC::new("IFF1", make_dflipflopc());
         let (_iff2_n, _iff2) = DFlipFlop::new("IFF2", make_dflipflop());
         let (_mpram_n, _mpram) = MPRam::new(make_mpram());
         let (
@@ -104,20 +104,36 @@ impl<'node> Machine<'node> {
         let (_rm6_n, _rm6) = Mux2x1::new("RM6", make_mux2x1());
         let (_dm1_n, _dm1) = Mux2x1::new("DM1", make_mux2x1());
         let (_dm2_n, _dm2) = Mux2x1::new("DM2", make_mux2x1());
-        let (_reg_n, _doa, _cf, _zf, _nf, ief, _dob) = Register::new("REG", make_register());
-        let (_alu_n, _co, _zo, _no, _alu_out) =
+        let (_reg_n, _doa, cf, _zf, _nf, ief, _dob) = Register::new("REG", make_register());
+        let (_alu_n, co, zo, no, _alu_out) =
             ArithmeticLogicalUnit::new("ALU", make_arithmetic_logical_unit());
         // Clk
         let (clk_n, clk) = Input::with_name("CLK");
         // Fake entry
         let (_fake_n, fake) = Fake::new(|| true);
+        // High and Low
+        let (high_n, high) = Const::new("HIGH", || true);
+        let (low_n, low) = Const::new("LOW", || false);
         // Compose everything
         al1_n
             .borrow_mut()
             .plug_in0(clk.clone())
             .plug_in1(fake.clone());
-        al2_n.borrow_mut().plug_in0(ief.clone()).plug_in1(al1.clone());
+        al2_n
+            .borrow_mut()
+            .plug_in0(ief.clone())
+            .plug_in1(al1.clone());
         al3_n.borrow_mut().plug_in0(fake.clone()).plug_in1(am3);
+        am1_n
+            .borrow_mut()
+            .plug_in0(low.clone())
+            .plug_in1(high.clone())
+            .plug_in2(al3.clone())
+            .plug_in3(cf.clone())
+            .plug_in4(co.clone())
+            .plug_in5(zo.clone())
+            .plug_in6(no.clone())
+            .plug_in7(al2.clone());
 
         Machine {
             displaying_part: Part::Al1,

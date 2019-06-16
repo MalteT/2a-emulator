@@ -14,12 +14,14 @@ pub enum Event {
     ToggleAutoRun,
     Reset,
     Interrupt,
-    Other(TermEvent),
+    Backspace,
+    Char(char),
+    Unsupported(TermEvent),
 }
 
 pub struct Events {
     rx: mpsc::Receiver<Event>,
-    input_handle: thread::JoinHandle<()>,
+    _input_handle: thread::JoinHandle<()>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -36,9 +38,9 @@ impl Default for Config {
     fn default() -> Config {
         Config {
             key_exit: Key::Char('q'),
-            key_toggle_auto_run: Key::Char('\n'),
-            key_clock: Key::Char('.'),
-            key_step: Key::Char('/'),
+            key_toggle_auto_run: Key::Char('a'),
+            key_clock: Key::Char('\n'),
+            key_step: Key::Char('.'),
             key_interrupt: Key::Char('i'),
             key_reset: Key::Char('r'),
         }
@@ -60,27 +62,7 @@ impl Events {
                     .events()
                     .filter(Result::is_ok)
                     .map(Result::unwrap)
-                    .map(|term_event| match term_event {
-                        TermEvent::Key(key) => {
-                            if key == config.key_exit {
-                                Event::Quit
-                            } else if key == config.key_clock {
-                                Event::Clock
-                            } else if key == config.key_step {
-                                Event::Step
-                            } else if key == config.key_toggle_auto_run {
-                                Event::ToggleAutoRun
-                            } else if key == config.key_interrupt {
-                                Event::Interrupt
-                            } else if key == config.key_reset {
-                                Event::Reset
-                            } else {
-                                Event::Other(term_event)
-                            }
-                        }
-                        TermEvent::Mouse(ref _mouse) => Event::Other(term_event),
-                        TermEvent::Unsupported(ref _uns) => Event::Other(term_event),
-                    })
+                    .map(|term_event| Event::from(term_event, config))
                     .map(|event| tx.send(event));
                 for result in event_iter {
                     if result.is_err() {
@@ -89,7 +71,10 @@ impl Events {
                 }
             })
         };
-        Events { rx, input_handle }
+        Events {
+            rx,
+            _input_handle: input_handle,
+        }
     }
 
     pub fn iter(&self) -> std::sync::mpsc::Iter<Event> {
@@ -102,5 +87,35 @@ impl Events {
 
     pub fn next(&self) -> Result<Event, mpsc::RecvError> {
         self.rx.recv()
+    }
+}
+
+impl Event {
+    fn from(tev: TermEvent, config: Config) -> Self {
+        match tev {
+            TermEvent::Key(key) => {
+                if key == config.key_exit {
+                    Event::Quit
+                } else if key == config.key_clock {
+                    Event::Clock
+                } else if key == config.key_step {
+                    Event::Step
+                } else if key == config.key_toggle_auto_run {
+                    Event::ToggleAutoRun
+                } else if key == config.key_interrupt {
+                    Event::Interrupt
+                } else if key == config.key_reset {
+                    Event::Reset
+                } else if key == Key::Backspace {
+                    Event::Backspace
+                } else {
+                    match key {
+                        Key::Char(char) => Event::Char(char),
+                        _ => Event::Unsupported(tev),
+                    }
+                }
+            }
+            TermEvent::Mouse(_) | TermEvent::Unsupported(_) => Event::Unsupported(tev),
+        }
     }
 }

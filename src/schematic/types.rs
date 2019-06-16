@@ -1,7 +1,7 @@
 use node::node;
 
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 pub type Xor2<'a, I1, I2, O> = Node2x1<'a, I1, I2, O>;
 pub type And2<'a, I1, I2, O> = Node2x1<'a, I1, I2, O>;
@@ -261,23 +261,32 @@ pub struct Fake {
     add_new(id),
     add_input(current_value),
 }]
-pub struct Input
-{
+pub struct Input {
     pub id: &'static str,
     current_value: O0,
     out: Output,
 }
 
 impl<'node, O> Input<'node, O>
-where O: Clone + Default {
+where
+    O: Clone + Default,
+{
     /// Create an input from a value
     pub fn with_name(name: &'static str) -> (Rc<RefCell<Self>>, node::Wire<'node, O>) {
-        Input::new(name, |value: &mut O| {
-            value.clone()
-        })
+        Input::new(name, |value: &mut O| value.clone())
     }
     /// Set the value of the input.
     pub fn set(&mut self, value: O) {
         self.current_value = value
     }
+}
+
+#[node {
+    ascii("{}", id),
+    utf8("{}", id),
+    add_new(id),
+}]
+pub struct Const {
+    id: &'static str,
+    out: Output,
 }

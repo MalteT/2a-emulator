@@ -15,6 +15,7 @@ bitflags = "1.0.0"
 pest = "2.1.0"
 pest_derive = "2.1.0"
 failure = "0.1.0"
+unicode-width = "0.1.5"
 
 [dependencies.mr2a_asm_parser]
 path = "../mr2a-asm-parser"
