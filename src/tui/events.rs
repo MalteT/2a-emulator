@@ -1,7 +1,7 @@
+use log::info;
 use std::io;
 use std::sync::mpsc;
 use std::thread;
-use log::info;
 
 use termion::event::Event as TermEvent;
 use termion::event::Key;

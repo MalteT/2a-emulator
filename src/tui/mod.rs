@@ -15,7 +15,7 @@ pub mod events;
 pub mod grid;
 pub mod input;
 
-use crate::schematic::{Part, Machine};
+use crate::schematic::{Machine, Part};
 use events::{Event, Events};
 use input::Input;
 
@@ -82,8 +82,8 @@ pub fn run() -> Result<(), IOError> {
 
         if let Some(ref inst) = last_event {
             if inst.elapsed().as_millis() > 300 {
-                    machine.edge_int(false);
-                    machine.reset(false);
+                machine.edge_int(false);
+                machine.reset(false);
                 machine.clk(false);
 
                 last_event = None;
