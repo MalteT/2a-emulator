@@ -47,16 +47,29 @@ pub fn run() -> Result<(), IOError> {
                         input.handle(Event::Char('\n'));
                     }
                     let s = input.pop();
+                    // TODO: Improve
+                    if s.starts_with("show ") {
+                        let s = &s[5..];
+                        let part = match s {
+                            "interrupt" => Part::InterruptLogic,
+                            "il1" => Part::Il1,
+                            "il2" => Part::Il2,
+                            "iff1" => Part::Iff1,
+                            "iff2" => Part::Iff2,
+                            _ => Part::InterruptLogic,
+                        };
+                        machine.show(part);
+                    }
                     eprintln!("{}", s);
                 }
                 Event::Step => {}
                 Event::ToggleAutoRun => auto_run = !auto_run,
                 Event::Interrupt => {
-                    //interrupt.send(true).expect("Send interrupt failed");
+                    machine.edge_int(true);
                     last_event = Some(Instant::now());
                 }
                 Event::Reset => {
-                    //reset.send(true).expect("Send reset failed");
+                    machine.reset(true);
                     last_event = Some(Instant::now());
                 }
                 Event::Backspace | Event::Char(_) => {
@@ -69,8 +82,8 @@ pub fn run() -> Result<(), IOError> {
 
         if let Some(ref inst) = last_event {
             if inst.elapsed().as_millis() > 300 {
-                // reset.send(false).expect("Send reset failed");
-                // interrupt.send(false).expect("Send interrupt failed");
+                    machine.edge_int(false);
+                    machine.reset(false);
                 machine.clk(false);
 
                 last_event = None;
