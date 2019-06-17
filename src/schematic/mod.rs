@@ -5,12 +5,14 @@ use tui::style::{Color, Style};
 use tui::widgets::Widget;
 
 use std::cell::RefCell;
+use std::convert::TryInto;
 use std::rc::Rc;
 
 mod fns;
 mod mp_ram;
 mod types;
 
+use crate::tui::grid::StrGrid;
 pub use fns::*;
 pub use mp_ram::MPRam;
 pub use types::*;

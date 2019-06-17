@@ -12,9 +12,10 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 pub mod events;
+pub mod grid;
 pub mod input;
 
-use crate::schematic::Machine;
+use crate::schematic::{Part, Machine};
 use events::{Event, Events};
 use input::Input;
 
