@@ -1,6 +1,7 @@
 use std::io;
 use std::sync::mpsc;
 use std::thread;
+use log::info;
 
 use termion::event::Event as TermEvent;
 use termion::event::Key;
@@ -37,12 +38,12 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
-            key_exit: Key::Char('q'),
-            key_toggle_auto_run: Key::Char('a'),
+            key_exit: Key::Ctrl('c'),
+            key_toggle_auto_run: Key::Ctrl('a'),
             key_clock: Key::Char('\n'),
-            key_step: Key::Char('.'),
-            key_interrupt: Key::Char('i'),
-            key_reset: Key::Char('r'),
+            key_step: Key::Ctrl('.'),
+            key_interrupt: Key::Ctrl('e'),
+            key_reset: Key::Ctrl('r'),
         }
     }
 }
@@ -92,6 +93,7 @@ impl Events {
 
 impl Event {
     fn from(tev: TermEvent, config: Config) -> Self {
+        info!("Received input: {:?}", tev);
         match tev {
             TermEvent::Key(key) => {
                 if key == config.key_exit {
