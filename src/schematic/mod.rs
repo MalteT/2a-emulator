@@ -237,7 +237,7 @@ impl Widget for Machine<'_> {
                 let il2 = self.get_part(Part::Il2).borrow().to_utf8_string();
                 let iff1 = self.get_part(Part::Iff1).borrow().to_utf8_string();
                 let iff2 = self.get_part(Part::Iff2).borrow().to_utf8_string();
-                let mut s: StrGrid = include_str!("../../interrupt.template").try_into().unwrap();
+                let mut s: StrGrid = include_str!("../../displays/interrupt.utf8.template").try_into().unwrap();
                 s.put(1, &il1).expect("il1 fits into interruptlogic");
                 s.put(2, &iff2).expect("iff2 fits into interruptlogic");
                 s.put(3, &il2).expect("il2 fits into interruptlogic");
