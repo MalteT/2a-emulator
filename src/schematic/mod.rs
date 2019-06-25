@@ -4,9 +4,11 @@ use tui::style::Style;
 use tui::widgets::Widget;
 
 mod fns;
+mod instruction;
 mod mp_ram;
 
 pub use fns::*;
+pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
