@@ -6,14 +6,23 @@ use pest::Parser;
 use pest_derive::Parser;
 
 use std::ops::Index;
+use std::fmt;
 
+/// Parser for the microprogram words document.
 #[derive(Parser)]
 #[grammar = "../static/mr-mpram.pest"]
 struct MicroprogramRamParser;
 
-pub struct Ram([MP28BitWord; 512]);
+/// The microprogram ram.
+/// Containing all microprogram words used by the
+/// Minirechner 2a as defined in the documentation.
+pub struct MicroprogramRam {
+    content: [MP28BitWord; 512],
+    current_word: usize,
+}
 
 bitflags! {
+    /// A Word stored in the microprogram ram
     pub struct MP28BitWord: u32 {
         const MAC3       = 0b00001000000000000000000000000000;
         const MAC2       = 0b00000100000000000000000000000000;
@@ -53,7 +62,7 @@ impl MicroprogramRamParser {
     /// `addr | instruction | 28BitWord`
     ///
     /// I.e. `00001 | NOP | 01010100 101001 01001 00...`
-    pub fn parse_ram(s: &str) -> Ram {
+    pub fn parse_ram(s: &str) -> [MP28BitWord; 512] {
         // Parse the given string using pest
         let parsed = MicroprogramRamParser::parse(Rule::file, s);
         let mut lines = parsed.unwrap();
@@ -95,25 +104,43 @@ impl MicroprogramRamParser {
                 }
             }
         }
-        Ram(words)
+        words
     }
 }
 
-impl Ram {
+impl MicroprogramRam {
+    /// Create a new MicroprogramRam with the default content.
     pub fn new() -> Self {
-        MicroprogramRamParser::parse_ram(include_str!("../../static/mr-mpram"))
+        let unparsed_content = include_str!("../../static/mr-mpram");
+        let content = MicroprogramRamParser::parse_ram(unparsed_content);
+        let current_word= 0;
+        MicroprogramRam { content, current_word }
     }
+    /// Get the currently active word.
+    pub fn get(&self) -> &MP28BitWord {
+        &self.content[self.current_word]
+    }
+    // /// Select the next word according to the given parameters.
 }
 
-impl Index<u16> for Ram {
+impl Index<u16> for MicroprogramRam {
     type Output = MP28BitWord;
     fn index(&self, index: u16) -> &MP28BitWord {
-        &self.0[index as usize]
+        &self.content[index as usize]
     }
 }
 
 impl Default for MP28BitWord {
     fn default() -> Self {
         MP28BitWord::empty()
+    }
+}
+
+impl fmt::Debug for MicroprogramRam {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("MicroprogramRam")
+            .field("content", &"[hidden]")
+            .field("current_word", &self.current_word)
+            .finish()
     }
 }

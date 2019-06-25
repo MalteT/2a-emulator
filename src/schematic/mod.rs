@@ -12,6 +12,7 @@ mod mp_ram;
 
 use crate::tui::grid::StrGrid;
 pub use fns::*;
+pub use mp_ram::{MP28BitWord, MicroprogramRam};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub enum Part {
@@ -26,7 +27,9 @@ pub enum Part {
 }
 
 #[derive(Debug)]
-pub struct Machine { }
+pub struct Machine {
+    mp_ram: MicroprogramRam,
+}
 
 pub enum Signal {
     Rising,
@@ -38,7 +41,8 @@ pub enum Signal {
 impl Machine {
     /// Create a new Minirechner 2a
     pub fn new() -> Self {
-        Machine {}
+        let mp_ram = MicroprogramRam::new();
+        Machine { mp_ram }
     }
     /// TODO: Dummy
     pub fn clk(&mut self, sig: bool) {

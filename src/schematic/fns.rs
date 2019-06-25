@@ -8,7 +8,7 @@ use log::{debug, trace};
 
 use std::ops::{Index, IndexMut};
 
-use super::mp_ram::{MP28BitWord, Ram};
+use super::mp_ram::{MP28BitWord};
 
 /// Create a logical `HIGH` function.
 pub fn make_high() -> impl FnMut() -> bool {
@@ -286,23 +286,6 @@ pub fn make_register() -> impl FnMut(
             flags.contains(Flags::INT_ENABLE),
             reg[last_index_b],
         )
-    }
-}
-
-pub fn make_mpram(
-) -> impl FnMut(&bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool, &bool) -> MP28BitWord {
-    let ram = Ram::new();
-    move |&a8, &a7, &a6, &a5, &a4, &a3, &a2, &a1, &a0| {
-        let index = (a8 as u16)
-            << 8 + (a7 as u16)
-            << 7 + (a6 as u16)
-            << 6 + (a5 as u16)
-            << 5 + (a4 as u16)
-            << 4 + (a3 as u16)
-            << 3 + (a2 as u16)
-            << 2 + (a1 as u16)
-            << 1 + (a0 as u16);
-        ram[index]
     }
 }
 
