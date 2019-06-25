@@ -1,16 +1,11 @@
 use tui::buffer::Buffer;
 use tui::layout::Rect;
-use tui::style::{Color, Style};
+use tui::style::Style;
 use tui::widgets::Widget;
-
-use std::cell::RefCell;
-use std::convert::TryInto;
-use std::rc::Rc;
 
 mod fns;
 mod mp_ram;
 
-use crate::tui::grid::StrGrid;
 pub use fns::*;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
 
@@ -45,26 +40,31 @@ impl Machine {
         Machine { mp_ram }
     }
     /// TODO: Dummy
-    pub fn clk(&mut self, sig: bool) {
+    pub fn clk(&mut self, _sig: bool) {
         println!("Implement Machine::clk");
     }
     /// TODO: Dummy
-    pub fn reset(&mut self, sig: bool) {
+    pub fn reset(&mut self, _sig: bool) {
         println!("Implement Machine::reset");
     }
     /// TODO: Dummy
-    pub fn edge_int(&mut self, sig: bool) {
+    pub fn edge_int(&mut self, _sig: bool) {
         println!("Implement Machine::edge_int");
     }
     /// TODO: Dummy
-    pub fn show(&mut self, part: Part) {
+    pub fn show(&mut self, _part: Part) {
         println!("Implement Machine::show");
     }
 }
 
 impl Widget for Machine {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
-        buf.set_string(area.x, area.y, "Nothing to see in this machine", Style::default());
+        buf.set_string(
+            area.x,
+            area.y,
+            "Nothing to see in this machine",
+            Style::default(),
+        );
         // let mut x = area.x;
         // let mut y = area.y;
         // match self.displaying_part {

@@ -5,8 +5,8 @@ use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
 
-use std::ops::Index;
 use std::fmt;
+use std::ops::Index;
 
 /// Parser for the microprogram words document.
 #[derive(Parser)]
@@ -113,8 +113,11 @@ impl MicroprogramRam {
     pub fn new() -> Self {
         let unparsed_content = include_str!("../../static/mr-mpram");
         let content = MicroprogramRamParser::parse_ram(unparsed_content);
-        let current_word= 0;
-        MicroprogramRam { content, current_word }
+        let current_word = 0;
+        MicroprogramRam {
+            content,
+            current_word,
+        }
     }
     /// Get the currently active word.
     pub fn get(&self) -> &MP28BitWord {

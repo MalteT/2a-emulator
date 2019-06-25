@@ -7,8 +7,8 @@ use std::convert::TryFrom;
 use std::fmt;
 
 // TODO: Verify all characters when collecting slots
-const HORIZONTAL: char = '┄';
-const VERTICAL: char = '┊';
+// const HORIZONTAL: char = '┄';
+// const VERTICAL: char = '┊';
 const UPPER_RIGHT: char = '┐';
 const LOWER_LEFT: char = '└';
 const LOWER_RIGHT: char = '┘';

@@ -1,12 +1,10 @@
 use log::trace;
-use tui::layout::{Rect};
+use tui::backend::CrosstermBackend;
+use tui::layout::Rect;
 use tui::widgets::{Block, Borders, Widget};
 use tui::Terminal;
-use tui::backend::CrosstermBackend;
 
-use std::io;
 use std::io::Error as IOError;
-use std::io::Stdout;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -19,7 +17,7 @@ use events::{Event, Events};
 use input::Input;
 
 fn init_backend() -> Result<CrosstermBackend, IOError> {
-    use crossterm::{TerminalOutput, AlternateScreen};
+    use crossterm::{AlternateScreen, TerminalOutput};
     let stdout = TerminalOutput::new(true);
     let screen = AlternateScreen::to_alternate_screen(stdout, true)?;
     CrosstermBackend::with_alternate_screen(screen)

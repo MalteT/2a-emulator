@@ -8,7 +8,7 @@ use log::{debug, trace};
 
 use std::ops::{Index, IndexMut};
 
-use super::mp_ram::{MP28BitWord};
+use super::mp_ram::MP28BitWord;
 
 /// Create a logical `HIGH` function.
 pub fn make_high() -> impl FnMut() -> bool {

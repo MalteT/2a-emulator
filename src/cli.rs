@@ -3,9 +3,7 @@ use failure::Fail;
 use mr2a_asm_parser::parser::{AsmParser, ParserError};
 
 use crate::tui;
-use crate::tui::grid::StrGrid;
 
-use std::convert::TryInto;
 use std::fmt;
 use std::fs::read_to_string;
 use std::io::Error as IOError;

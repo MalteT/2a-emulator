@@ -2,7 +2,6 @@ use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::style::{Color, Style};
 use tui::widgets::Widget;
-use unicode_width::UnicodeWidthStr;
 
 use super::events::Event;
 
