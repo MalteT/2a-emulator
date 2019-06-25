@@ -19,10 +19,10 @@ crossterm_input = "0.3.6"
 crossterm = "0.6.0"
 
 [dependencies.mr2a_asm_parser]
-path = "../mr2a-asm-parser"
+git = "https://v4.git.tammena.rocks/2a-emulator/asm-parser.git"
 
 [dependencies.node]
-path = "../node"
+git = "https://v4.git.tammena.rocks/2a-emulator/node.git"
 
 [dependencies.clap]
 version = "~2.33.0"
