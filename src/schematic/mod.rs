@@ -6,10 +6,12 @@ use tui::widgets::Widget;
 mod fns;
 mod instruction;
 mod mp_ram;
+mod register;
 
 pub use fns::*;
 pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
+pub use register::Register;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub enum Part {
@@ -26,6 +28,7 @@ pub enum Part {
 #[derive(Debug)]
 pub struct Machine {
     mp_ram: MicroprogramRam,
+    reg: Register,
 }
 
 pub enum Signal {
@@ -39,7 +42,8 @@ impl Machine {
     /// Create a new Minirechner 2a
     pub fn new() -> Self {
         let mp_ram = MicroprogramRam::new();
-        Machine { mp_ram }
+        let reg = Register::new();
+        Machine { mp_ram, reg }
     }
     /// TODO: Dummy
     pub fn clk(&mut self, _sig: bool) {
