@@ -7,11 +7,13 @@ mod fns;
 mod instruction;
 mod mp_ram;
 mod register;
+mod signal;
 
 pub use fns::*;
 pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
 pub use register::Register;
+pub use signal::Signal;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub enum Part {
@@ -29,13 +31,6 @@ pub enum Part {
 pub struct Machine {
     mp_ram: MicroprogramRam,
     reg: Register,
-}
-
-pub enum Signal {
-    Rising,
-    Falling,
-    High,
-    Low,
 }
 
 impl Machine {
