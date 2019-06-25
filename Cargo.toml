@@ -1,6 +1,6 @@
 [package]
-name = "emulator-2a"
-version = "0.2.0"
+name = "2a-emulator"
+version = "0.3.0"
 authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
@@ -8,14 +8,15 @@ edition = "2018"
 paste = "0.1.0"
 log = "0.4.0"
 pretty_env_logger = "0.3.0"
-tui = "0.5.0"
-termion = "1.5.0"
 strfmt = "0.1.0"
 bitflags = "1.0.0"
 pest = "2.1.0"
 pest_derive = "2.1.0"
 failure = "0.1.0"
 unicode-width = "0.1.5"
+crossterm_input = "0.3.6"
+# TODO: This is an old crossterm version, that tui relies on
+crossterm = "0.6.0"
 
 [dependencies.mr2a_asm_parser]
 path = "../mr2a-asm-parser"
@@ -37,6 +38,3 @@ features = ["crossterm"]
 # The std::fmt::Display implementation defaults to Display::to_utf8_string
 # instead of Display::to_ascii_string
 utf8 = []
-
-[target.x86_64-pc-windows-gnu]
-linker = "/usr/bin/x86_64-w64-mingw32-gcc"
