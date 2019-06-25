@@ -1,13 +1,12 @@
 use log::trace;
-use termion::raw::IntoRawMode;
-use tui::backend::TermionBackend;
-use tui::layout::{Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Style};
+use tui::layout::{Rect};
 use tui::widgets::{Block, Borders, Widget};
 use tui::Terminal;
+use tui::backend::CrosstermBackend;
 
 use std::io;
 use std::io::Error as IOError;
+use std::io::Stdout;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -19,16 +18,28 @@ use crate::schematic::{Machine, Part};
 use events::{Event, Events};
 use input::Input;
 
+fn init_backend() -> Result<CrosstermBackend, IOError> {
+    use crossterm::{TerminalOutput, AlternateScreen};
+    let stdout = TerminalOutput::new(true);
+    let screen = AlternateScreen::to_alternate_screen(stdout, true)?;
+    CrosstermBackend::with_alternate_screen(screen)
+}
+
+// #[cfg(not(windows))]
+// fn init_backend() -> Result<TermionBackend<RawTerminal<Stdout>>, IOError> {
+//     use termion::raw::IntoRawMode;
+//     let stdout = io::stdout().into_raw_mode()?;
+//     Ok(TermionBackend::new(stdout))
+// }
+
 pub fn run() -> Result<(), IOError> {
-    let stdout = io::stdout().into_raw_mode()?;
-    let backend = TermionBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    let mut terminal = Terminal::new(init_backend()?)?;
 
     terminal.clear()?;
     terminal.hide_cursor()?;
 
-    let events = Events::new();
-    let mut events = events.try_iter();
+    let mut events = Events::new();
+    let events = events.iter();
     let mut auto_run = false;
     let mut last_event = None;
 

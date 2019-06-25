@@ -68,8 +68,8 @@ impl<'node> Machine<'node> {
         let (_bl3_n, _bl3) = Or2::new("BL3", make_or2());
         let (_br_n, _br) = InstructionRegister::new("BR", make_instruction_register());
         let (am1_n, _am1) = Mux8x1::new("AM1", make_mux8x1());
-        let (_am2_n, _am2) = Mux4x1::new("AM2", make_mux4x1());
-        let (_am3_n, am3) = Mux2x1::new("AM3", make_mux2x1());
+        let (am2_n, am2) = Mux4x1::new("AM2", make_mux4x1());
+        let (_am3_n, _am3) = Mux2x1::new("AM3", make_mux2x1());
         let (_am4_n, _am4) = Mux2x1::new("AM4", make_mux2x1());
         let (il1_n, il1) = And4::new("IL1", make_and4());
         let (il2_n, il2) = Or2::new("IL2", make_or2());
@@ -117,7 +117,7 @@ impl<'node> Machine<'node> {
         let (_rm6_n, _rm6) = Mux2x1::new("RM6", make_mux2x1());
         let (_dm1_n, _dm1) = Mux2x1::new("DM1", make_mux2x1());
         let (_dm2_n, _dm2) = Mux2x1::new("DM2", make_mux2x1());
-        let (_reg_n, _doa, cf, _zf, _nf, ief, _dob) = Register::new("REG", make_register());
+        let (_reg_n, _doa, cf, zf, nf, ief, _dob) = Register::new("REG", make_register());
         let (_alu_n, co, zo, no, _alu_out) =
             ArithmeticLogicalUnit::new("ALU", make_arithmetic_logical_unit());
         // Clk, Reset, Interrupts
@@ -127,8 +127,9 @@ impl<'node> Machine<'node> {
         // Fake entry
         let (_fake_n, fake) = Fake::new(|| true);
         // High and Low
-        let (high_n, high) = Const::new("HIGH", || true);
-        let (low_n, low) = Const::new("LOW", || false);
+        let (_high_n, high) = Const::new("HIGH", || true);
+        let (_low_n, low) = Const::new("LOW", || false);
+
         // Compose everything
         al1_n
             .borrow_mut()
@@ -138,7 +139,7 @@ impl<'node> Machine<'node> {
             .borrow_mut()
             .plug_in0(ief.clone())
             .plug_in1(al1.clone());
-        al3_n.borrow_mut().plug_in0(fake.clone()).plug_in1(am3);
+        al3_n.borrow_mut().plug_in0(fake.clone()).plug_in1(am2);
         am1_n
             .borrow_mut()
             .plug_in0(low.clone())
@@ -149,6 +150,11 @@ impl<'node> Machine<'node> {
             .plug_in5(zo.clone())
             .plug_in6(no.clone())
             .plug_in7(al2.clone());
+        am2_n.borrow_mut()
+            .plug_in0(high.clone())
+            .plug_in1(cf.clone())
+            .plug_in2(zf.clone())
+            .plug_in3(nf.clone());
         il1_n
             .borrow_mut()
             .plug_in0(iff1.clone())

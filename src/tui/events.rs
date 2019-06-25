@@ -1,13 +1,9 @@
+use crossterm_input::{input, AsyncReader, InputEvent, KeyEvent as KE};
 use log::info;
-use std::io;
-use std::sync::mpsc;
-use std::thread;
 
-use termion::event::Event as TermEvent;
-use termion::event::Key;
-use termion::input::TermRead;
+use std::iter::Map;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq)]
 pub enum Event {
     Quit,
     Clock,
@@ -17,33 +13,38 @@ pub enum Event {
     Interrupt,
     Backspace,
     Char(char),
-    Unsupported(TermEvent),
+    Unknown,
 }
 
 pub struct Events {
-    rx: mpsc::Receiver<Event>,
-    _input_handle: thread::JoinHandle<()>,
+    iter: Map<AsyncReader, Box<FnMut(InputEvent) -> Event>>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Config {
-    pub key_exit: Key,
-    pub key_clock: Key,
-    pub key_step: Key,
-    pub key_toggle_auto_run: Key,
-    pub key_interrupt: Key,
-    pub key_reset: Key,
+    pub key_exit: Vec<KE>,
+    pub key_clock: Vec<KE>,
+    pub key_step: Vec<KE>,
+    pub key_toggle_auto_run: Vec<KE>,
+    pub key_interrupt: Vec<KE>,
+    pub key_reset: Vec<KE>,
 }
 
 impl Default for Config {
     fn default() -> Config {
+        let key_exit = vec![KE::Ctrl('c')];
+        let key_toggle_auto_run = vec![KE::Ctrl('a')];
+        let key_clock = vec![KE::Char('\n')];
+        let key_step = vec![KE::Ctrl('.')];
+        let key_interrupt = vec![KE::Ctrl('e')];
+        let key_reset = vec![KE::Ctrl('r')];
         Config {
-            key_exit: Key::Ctrl('c'),
-            key_toggle_auto_run: Key::Ctrl('a'),
-            key_clock: Key::Char('\n'),
-            key_step: Key::Ctrl('.'),
-            key_interrupt: Key::Ctrl('e'),
-            key_reset: Key::Ctrl('r'),
+            key_exit,
+            key_toggle_auto_run,
+            key_clock,
+            key_step,
+            key_interrupt,
+            key_reset,
         }
     }
 }
@@ -54,70 +55,50 @@ impl Events {
     }
 
     pub fn with_config(config: Config) -> Events {
-        let (tx, rx) = mpsc::channel();
-        let input_handle = {
-            let tx = tx.clone();
-            thread::spawn(move || {
-                let stdin = io::stdin();
-                let event_iter = stdin
-                    .events()
-                    .filter(Result::is_ok)
-                    .map(Result::unwrap)
-                    .map(|term_event| Event::from(term_event, config))
-                    .map(|event| tx.send(event));
-                for result in event_iter {
-                    if result.is_err() {
-                        return;
-                    }
-                }
-            })
-        };
-        Events {
-            rx,
-            _input_handle: input_handle,
-        }
+        let f = move |e| Event::from(e, &config);
+        let f_box: Box<FnMut(InputEvent) -> Event> = Box::from(f);
+        let iter = input().read_async().map(f_box);
+        Events { iter }
     }
 
-    pub fn iter(&self) -> std::sync::mpsc::Iter<Event> {
-        self.rx.iter()
+    pub fn iter<'a>(&'a mut self) -> &'a mut (impl Iterator<Item = Event> + 'a) {
+        &mut self.iter
     }
 
-    pub fn try_iter(&self) -> std::sync::mpsc::TryIter<Event> {
-        self.rx.try_iter()
-    }
-
-    pub fn next(&self) -> Result<Event, mpsc::RecvError> {
-        self.rx.recv()
+    pub fn next(&mut self) -> Option<Event> {
+        self.iter().next()
     }
 }
 
 impl Event {
-    fn from(tev: TermEvent, config: Config) -> Self {
+    fn from(tev: InputEvent, config: &Config) -> Self {
         info!("Received input: {:?}", tev);
         match tev {
-            TermEvent::Key(key) => {
-                if key == config.key_exit {
+            InputEvent::Keyboard(ke) => {
+                if config.key_exit.contains(&ke) {
                     Event::Quit
-                } else if key == config.key_clock {
+                } else if config.key_clock.contains(&ke) {
                     Event::Clock
-                } else if key == config.key_step {
+                } else if config.key_step.contains(&ke) {
                     Event::Step
-                } else if key == config.key_toggle_auto_run {
+                } else if config.key_toggle_auto_run.contains(&ke) {
                     Event::ToggleAutoRun
-                } else if key == config.key_interrupt {
+                } else if config.key_interrupt.contains(&ke) {
                     Event::Interrupt
-                } else if key == config.key_reset {
+                } else if config.key_reset.contains(&ke) {
                     Event::Reset
-                } else if key == Key::Backspace {
+                } else if ke == KE::Backspace {
                     Event::Backspace
                 } else {
-                    match key {
-                        Key::Char(char) => Event::Char(char),
-                        _ => Event::Unsupported(tev),
+                    match ke {
+                        KE::Char(char) => Event::Char(char),
+                        _ => Event::Unknown,
                     }
                 }
             }
-            TermEvent::Mouse(_) | TermEvent::Unsupported(_) => Event::Unsupported(tev),
+            InputEvent::Mouse(_) | InputEvent::Unsupported(_) | InputEvent::Unknown => {
+                Event::Unknown
+            }
         }
     }
 }
