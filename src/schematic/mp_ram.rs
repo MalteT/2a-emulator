@@ -1,7 +1,6 @@
 //! Microprogram ram stuff
 
 use bitflags::bitflags;
-use node::node;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
@@ -11,23 +10,6 @@ use std::ops::Index;
 #[derive(Parser)]
 #[grammar = "../static/mr-mpram.pest"]
 struct MicroprogramRamParser;
-
-#[node{
-    ascii("TODO"),
-    utf8("TODO"),
-}]
-pub struct MPRam {
-    a8: Input,
-    a7: Input,
-    a6: Input,
-    a5: Input,
-    a4: Input,
-    a3: Input,
-    a2: Input,
-    a1: Input,
-    a0: Input,
-    out: Output,
-}
 
 pub struct Ram([MP28BitWord; 512]);
 

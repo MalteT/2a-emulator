@@ -43,7 +43,7 @@ pub fn run() -> Result<(), IOError> {
     let mut auto_run = false;
     let mut last_event = None;
 
-    let mut machine = Machine::compose();
+    let mut machine = Machine::new();
     let mut input = Input::new();
 
     loop {

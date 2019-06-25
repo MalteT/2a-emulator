@@ -21,9 +21,6 @@ crossterm = "0.6.0"
 [dependencies.mr2a_asm_parser]
 git = "https://v4.git.tammena.rocks/2a-emulator/asm-parser.git"
 
-[dependencies.node]
-git = "https://v4.git.tammena.rocks/2a-emulator/node.git"
-
 [dependencies.clap]
 version = "~2.33.0"
 features = ["yaml"]
