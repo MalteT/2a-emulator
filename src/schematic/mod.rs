@@ -3,12 +3,14 @@ use tui::layout::Rect;
 use tui::style::Style;
 use tui::widgets::Widget;
 
+mod bus;
 mod fns;
 mod instruction;
 mod mp_ram;
 mod register;
 mod signal;
 
+pub use bus::Bus;
 pub use fns::*;
 pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
@@ -31,6 +33,7 @@ pub enum Part {
 pub struct Machine {
     mp_ram: MicroprogramRam,
     reg: Register,
+    bus: Bus,
 }
 
 impl Machine {
@@ -38,7 +41,8 @@ impl Machine {
     pub fn new() -> Self {
         let mp_ram = MicroprogramRam::new();
         let reg = Register::new();
-        Machine { mp_ram, reg }
+        let bus = Bus::new();
+        Machine { mp_ram, reg, bus }
     }
     /// TODO: Dummy
     pub fn clk(&mut self, _sig: bool) {
