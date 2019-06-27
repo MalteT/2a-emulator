@@ -1,6 +1,6 @@
 use tui::buffer::Buffer;
 use tui::layout::Rect;
-use tui::style::Style;
+use tui::style::{Color, Modifier, Style};
 use tui::widgets::Widget;
 
 mod bus;
@@ -16,6 +16,8 @@ pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
 pub use register::Register;
 pub use signal::Signal;
+
+use crate::tui::display::Display;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
 pub enum Part {
@@ -46,30 +48,48 @@ impl Machine {
     }
     /// TODO: Dummy
     pub fn clk(&mut self, _sig: bool) {
-        println!("Implement Machine::clk");
+        let x = self.bus.output_ff().overflowing_add(1);
+        self.bus.write(0xff, x.0);
     }
     /// TODO: Dummy
-    pub fn reset(&mut self, _sig: bool) {
-        println!("Implement Machine::reset");
-    }
+    pub fn reset(&mut self, _sig: bool) {}
     /// TODO: Dummy
-    pub fn edge_int(&mut self, _sig: bool) {
-        println!("Implement Machine::edge_int");
-    }
+    pub fn edge_int(&mut self, _sig: bool) {}
     /// TODO: Dummy
-    pub fn show(&mut self, _part: Part) {
-        println!("Implement Machine::show");
-    }
+    pub fn show(&mut self, _part: Part) {}
 }
 
 impl Widget for Machine {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
-        buf.set_string(
-            area.x,
-            area.y,
-            "Nothing to see in this machine",
-            Style::default(),
-        );
+        let in_fc = self.bus.read(0xFC).display();
+        let in_fd = self.bus.read(0xFD).display();
+        let in_fe = self.bus.read(0xFE).display();
+        let in_ff = self.bus.read(0xFF).display();
+        let out_fe = self.bus.output_fe().display();
+        let out_ff = self.bus.output_ff().display();
+
+        let x = area.x + 1;
+        let y = area.y + 1;
+
+        let dimmed = Style::default().modifier(Modifier::DIM);
+
+        // Output register
+        buf.set_string(x, y, "Outputs:", dimmed);
+        display_u8_str(buf, x, y + 1, out_ff);
+        display_u8_str(buf, x + 9, y + 1, out_fe);
+        buf.set_string(x + 6, y + 2, "FF", dimmed);
+        buf.set_string(x + 15, y + 2, "FE", dimmed);
+
+        // Input register
+        buf.set_string(x, y + 4, "Inputs:", dimmed);
+        display_u8_str(buf, x, y + 5, in_ff);
+        display_u8_str(buf, x + 9, y + 5, in_fe);
+        display_u8_str(buf, x + 18, y + 5, in_fd);
+        display_u8_str(buf, x + 27, y + 5, in_fc);
+        buf.set_string(x + 6, y + 6, "FF", dimmed);
+        buf.set_string(x + 15, y + 6, "FE", dimmed);
+        buf.set_string(x + 24, y + 6, "FD", dimmed);
+        buf.set_string(x + 33, y + 6, "FC", dimmed);
         // let mut x = area.x;
         // let mut y = area.y;
         // match self.displaying_part {
@@ -110,4 +130,18 @@ impl Widget for Machine {
         //     y += 1;
         // });
     }
+}
+
+/// Display `1`s in yellow and `0`s in gray.
+fn display_u8_str(buf: &mut Buffer, x: u16, y: u16, s: String) {
+    let mut v = 0;
+    s.chars().for_each(|c| {
+        let style = match c {
+            '1' | '●' => Style::default().fg(Color::Yellow),
+            '0' | '○' => Style::default().fg(Color::Gray),
+            _ => Style::default(),
+        };
+        buf.set_string(x + v, y, c.to_string(), style);
+        v += 1;
+    });
 }

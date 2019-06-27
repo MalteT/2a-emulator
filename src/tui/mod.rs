@@ -8,6 +8,7 @@ use std::io::Error as IOError;
 use std::thread;
 use std::time::{Duration, Instant};
 
+pub mod display;
 pub mod events;
 pub mod grid;
 pub mod input;

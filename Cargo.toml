@@ -17,9 +17,11 @@ unicode-width = "0.1.5"
 crossterm_input = "0.3.6"
 # TODO: This is an old crossterm version, that tui relies on
 crossterm = "0.6.0"
+colored = "1.8.0"
 
 [dependencies.mr2a_asm_parser]
 git = "https://v4.git.tammena.rocks/2a-emulator/asm-parser.git"
+features = ["formatting"]
 
 [dependencies.clap]
 version = "~2.33.0"
