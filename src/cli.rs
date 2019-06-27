@@ -1,15 +1,14 @@
 use clap::{crate_version, load_yaml, App};
 use failure::Fail;
-use mr2a_asm_parser::parser::{AsmParser, ParserError};
 use mr2a_asm_parser::asm::Asm;
-
+use mr2a_asm_parser::parser::{AsmParser, ParserError};
 
 use std::fmt;
 use std::fs::read_to_string;
 use std::io::Error as IOError;
 
-use crate::tui;
 use crate::compiler::ByteCode;
+use crate::tui;
 
 #[derive(Fail, Debug)]
 pub enum Error {
@@ -54,13 +53,9 @@ where
     P: ToString,
 {
     let content = read_to_string(path.to_string())?;
-    let program: Asm = AsmParser::parse(&content)
-        .map_err(|e| Error::from(e))?;
+    let program: Asm = AsmParser::parse(&content).map_err(|e| Error::from(e))?;
     let compiled = ByteCode::compile(program);
     println!("{}", compiled);
-    for b in compiled.bytes() {
-        print!("{:>02X} ", b);
-    }
     Ok(())
 }
 
