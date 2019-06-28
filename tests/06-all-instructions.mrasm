@@ -1,0 +1,68 @@
+#! mrasm
+
+LOOP:
+    CLR R0
+    LD R1, 1
+    ADD R0, R1
+    ADC R0, R1
+    SUB R0, R1
+    MUL R0, R1
+    DIV R0, R1
+    INC R0
+    DEC R0
+    NEG R0
+
+    AND R0, R1
+    OR  R0, R1
+    XOR R0, R1
+    COM R0
+    BITS R0, R1
+    BITC R0, R1
+
+    TST R0
+    CMP R0, R1
+    BITT R0, R1
+
+    LSR R0
+    ASR R0
+    LSL R0
+    RRC R0
+    RLC R0
+
+    MOV R0, R1
+    LD R0, 42
+    LD R0, (0)
+    ST (0xFF), R0
+    LDSP 0x40
+    PUSH R0
+    POP R0
+    PUSHF
+    POPF
+    LDFR 0xFF
+
+    JCS CARRY_SET
+CARRY_SET:
+    JCC CARRY_CLEAR
+CARRY_CLEAR:
+    JZS ZERO_SET
+ZERO_SET:
+    JZC ZERO_CLEAR
+ZERO_CLEAR:
+    JNS NEGATIVE_SET
+NEGATIVE_SET:
+    JNC NEGATIVE_CLEAR
+NEGATIVE_CLEAR:
+    JR JUMP_HERE
+JUMP_HERE:
+    JMP NEXT
+NEXT:
+    CALL MY_SUBROUTINE
+    EI
+    DI
+    NOP
+    STOP
+    RETI
+
+
+MY_SUBROUTINE:
+    RET
