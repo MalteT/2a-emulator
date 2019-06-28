@@ -21,6 +21,7 @@ colored = "1.8.0"
 
 [dependencies.mr2a_asm_parser]
 git = "https://v4.git.tammena.rocks/2a-emulator/asm-parser.git"
+version = "0.5.1"
 features = ["formatting"]
 
 [dependencies.clap]
