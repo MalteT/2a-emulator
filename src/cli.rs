@@ -7,7 +7,7 @@ use std::fmt;
 use std::fs::read_to_string;
 use std::io::Error as IOError;
 
-use crate::compiler::ByteCode;
+use crate::compiler::Translator;
 use crate::tui;
 
 #[derive(Fail, Debug)]
@@ -54,7 +54,8 @@ where
 {
     let content = read_to_string(path.to_string())?;
     let program: Asm = AsmParser::parse(&content).map_err(|e| Error::from(e))?;
-    let compiled = ByteCode::compile(program);
+    println!("{}", program);
+    let compiled = Translator::compile(&program);
     println!("{}", compiled);
     Ok(())
 }
