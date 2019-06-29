@@ -3,6 +3,7 @@ use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
 use tui::widgets::Widget;
 
+mod alu;
 mod bus;
 mod fns;
 mod instruction;
@@ -10,6 +11,7 @@ mod mp_ram;
 mod register;
 mod signal;
 
+pub use alu::Alu;
 pub use bus::Bus;
 pub use fns::*;
 pub use instruction::Instruction;
