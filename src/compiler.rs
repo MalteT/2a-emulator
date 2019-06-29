@@ -56,9 +56,12 @@ impl Translator {
     /// changing address and pushing labels
     fn push(&mut self, line: &Line) {
         match line {
-            Line::Empty(_) => {}
+            Line::Empty(_) => {
+                self.bytes.push((line.clone(), vec![]));
+            }
             Line::Label(label, _) => {
                 self.known_labels.insert(label.to_string(), self.next_addr);
+                self.bytes.push((line.clone(), vec![]));
             }
             Line::Instruction(inst, comment) => self.push_instruction(inst, comment),
         }
