@@ -1,3 +1,4 @@
+use log::trace;
 use mr2a_asm_parser::asm::{Asm, Register as RegNum};
 use tui::buffer::Buffer;
 use tui::layout::Rect;
@@ -99,7 +100,7 @@ impl Machine {
     }
     /// Input an edge interrupt.
     pub fn edge_int(&mut self) {
-        eprintln!("MACHINE: Received edge interrupt");
+        trace!("MACHINE: Received edge interrupt");
         self.input_edge_int = true;
     }
     /// TODO: Dummy
@@ -119,8 +120,8 @@ impl Machine {
         // ------------------------------------------------------------
         let mp_ram_out = self.mp_ram.get().clone();
         let mut sig = Signal::new(&mp_ram_out, &self.current_instruction);
-        eprintln!("UPDATE: Instruction: {:?}", self.current_instruction);
-        eprintln!("UPDATE: Word: {:?}", mp_ram_out);
+        trace!("UPDATE: Instruction: {:?}", self.current_instruction);
+        trace!("UPDATE: Word: {:?}", mp_ram_out);
         // ------------------------------------------------------------
         // Add inputs to sig
         // ------------------------------------------------------------
@@ -135,9 +136,10 @@ impl Machine {
         sig.set_ief(self.reg.ief());
         let doa = self.reg.doa(&sig);
         let dob = self.reg.dob(&sig);
-        eprintln!(
+        trace!(
             "UPDATE: Output Registers: A: 0x{:>02X}, B: 0x{:>02X}",
-            doa, dob
+            doa,
+            dob
         );
         // ------------------------------------------------------------
         // Read value from bus at selected address
@@ -145,9 +147,10 @@ impl Machine {
         let mut bus_content = 0;
         if sig.busen() {
             bus_content = self.bus.read(doa);
-            eprintln!(
+            trace!(
                 "UPDATE: Read 0x{:>02X} from bus address 0x{:>02X}",
-                bus_content, doa
+                bus_content,
+                doa
             );
         }
         // ------------------------------------------------------------
@@ -155,12 +158,12 @@ impl Machine {
         // ------------------------------------------------------------
         if sig.mac1() && sig.mac2() {
             // Reset the instruction register
-            eprintln!("UPDATE: Resetting instruction register");
+            trace!("UPDATE: Resetting instruction register");
             self.current_instruction = Instruction::reset();
             sig.set_current_instruction(&self.current_instruction);
         } else if sig.mac0() && sig.mac2() {
             // Selecting next instruction
-            eprintln!("UPDATE: Selecting next instruction");
+            trace!("UPDATE: Selecting next instruction");
             self.current_instruction = Instruction::from_bits_truncate(bus_content);
             sig.set_current_instruction(&self.current_instruction);
         }
@@ -184,12 +187,12 @@ impl Machine {
             dob
         };
         let alu_fn = (sig.malus3(), sig.malus2(), sig.malus1(), sig.malus0()).into();
-        eprintln!("UPDATE: ALU function: {:?}", alu_fn);
+        trace!("UPDATE: ALU function: {:?}", alu_fn);
         let memdo = Alu::output(sig.cf(), alu_in_a, alu_in_b, alu_fn);
         let co = Alu::co(sig.cf(), alu_in_a, alu_in_b, alu_fn);
         let zo = Alu::zo(sig.cf(), alu_in_a, alu_in_b, alu_fn);
         let no = Alu::no(sig.cf(), alu_in_a, alu_in_b, alu_fn);
-        eprintln!("UPDATE: ALU calculated: 0x{:>02X}", memdo);
+        trace!("UPDATE: ALU calculated: 0x{:>02X}", memdo);
         // ------------------------------------------------------------
         // Add ALU outputs to signals
         // ------------------------------------------------------------
@@ -198,11 +201,11 @@ impl Machine {
         sig.set_no(no);
         // Update registers if necessary
         if sig.mrgwe() {
-            eprintln!("UPDATE: Changing registers");
+            trace!("UPDATE: Changing registers");
             self.reg.write(&sig, memdo);
         }
         if sig.mchflg() {
-            eprintln!("UPDATE: Updating flags");
+            trace!("UPDATE: Updating flags");
             self.reg.write_flags(&sig);
         }
         // ------------------------------------------------------------
@@ -210,21 +213,22 @@ impl Machine {
         // TODO: wait
         // ------------------------------------------------------------
         if sig.buswr() {
-            eprintln!(
+            trace!(
                 "UPDATE: Writing 0x{:>02X} to bus address 0x{:>02X}",
-                memdo, doa
+                memdo,
+                doa
             );
             self.bus.write(doa, memdo);
         }
         // Clearing edge interrupt if used
         if self.input_edge_int && sig.na0() && sig.mac0() && sig.mac1() {
-            eprintln!("UPDATE: Clearing edge interrupt");
+            trace!("UPDATE: Clearing edge interrupt");
             self.input_edge_int = false;
         }
         // ------------------------------------------------------------
         // Select next microprogram word
         // ------------------------------------------------------------
-        eprintln!("UPDATE: Selecting next mp_ram word");
+        trace!("UPDATE: Selecting next mp_ram word");
         let next_mp_ram_addr = self.mp_ram.next_addr(&sig);
         self.mp_ram.select(next_mp_ram_addr);
     }

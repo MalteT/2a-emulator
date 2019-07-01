@@ -1,6 +1,7 @@
 //! Microprogram ram stuff
 
 use bitflags::bitflags;
+use log::trace;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
@@ -123,13 +124,13 @@ impl MicroprogramRam {
     }
     /// Get the currently active word.
     pub fn get(&self) -> &MP28BitWord {
-        eprintln!("MP_RAM: Address: {}", self.current_word);
+        trace!("MP_RAM: Address: {}", self.current_word);
         &self.content[self.current_word]
     }
     /// Select the next word according to the given parameters.
     pub fn select(&mut self, next_addr: usize) {
         self.current_word = next_addr;
-        eprintln!("MP_RAM: Changed address to {}", self.current_word);
+        trace!("MP_RAM: Changed address to {}", self.current_word);
     }
     /// Calculate the next address from the given Signal.
     pub fn next_addr(&self, sig: &Signal) -> usize {

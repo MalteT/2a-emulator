@@ -74,7 +74,7 @@ pub fn run(program: Option<Asm>) -> Result<(), IOError> {
                         };
                         machine.show(part);
                     }
-                    eprintln!("{}", s);
+                    trace!("{}", s);
                 }
                 Event::Step => {}
                 Event::ToggleAutoRun => auto_run = !auto_run,

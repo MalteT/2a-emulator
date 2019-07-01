@@ -1,4 +1,5 @@
 use super::Signal;
+use log::trace;
 use mr2a_asm_parser::asm::Register as RegisterNumber;
 
 /// The register block.
@@ -59,7 +60,7 @@ impl Register {
         };
         let selected = ((a2 as usize) << 2) + ((a1 as usize) << 1) + (a0 as usize);
         self.content[selected] = value;
-        eprintln!("REGIST: Wrote {} to R{}", value, selected);
+        trace!("REGIST: Wrote {} to R{}", value, selected);
     }
     /// Update flags in R4.
     pub fn write_flags(&mut self, signal: &Signal) {
