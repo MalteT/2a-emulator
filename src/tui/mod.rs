@@ -1,4 +1,5 @@
 use log::trace;
+use mr2a_asm_parser::asm::Asm;
 use tui::backend::CrosstermBackend;
 use tui::layout::Rect;
 use tui::widgets::{Block, Borders, Widget};
@@ -31,7 +32,7 @@ fn init_backend() -> Result<CrosstermBackend, IOError> {
 //     Ok(TermionBackend::new(stdout))
 // }
 
-pub fn run() -> Result<(), IOError> {
+pub fn run(program: Option<Asm>) -> Result<(), IOError> {
     let mut terminal = Terminal::new(init_backend()?)?;
 
     terminal.clear()?;
@@ -43,6 +44,9 @@ pub fn run() -> Result<(), IOError> {
     let mut last_event = None;
 
     let mut machine = Machine::new();
+    if let Some(ref program) = program {
+        machine.run(program);
+    }
     let mut input = Input::new();
 
     loop {
@@ -75,7 +79,7 @@ pub fn run() -> Result<(), IOError> {
                 Event::Step => {}
                 Event::ToggleAutoRun => auto_run = !auto_run,
                 Event::Interrupt => {
-                    machine.edge_int(true);
+                    machine.edge_int();
                     last_event = Some(Instant::now());
                 }
                 Event::Reset => {
@@ -92,9 +96,7 @@ pub fn run() -> Result<(), IOError> {
 
         if let Some(ref inst) = last_event {
             if inst.elapsed().as_millis() > 300 {
-                machine.edge_int(false);
                 machine.reset(false);
-                machine.clk(false);
 
                 last_event = None;
             }

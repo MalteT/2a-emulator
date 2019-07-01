@@ -32,17 +32,40 @@ pub fn handle_user_input() -> Result<(), Error> {
         )?;
     }
     if matches.is_present("interactive") {
-        if matches.is_present("PROGRAM") {
-            validate_source_file(matches.value_of_lossy("PROGRAM").expect("Infallible"))?;
-        }
-        tui::run()?;
+        let program = if matches.is_present("PROGRAM") {
+            let program = matches.value_of_lossy("PROGRAM").expect("Infallible");
+            Some(program)
+        } else {
+            None
+        };
+        run_tui(program)?;
     } else if matches.is_present("test") {
         validate_source_file(matches.value_of_lossy("PROGRAM").expect("Infallible"))?;
         println!("Testing functionality is not available yet!");
     } else if !matches.is_present("check") {
-        tui::run()?;
+        let program = if matches.is_present("PROGRAM") {
+            let program = matches.value_of_lossy("PROGRAM").expect("Infallible");
+            Some(program)
+        } else {
+            None
+        };
+        run_tui(program)?;
     }
 
+    Ok(())
+}
+
+/// Run the TUI.
+/// If a program was given, run this.
+fn run_tui<S: ToString>(program_path: Option<S>) -> Result<(), Error> {
+    let program_path = program_path.map(|s| s.to_string());
+    let program: Option<Asm> = if let Some(program_path) = program_path {
+        let content = read_to_string(program_path.to_string())?;
+        Some(AsmParser::parse(&content).map_err(|e| Error::from(e))?)
+    } else {
+        None
+    };
+    tui::run(program)?;
     Ok(())
 }
 
