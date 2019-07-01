@@ -4,6 +4,7 @@
 pub struct Alu;
 
 /// A list containing all ALU functions.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum AluFn {
     ADDH,
     A,
