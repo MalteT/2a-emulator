@@ -8,6 +8,8 @@ use pest_derive::Parser;
 use std::fmt;
 use std::ops::Index;
 
+use super::Signal;
+
 /// Parser for the microprogram words document.
 #[derive(Parser)]
 #[grammar = "../static/mr-mpram.pest"]
@@ -121,9 +123,66 @@ impl MicroprogramRam {
     }
     /// Get the currently active word.
     pub fn get(&self) -> &MP28BitWord {
+        eprintln!("MP_RAM: Address: {}", self.current_word);
         &self.content[self.current_word]
     }
-    // /// Select the next word according to the given parameters.
+    /// Select the next word according to the given parameters.
+    pub fn select(&mut self, next_addr: usize) {
+        self.current_word = next_addr;
+        eprintln!("MP_RAM: Changed address to {}", self.current_word);
+    }
+    /// Calculate the next address from the given Signal.
+    pub fn next_addr(&self, sig: &Signal) -> usize {
+        let a8 = sig.a8();
+        let a7 = sig.a7();
+        let a6 = sig.a6();
+        let a5 = sig.a5();
+        let a4 = sig.na4();
+        let a3 = sig.na3();
+        let a2 = sig.na2();
+        let a1 = if sig.mac2() { sig.op11() } else { sig.na1() };
+        let a0 = if sig.mac2() {
+            sig.op10()
+        } else {
+            let select = ((sig.mac1() as u8) << 2) + ((sig.mac0() as u8) << 1) + (sig.na0() as u8);
+            match select {
+                0b000 => false,
+                0b001 => true,
+                0b010 => {
+                    let select = ((sig.op01() as u8) << 1) + (sig.op00() as u8);
+                    let am2 = match select {
+                        0b00 => true,
+                        0b01 => sig.cf(),
+                        0b10 => sig.zf(),
+                        0b11 => sig.nf(),
+                        _ => unreachable!(),
+                    };
+                    let op10 = sig.op10();
+                    // XOR op10 and am2
+                    (am2 || op10) && !(am2 && op10)
+                }
+                0b011 => sig.cf(),
+                0b100 => sig.co(),
+                0b101 => sig.zo(),
+                0b110 => sig.no(),
+                0b111 => sig.ief() && (sig.level_int() || sig.edge_int()),
+                _ => unreachable!(),
+            }
+        };
+        ((a8 as usize) << 8)
+            + ((a7 as usize) << 7)
+            + ((a6 as usize) << 6)
+            + ((a5 as usize) << 5)
+            + ((a4 as usize) << 4)
+            + ((a3 as usize) << 3)
+            + ((a2 as usize) << 2)
+            + ((a1 as usize) << 1)
+            + (a0 as usize)
+    }
+    /// Reset the current address of the microprogram ram.
+    pub fn reset(&mut self) {
+        self.current_word = 0;
+    }
 }
 
 impl Index<u16> for MicroprogramRam {

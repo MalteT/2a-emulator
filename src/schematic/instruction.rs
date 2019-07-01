@@ -13,3 +13,12 @@ bitflags! {
         const OP00 = 0b00000001;
     }
 }
+
+impl Instruction {
+    /// Create the default instruction, that is used by the Minirechner 2a,
+    /// whenever a reset is received: `0x02`
+    // TODO: Why this value?
+    pub fn reset() -> Self {
+        Instruction::OP01
+    }
+}

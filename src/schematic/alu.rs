@@ -106,7 +106,7 @@ impl From<(bool, bool, bool, bool)> for AluFn {
     fn from((malus3, malus2, malus1, malus0): (bool, bool, bool, bool)) -> Self {
         use AluFn::*;
         let selection =
-            (malus3 as u8) << 3 + (malus2 as u8) << 2 + (malus1 as u8) << 1 + malus0 as u8;
+            ((malus3 as u8) << 3) + ((malus2 as u8) << 2) + ((malus1 as u8) << 1) + (malus0 as u8);
         match selection {
             0b0000 => ADDH,
             0b0001 => A,

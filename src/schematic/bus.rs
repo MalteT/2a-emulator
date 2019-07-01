@@ -47,7 +47,7 @@ impl Bus {
         if addr <= 0xEF {
             self.ram[addr] = byte;
         } else if addr <= 0xFD {
-            unimplemented!("Cannot yet write to non ram bus content");
+            unimplemented!("Cannot yet write to non ram bus content. address: {}", addr);
         } else {
             self.output_reg[addr - 0xFE] = byte;
         }
