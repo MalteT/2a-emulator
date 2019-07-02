@@ -1,3 +1,5 @@
+use log::trace;
+
 use std::fmt;
 
 /// The bus used in the Minirechner 2a.
@@ -46,10 +48,12 @@ impl Bus {
         let addr = addr as usize;
         if addr <= 0xEF {
             self.ram[addr] = byte;
+            trace!("RAM update: {:?}", self.ram.to_vec());
         } else if addr <= 0xFD {
             unimplemented!("Cannot yet write to non ram bus content. address: {}", addr);
         } else {
             self.output_reg[addr - 0xFE] = byte;
+            trace!("Output register update: {:?}", self.output_reg);
         }
     }
     /// Read from the bus.
