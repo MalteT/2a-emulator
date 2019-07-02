@@ -6,11 +6,18 @@ use mr2a_asm_parser::asm::{
 
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::Deref;
+use std::rc::Rc;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum ByteOrLabel {
+    /// An ordinary byte.
     Byte(u8),
+    /// A label that will be replaced by the address of the following byte.
     Label(Label),
+    /// A label that will be replaced by the address of the following byte
+    /// which will the be transformed by the function.
+    LabelFn(Label, Rc<dyn Fn(u8) -> u8>),
 }
 
 #[derive(Debug, Clone)]
@@ -147,13 +154,13 @@ impl Translator {
             Ldsp(src) => from_bases_and_src(0b1111_00_00, 0b0100_00_00, &src),
             Ldfr(src) => from_bases_and_src(0b1111_00_00, 0b0100_01_00, &src),
             Jmp(label) => vec![Byte(0b1111_10_11), Label(label), Byte(0b0001_00_11)],
-            Jcs(label) => vec![Byte(0b0010_0_000), Label(label)],
-            Jcc(label) => vec![Byte(0b0010_0_000), Label(label)],
-            Jzs(label) => vec![Byte(0b0010_0_000), Label(label)],
-            Jzc(label) => vec![Byte(0b0010_0_000), Label(label)],
-            Jns(label) => vec![Byte(0b0010_0_000), Label(label)],
-            Jnc(label) => vec![Byte(0b0010_0_000), Label(label)],
-            Jr(label) => vec![Byte(0b0010_0_000), Label(label)],
+            Jcs(label) => relative_jump(0b001, label, self.next_addr),
+            Jcc(label) => relative_jump(0b101, label, self.next_addr),
+            Jzs(label) => relative_jump(0b010, label, self.next_addr),
+            Jzc(label) => relative_jump(0b110, label, self.next_addr),
+            Jns(label) => relative_jump(0b011, label, self.next_addr),
+            Jnc(label) => relative_jump(0b111, label, self.next_addr),
+            Jr(label) => relative_jump(0b000, label, self.next_addr),
             Call(label) => vec![Byte(0b0010_10_00), Label(label)],
             Ret => vec![Byte(0b0001_01_11)],
             RetI => vec![Byte(0b0010_11_00)],
@@ -182,6 +189,12 @@ impl Translator {
                         ByteOrLabel::Label(label) => *labels
                             .get(&label)
                             .expect("infallible. Labels must be defined"),
+                        ByteOrLabel::LabelFn(label, f) => {
+                            let b = *labels
+                                .get(&label)
+                                .expect("infallible. Labels must be defined");
+                            f.deref()(b)
+                        }
                     })
                     .collect();
                 (line, bytes)
@@ -189,6 +202,23 @@ impl Translator {
             .collect();
         ByteCode { lines }
     }
+}
+
+/// Create the necessary [`ByteOrLabel`]s for a relative jump with the given condition.
+fn relative_jump(cond: u8, label: Label, curr_addr: u8) -> Vec<ByteOrLabel> {
+    use ByteOrLabel::*;
+    debug_assert!(cond <= 0b0000_0_111);
+    let first = Byte(0b0010_0_000 + cond);
+    // Calculate relative offset of the target address.
+    let second = LabelFn(
+        label,
+        Rc::from(move |target: u8| {
+            let (pre_jump, _) = curr_addr.overflowing_add(2);
+            let (diff, _) = target.overflowing_sub(pre_jump);
+            diff
+        }),
+    );
+    vec![first, second]
 }
 
 /// Compile a `MOV` instruction.
@@ -437,5 +467,15 @@ impl fmt::Display for ByteCode {
             writeln!(f, " {} {}", code_str, line.dimmed())?;
         }
         Ok(())
+    }
+}
+
+impl fmt::Debug for ByteOrLabel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ByteOrLabel::Byte(b) => write!(f, "Byte({:>02X})", b),
+            ByteOrLabel::Label(l) => write!(f, "Label({})", l),
+            ByteOrLabel::LabelFn(l, _) => write!(f, "LabelFn({}, [hidden])", l),
+        }
     }
 }
