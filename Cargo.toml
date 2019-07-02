@@ -1,6 +1,6 @@
 [package]
 name = "2a-emulator"
-version = "0.4.7"
+version = "0.4.8"
 authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
@@ -18,6 +18,7 @@ crossterm_input = "0.3.6"
 # TODO: This is an old crossterm version, that tui relies on
 crossterm = "0.6.0"
 colored = "1.8.0"
+lazy_static = "1.3.0"
 
 [dependencies.mr2a_asm_parser]
 git = "https://v4.git.tammena.rocks/2a-emulator/asm-parser.git"
