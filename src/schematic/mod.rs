@@ -5,6 +5,8 @@ use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
 use tui::widgets::Widget;
 
+use std::time::Instant;
+
 mod alu;
 mod bus;
 mod fns;
@@ -49,6 +51,9 @@ pub struct Machine {
     pending_register_write: Option<(RegNum, u8)>,
     input_edge_int: bool,
     input_level_int: bool,
+    /// Frequency measurements
+    measured_frequency: f32,
+    frequency_measure_last_measurement: Instant,
 }
 
 impl Machine {
@@ -61,6 +66,8 @@ impl Machine {
         let pending_register_write = None;
         let input_edge_int = false;
         let input_level_int = false;
+        let measured_frequency = 1000.0;
+        let frequency_measure_last_measurement = Instant::now();
         Machine {
             mp_ram,
             reg,
@@ -69,6 +76,8 @@ impl Machine {
             pending_register_write,
             input_edge_int,
             input_level_int,
+            measured_frequency,
+            frequency_measure_last_measurement,
         }
     }
     /// Run the given [`Asm`] program.
@@ -108,6 +117,9 @@ impl Machine {
     /// Update the machine.
     /// This should be equivalent to a CLK signal on the real machine.
     fn update(&mut self) {
+        let diff = Instant::now() - self.frequency_measure_last_measurement;
+        self.measured_frequency = 1_000_000_000.0 / diff.as_nanos() as f32;
+        self.frequency_measure_last_measurement = Instant::now();
         // ------------------------------------------------------------
         // Update register block with value from last iteration
         // ------------------------------------------------------------
@@ -247,6 +259,14 @@ impl Widget for Machine {
         let y = area.y + 1;
 
         let dimmed = Style::default().modifier(Modifier::DIM);
+        //
+        // Frequency
+        buf.set_string(
+            area.width - 20,
+            1,
+            format!("Frequency: {:>7}KHz", self.measured_frequency as u64),
+            dimmed,
+        );
 
         // Output register
         buf.set_string(x, y, "Outputs:", dimmed);
