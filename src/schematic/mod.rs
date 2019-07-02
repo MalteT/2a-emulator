@@ -48,7 +48,9 @@ pub struct Machine {
     /// The state of the bus.
     bus: Bus,
     /// The pending register write from last iteration.
-    pending_register_write: Option<(RegNum, u8)>,
+    pending_register_write: Option<(RegisterNumber, u8)>,
+    /// The pending flag write from last iteration.
+    pending_flag_write: Option<(bool, bool, bool)>,
     input_edge_int: bool,
     input_level_int: bool,
     /// Frequency measurements
@@ -64,6 +66,7 @@ impl Machine {
         let bus = Bus::new();
         let current_instruction = Instruction::reset();
         let pending_register_write = None;
+        let pending_flag_write = None;
         let input_edge_int = false;
         let input_level_int = false;
         let measured_frequency = 1000.0;
@@ -74,6 +77,7 @@ impl Machine {
             bus,
             current_instruction,
             pending_register_write,
+            pending_flag_write,
             input_edge_int,
             input_level_int,
             measured_frequency,
@@ -121,11 +125,17 @@ impl Machine {
         self.measured_frequency = 1_000_000_000.0 / diff.as_nanos() as f32;
         self.frequency_measure_last_measurement = Instant::now();
         // ------------------------------------------------------------
-        // Update register block with value from last iteration
+        // Update register block with values from last iteration
         // ------------------------------------------------------------
         if let Some((r, value)) = self.pending_register_write {
+            trace!("Setting register: {:?} = {:>02X}", r, value);
             self.pending_register_write = None;
             self.reg.set(r, value);
+        }
+        if let Some((co, zo, no)) = self.pending_flag_write {
+            self.reg.update_co(co);
+            self.reg.update_zo(zo);
+            self.reg.update_no(no);
         }
         // ------------------------------------------------------------
         // Use microprogram word from last iteration
