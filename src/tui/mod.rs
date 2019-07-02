@@ -41,20 +41,23 @@ fn init_backend() -> Result<CrosstermBackend, IOError> {
 // }
 
 pub fn run(program: Option<Asm>) -> Result<(), IOError> {
+    // Initialize terminal backend
     let mut terminal = Terminal::new(init_backend()?)?;
-
+    // Clear the terminal and hide the cursor
+    // TODO: Show cursor for input
     terminal.clear()?;
     terminal.hide_cursor()?;
-
+    // Events struct for handling inputs
     let mut events = Events::new();
     let events = events.iter();
+    // Variables
     let mut auto_run = false;
-    let mut last_event = None;
-
+    // Create the machine and run the given program, if any
     let mut machine = Machine::new();
     if let Some(ref program) = program {
         machine.run(program);
     }
+    // Input struct for typing commands
     let mut input = Input::new();
     // Time counter for keeping a max framerate of 60fps
     let mut time_since_last_draw = Instant::now();
@@ -76,6 +79,7 @@ pub fn run(program: Option<Asm>) -> Result<(), IOError> {
             match event {
                 Event::Quit => break,
                 Event::Clock => {
+                    // Only interpret Enter as CLK if no text was input
                     if input.is_empty() {
                         // TODO: Prevent clk on auto-run
                         machine.clk();
