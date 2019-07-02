@@ -1,12 +1,23 @@
 use super::Signal;
-use log::trace;
-use mr2a_asm_parser::asm::Register as RegisterNumber;
 
 /// The register block.
 /// Containing `R0` through `R7`
 #[derive(Debug, Clone)]
 pub struct Register {
     content: [u8; 8],
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// All possible register.
+pub enum RegisterNumber {
+    R0,
+    R1,
+    R2,
+    R3,
+    R4,
+    R5,
+    R6,
+    R7,
 }
 
 impl Register {
@@ -39,10 +50,8 @@ impl Register {
     pub fn reset(&mut self) {
         self.content = [0; 8];
     }
-    /// Write a new value into the register.
-    /// The register number will be derived from the given signals
-    pub fn write(&mut self, signal: &Signal, value: u8) {
-        // Get register to write to
+    /// Derive the selected register from the given [`Signal`]s.
+    pub fn get_selected(signal: &Signal) -> RegisterNumber {
         let (a2, a1, a0) = if signal.mrgws() {
             // Write to address selected by b
             if signal.mrgab3() {
@@ -58,9 +67,22 @@ impl Register {
                 (signal.mrgaa2(), signal.mrgaa1(), signal.mrgaa0())
             }
         };
-        let selected = ((a2 as usize) << 2) + ((a1 as usize) << 1) + (a0 as usize);
+        match (a2, a1, a0) {
+            (false, false, false) => RegisterNumber::R0,
+            (false, false, true) => RegisterNumber::R1,
+            (false, true, false) => RegisterNumber::R2,
+            (false, true, true) => RegisterNumber::R3,
+            (true, false, false) => RegisterNumber::R4,
+            (true, false, true) => RegisterNumber::R5,
+            (true, true, false) => RegisterNumber::R6,
+            (true, true, true) => RegisterNumber::R7,
+        }
+    }
+    /// Write a new value into the register.
+    /// The register number will be derived from the given signals
+    pub fn write(&mut self, signal: &Signal, value: u8) {
+        let selected: usize = Register::get_selected(signal).into();
         self.content[selected] = value;
-        trace!("REGIST: Wrote {} to R{}", value, selected);
     }
     /// Update flags in R4.
     pub fn write_flags(&mut self, signal: &Signal) {
@@ -99,13 +121,38 @@ impl Register {
     }
     /// Write the given `value` to the given [`RegisterNumber`].
     pub fn set(&mut self, reg: RegisterNumber, value: u8) {
-        let reg = match reg {
+        let reg: usize = reg.into();
+        self.content[reg] = value;
+    }
+    /// Update the CO flag.
+    pub fn update_co(&mut self, co: bool) {
+        let co = (co as u8) << 2;
+        self.content[4] = (self.content[4] & 0b1111_1011) | co;
+    }
+    /// Update the ZO flag.
+    pub fn update_zo(&mut self, zo: bool) {
+        let zo = (zo as u8) << 1;
+        self.content[4] = (self.content[4] & 0b1111_1101) | zo;
+    }
+    /// Update the NO flag.
+    pub fn update_no(&mut self, no: bool) {
+        let no = no as u8;
+        self.content[4] = (self.content[4] & 0b1111_1110) | no;
+    }
+}
+
+impl From<RegisterNumber> for usize {
+    fn from(rn: RegisterNumber) -> Self {
+        match rn {
             RegisterNumber::R0 => 0,
             RegisterNumber::R1 => 1,
             RegisterNumber::R2 => 2,
             RegisterNumber::R3 => 3,
-        };
-        self.content[reg] = value;
+            RegisterNumber::R4 => 4,
+            RegisterNumber::R5 => 5,
+            RegisterNumber::R6 => 6,
+            RegisterNumber::R7 => 7,
+        }
     }
 }
 

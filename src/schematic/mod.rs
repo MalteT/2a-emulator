@@ -1,5 +1,5 @@
 use log::trace;
-use mr2a_asm_parser::asm::{Asm, Register as RegNum};
+use mr2a_asm_parser::asm::Asm;
 use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
@@ -20,7 +20,7 @@ pub use bus::Bus;
 pub use fns::*;
 pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
-pub use register::Register;
+pub use register::{Register, RegisterNumber};
 pub use signal::Signal;
 
 use crate::compiler::Translator;
