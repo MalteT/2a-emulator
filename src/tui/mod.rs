@@ -122,7 +122,6 @@ pub fn run(program: Option<Asm>) -> Result<(), IOError> {
             let area = Rect::new(area.x, area.y + area.height, area.width, 3);
             input.render(&mut f, area.inner(1));
         })?;
-        thread::sleep(Duration::from_millis(10));
     }
 
     terminal.clear()?;
