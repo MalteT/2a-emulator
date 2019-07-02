@@ -17,7 +17,7 @@ pub enum Event {
 }
 
 pub struct Events {
-    iter: Map<AsyncReader, Box<FnMut(InputEvent) -> Event>>,
+    iter: Map<AsyncReader, Box<dyn FnMut(InputEvent) -> Event>>,
 }
 
 #[derive(Debug, Clone)]
@@ -56,7 +56,7 @@ impl Events {
 
     pub fn with_config(config: Config) -> Events {
         let f = move |e| Event::from(e, &config);
-        let f_box: Box<FnMut(InputEvent) -> Event> = Box::from(f);
+        let f_box: Box<dyn FnMut(InputEvent) -> Event> = Box::from(f);
         let iter = input().read_async().map(f_box);
         Events { iter }
     }
