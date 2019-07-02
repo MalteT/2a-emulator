@@ -94,7 +94,7 @@ impl Machine {
         }
     }
     /// TODO: Dummy
-    pub fn clk(&mut self, _sig: bool) {
+    pub fn clk(&mut self) {
         self.update()
     }
     /// Reset the machine.
@@ -106,7 +106,7 @@ impl Machine {
     /// It does *not*:
     /// - Delete the memory (or anything on the bus).
     // # TODO: Do we need to reset interrupt inputs?
-    pub fn reset(&mut self, _sig: bool) {
+    pub fn reset(&mut self) {
         self.reg.reset();
         self.current_instruction = Instruction::reset();
         self.mp_ram.reset();
@@ -142,8 +142,8 @@ impl Machine {
         // ------------------------------------------------------------
         let mp_ram_out = self.mp_ram.get().clone();
         let mut sig = Signal::new(&mp_ram_out, &self.current_instruction);
-        trace!("UPDATE: Instruction: {:?}", self.current_instruction);
-        trace!("UPDATE: Word: {:?}", mp_ram_out);
+        trace!("Address: {:>08b} ({0})", self.mp_ram.current_addr());
+        trace!("Word: {:?}", mp_ram_out);
         // ------------------------------------------------------------
         // Add inputs to sig
         // ------------------------------------------------------------
@@ -158,36 +158,29 @@ impl Machine {
         sig.set_ief(self.reg.ief());
         let doa = self.reg.doa(&sig);
         let dob = self.reg.dob(&sig);
-        trace!(
-            "UPDATE: Output Registers: A: 0x{:>02X}, B: 0x{:>02X}",
-            doa,
-            dob
-        );
+        trace!("DOA: {:>02X}", doa);
+        trace!("DOB: {:>02X}", dob);
         // ------------------------------------------------------------
         // Read value from bus at selected address
         // ------------------------------------------------------------
         let mut bus_content = 0;
         if sig.busen() {
             bus_content = self.bus.read(doa);
-            trace!(
-                "UPDATE: Read 0x{:>02X} from bus address 0x{:>02X}",
-                bus_content,
-                doa
-            );
+            trace!("MEMDI: 0x{:>02X}", bus_content);
         }
         // ------------------------------------------------------------
         // Update current instruction from bus
         // ------------------------------------------------------------
         if sig.mac1() && sig.mac2() {
             // Reset the instruction register
-            trace!("UPDATE: Resetting instruction register");
+            trace!("Resetting instruction register");
             self.current_instruction = Instruction::reset();
             sig.set_current_instruction(&self.current_instruction);
         } else if sig.mac0() && sig.mac2() {
             // Selecting next instruction
-            trace!("UPDATE: Selecting next instruction");
             self.current_instruction = Instruction::from_bits_truncate(bus_content);
             sig.set_current_instruction(&self.current_instruction);
+            trace!("Instruction: {:?}", self.current_instruction);
         }
         // ------------------------------------------------------------
         // Calculate the ALU output
@@ -209,12 +202,12 @@ impl Machine {
             dob
         };
         let alu_fn = (sig.malus3(), sig.malus2(), sig.malus1(), sig.malus0()).into();
-        trace!("UPDATE: ALU function: {:?}", alu_fn);
+        trace!("ALU fn: {:?}", alu_fn);
         let memdo = Alu::output(sig.cf(), alu_in_a, alu_in_b, alu_fn);
         let co = Alu::co(sig.cf(), alu_in_a, alu_in_b, alu_fn);
         let zo = Alu::zo(sig.cf(), alu_in_a, alu_in_b, alu_fn);
         let no = Alu::no(sig.cf(), alu_in_a, alu_in_b, alu_fn);
-        trace!("UPDATE: ALU calculated: 0x{:>02X}", memdo);
+        trace!("MEMDO: 0x{:>02X}", memdo);
         // ------------------------------------------------------------
         // Add ALU outputs to signals
         // ------------------------------------------------------------
@@ -223,35 +216,32 @@ impl Machine {
         sig.set_no(no);
         // Update registers if necessary
         if sig.mrgwe() {
-            trace!("UPDATE: Changing registers");
-            self.reg.write(&sig, memdo);
+            let selected_reg = Register::get_selected(&sig);
+            self.pending_register_write = Some((selected_reg, memdo));
+            trace!("New pending register write");
         }
         if sig.mchflg() {
-            trace!("UPDATE: Updating flags");
-            self.reg.write_flags(&sig);
+            self.pending_flag_write = Some((sig.co(), sig.zo(), sig.no()));
+            trace!("New pending flag write");
         }
         // ------------------------------------------------------------
         // Update bus
         // TODO: wait
         // ------------------------------------------------------------
         if sig.buswr() {
-            trace!(
-                "UPDATE: Writing 0x{:>02X} to bus address 0x{:>02X}",
-                memdo,
-                doa
-            );
+            trace!("Writing 0x{:>02X} to bus address 0x{:>02X}", memdo, doa);
             self.bus.write(doa, memdo);
         }
         // Clearing edge interrupt if used
         if self.input_edge_int && sig.na0() && sig.mac0() && sig.mac1() {
-            trace!("UPDATE: Clearing edge interrupt");
+            trace!("Clearing edge interrupt");
             self.input_edge_int = false;
         }
         // ------------------------------------------------------------
         // Select next microprogram word
         // ------------------------------------------------------------
-        trace!("UPDATE: Selecting next mp_ram word");
-        let next_mp_ram_addr = self.mp_ram.next_addr(&sig);
+        let next_mp_ram_addr = MicroprogramRam::get_addr(&sig);
+        trace!("Next MP_RAM address: {}", next_mp_ram_addr);
         self.mp_ram.select(next_mp_ram_addr);
     }
 }
@@ -295,45 +285,6 @@ impl Widget for Machine {
         buf.set_string(x + 15, y + 6, "FE", dimmed);
         buf.set_string(x + 24, y + 6, "FD", dimmed);
         buf.set_string(x + 33, y + 6, "FC", dimmed);
-        // let mut x = area.x;
-        // let mut y = area.y;
-        // match self.displaying_part {
-        //     Part::InterruptLogic => {
-        //         let il1 = self.get_part(Part::Il1).borrow().to_utf8_string();
-        //         let il2 = self.get_part(Part::Il2).borrow().to_utf8_string();
-        //         let iff1 = self.get_part(Part::Iff1).borrow().to_utf8_string();
-        //         let iff2 = self.get_part(Part::Iff2).borrow().to_utf8_string();
-        //         let mut s: StrGrid = include_str!("../../displays/interrupt.utf8.template")
-        //             .try_into()
-        //             .unwrap();
-        //         s.put(1, &il1).expect("il1 fits into interruptlogic");
-        //         s.put(2, &iff2).expect("iff2 fits into interruptlogic");
-        //         s.put(3, &il2).expect("il2 fits into interruptlogic");
-        //         s.put(4, &iff1).expect("iff1 fits into interruptlogic");
-        //         s.to_string()
-        //     }
-        //     _ => self
-        //         .get_part(self.displaying_part)
-        //         .borrow()
-        //         .to_utf8_string(),
-        // }
-        // .lines()
-        // .take(area.height as usize)
-        // .for_each(|line| {
-        //     x = area.x;
-        //     line.char_indices()
-        //         .take(area.width as usize)
-        //         .for_each(|(_, c)| {
-        //             let style = match c {
-        //                 '○' => Style::default().fg(Color::Gray),
-        //                 '●' => Style::default().fg(Color::Yellow),
-        //                 _ => Style::default(),
-        //             };
-        //             buf.set_string(x, y, c.to_string(), style);
-        //             x += 1;
-        //         });
-        //     y += 1;
-        // });
     }
 }
 
