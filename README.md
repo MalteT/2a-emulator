@@ -1,4 +1,4 @@
-
+![logo](/static/logo.png)
 # Emulator for Minirechner 2a microcomputer
 
 ## Installation
