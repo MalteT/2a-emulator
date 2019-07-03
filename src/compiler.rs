@@ -74,7 +74,6 @@ impl Translator {
         }
     }
     /// Push an instruction into the translator.
-    // TODO: Relative jumps need ccc defined
     fn push_instruction(&mut self, inst: &Instruction, comment: &Option<Comment>) {
         use ByteOrLabel::*;
         use Instruction::*;
