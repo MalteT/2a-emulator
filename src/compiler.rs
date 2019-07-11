@@ -87,10 +87,6 @@ impl Translator {
             }
             // TODO: Fix AsmByte. It should only take integers
             AsmByte(nr) => {
-                let nr = match nr {
-                    Constant::Constant(c) => c,
-                    Constant::Label(_) => panic!("Not allowed to .Byte label"),
-                };
                 self.next_addr += nr;
                 let mut ret = vec![];
                 for _ in 0..nr {
@@ -233,7 +229,6 @@ fn compile_instruction_mov(dst: Destination, src: Source) -> Vec<ByteOrLabel> {
     let second = match src {
         Source::Constant(c) => Some(c.into()),
         Source::MemAddress(ref mem) => match mem {
-            MemAddress::Label(l) => Some(Label(l.clone())),
             MemAddress::Constant(c) => Some(c.clone().into()),
             MemAddress::Register(_) => None,
         },
@@ -250,9 +245,7 @@ fn compile_instruction_mov(dst: Destination, src: Source) -> Vec<ByteOrLabel> {
     ret.push(Byte(third));
     // Add another byte if we need an address
     let fourth = match dst {
-        Destination::Constant(c) => Some(c.into()),
         Destination::MemAddress(ref mem) => match mem {
-            MemAddress::Label(l) => Some(Label(l.clone())),
             MemAddress::Constant(c) => Some(c.clone().into()),
             MemAddress::Register(_) => None,
         },
@@ -289,7 +282,7 @@ fn source_addr_mode(src: &Source) -> u8 {
         Source::RegisterDDI(_) => 0b11,
         Source::MemAddress(ref mem) => match mem {
             MemAddress::Register(_) => 0b01,
-            MemAddress::Label(_) | MemAddress::Constant(_) => 0b11,
+            MemAddress::Constant(_) => 0b11,
         },
     }
 }
@@ -303,7 +296,7 @@ fn source_register(src: &Source) -> u8 {
         Source::Constant(_) => 0b11,
         Source::MemAddress(ref mem) => match mem {
             MemAddress::Register(reg) => reg_to_u8(*reg),
-            MemAddress::Label(_) | MemAddress::Constant(_) => 0b11,
+            MemAddress::Constant(_) => 0b11,
         },
     }
 }
@@ -312,11 +305,11 @@ fn source_register(src: &Source) -> u8 {
 fn destination_addr_mode(dst: &Destination) -> u8 {
     match dst {
         Destination::Register(_) => 0b00,
-        Destination::Constant(_) | Destination::RegisterDI(_) => 0b10,
+        Destination::RegisterDI(_) => 0b10,
         Destination::RegisterDDI(_) => 0b11,
         Destination::MemAddress(ref mem) => match mem {
             MemAddress::Register(_) => 0b01,
-            MemAddress::Label(_) | MemAddress::Constant(_) => 0b11,
+            MemAddress::Constant(_) => 0b11,
         },
     }
 }
@@ -327,10 +320,9 @@ fn destination_register(dst: &Destination) -> u8 {
         Destination::Register(reg)
         | Destination::RegisterDI(RegisterDI(reg))
         | Destination::RegisterDDI(RegisterDDI(reg)) => reg_to_u8(*reg),
-        Destination::Constant(_) => 0b11,
         Destination::MemAddress(ref mem) => match mem {
             MemAddress::Register(reg) => reg_to_u8(*reg),
-            MemAddress::Label(_) | MemAddress::Constant(_) => 0b11,
+            MemAddress::Constant(_) => 0b11,
         },
     }
 }
@@ -351,7 +343,6 @@ fn from_bases_dst_and_src(b1: u8, b2: u8, dst: &Destination, src: &Source) -> Ve
     let second = match src {
         Source::Constant(c) => Some(c.clone().into()),
         Source::MemAddress(ref mem) => match mem {
-            MemAddress::Label(l) => Some(Label(l.clone())),
             MemAddress::Constant(c) => Some(c.clone().into()),
             MemAddress::Register(_) => None,
         },
@@ -368,9 +359,7 @@ fn from_bases_dst_and_src(b1: u8, b2: u8, dst: &Destination, src: &Source) -> Ve
     ret.push(Byte(third));
     // Add another byte if we need an address
     let fourth = match dst {
-        Destination::Constant(c) => Some(c.clone().into()),
         Destination::MemAddress(ref mem) => match mem {
-            MemAddress::Label(l) => Some(Label(l.clone())),
             MemAddress::Constant(c) => Some(c.clone().into()),
             MemAddress::Register(_) => None,
         },
@@ -398,7 +387,6 @@ fn from_bases_and_src(b1: u8, b2: u8, src: &Source) -> Vec<ByteOrLabel> {
     let second = match src {
         Source::Constant(c) => Some(c.clone().into()),
         Source::MemAddress(ref mem) => match mem {
-            MemAddress::Label(l) => Some(Label(l.clone())),
             MemAddress::Constant(c) => Some(c.clone().into()),
             MemAddress::Register(_) => None,
         },
@@ -444,7 +432,6 @@ impl From<Constant> for ByteOrLabel {
 impl From<MemAddress> for ByteOrLabel {
     fn from(mem: MemAddress) -> Self {
         match mem {
-            MemAddress::Label(label) => ByteOrLabel::Label(label),
             MemAddress::Constant(c) => c.into(),
             MemAddress::Register(_reg) => unimplemented!("How to make a const from a register"),
         }
