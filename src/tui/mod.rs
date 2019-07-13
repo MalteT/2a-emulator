@@ -65,9 +65,9 @@ pub fn run(program: Option<Asm>) -> Result<(), IOError> {
     let mut time_since_last_clk = Instant::now();
     // Frequency of the machine (Default: 7.3728 MHz)
     // TODO: Ability to change frequency
-    let frequency = 7_372_8;
+    let frequency = 7.3728 * 1_000_000.0;
     // Inverse fo the frequency of the machine
-    let clock_period = Duration::from_micros((1_000_000 / frequency) as u64);
+    let clock_period = Duration::from_micros((1_000_000.0 / frequency) as u64);
     // Block for drawing
     let mut outer_block = Block::default()
         .title("Minirechner 2a")

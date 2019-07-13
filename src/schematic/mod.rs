@@ -259,14 +259,6 @@ impl Widget for Machine {
         let y = area.y + 1;
 
         let dimmed = Style::default().modifier(Modifier::DIM);
-        //
-        // Frequency
-        buf.set_string(
-            area.width - 20,
-            1,
-            format!("Frequency: {:>7}KHz", self.measured_frequency as u64),
-            dimmed,
-        );
 
         // Output register
         buf.set_string(x, y, "Outputs:", dimmed);
