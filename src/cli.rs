@@ -1,3 +1,5 @@
+//! Types and functions to aid the command line interface.
+
 use clap::{crate_version, load_yaml, App};
 use failure::Fail;
 use mr2a_asm_parser::asm::Asm;
@@ -12,7 +14,9 @@ use crate::tui;
 
 #[derive(Fail, Debug)]
 pub enum Error {
+    /// Thrown when the validation of the ASM source file failes.
     ValidationFailed(#[cause] ParserError),
+    /// Thrown when, due to IO failure, no ASM source file could be opened.
     OpeningSourceFileFailed(#[cause] IOError),
 }
 

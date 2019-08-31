@@ -1,3 +1,5 @@
+//! Basic UTF8/ASCII displaying utils.
+
 /// Simple trait to display things either as
 /// UTF8 or as ASCII.
 pub trait Display {

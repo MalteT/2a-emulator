@@ -1,3 +1,5 @@
+//! For displaying strings in grids
+
 use tui::layout::Rect;
 use unicode_width::UnicodeWidthStr;
 

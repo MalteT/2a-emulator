@@ -1,3 +1,5 @@
+//! Simple input field for the TUI.
+
 use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::style::{Color, Style};

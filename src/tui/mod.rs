@@ -1,3 +1,5 @@
+/// Terminal User Interface.
+
 use lazy_static::lazy_static;
 use log::trace;
 use mr2a_asm_parser::asm::Asm;

@@ -1,3 +1,5 @@
+//! TUI I/O events
+
 use crossterm_input::{input, AsyncReader, InputEvent, KeyEvent as KE};
 use log::info;
 
