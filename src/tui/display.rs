@@ -27,8 +27,6 @@ impl Display for u8 {
         format!("{:>08b}", self)
     }
     fn display_utf8(&self) -> String {
-        format!("{:>08b}", self)
-            .replace('0', "○")
-            .replace('1', "●")
+        format!("{:>08b}", self).replace('0', "○").replace('1', "●")
     }
 }

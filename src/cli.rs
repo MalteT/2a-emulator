@@ -69,7 +69,8 @@ fn run_tui<S: ToString>(program_path: Option<S>) -> Result<(), Error> {
     } else {
         None
     };
-    tui::run(program)?;
+    let tui = tui::Tui::new()?;
+    tui.run(program)?;
     Ok(())
 }
 
