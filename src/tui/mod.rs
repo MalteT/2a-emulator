@@ -3,8 +3,6 @@ use lazy_static::lazy_static;
 use log::trace;
 use mr2a_asm_parser::asm::Asm;
 use tui::backend::CrosstermBackend;
-use tui::layout::Rect;
-use tui::widgets::{Block, Borders, Widget};
 use tui::Terminal;
 
 use std::io::Error as IOError;
@@ -16,10 +14,12 @@ pub mod display;
 pub mod events;
 pub mod grid;
 pub mod input;
+pub mod interface;
 
 use crate::schematic::Machine;
 use events::{Event, Events};
 use input::Input;
+use interface::Interface;
 
 lazy_static! {
     static ref DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(16_666);
@@ -27,8 +27,6 @@ lazy_static! {
     static ref ONE_MILLISECOND: Duration = Duration::from_millis(1);
     static ref DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
 }
-
-type Backend = Terminal<CrosstermBackend>;
 
 pub struct Tui {
     /// The actual minirechner.
@@ -73,6 +71,8 @@ impl Tui {
     pub fn run(mut self, program: Option<Asm>) -> Result<(), IOError> {
         // Initialize backend.
         let mut backend = Terminal::new(init_backend()?)?;
+        // Initialize interface.
+        let mut interface = Interface::new();
         // Clear the terminal and hide the cursor
         backend.clear()?;
         backend.hide_cursor()?;
@@ -93,15 +93,15 @@ impl Tui {
             // Next draw of the machine
             if now - self.time_since_last_draw >= *DURATION_BETWEEN_FRAMES.deref() {
                 self.time_since_last_draw = now;
-                self.draw_machine(&mut backend)?;
+                backend.draw(|mut f| {
+                    interface.draw(&mut self.machine, &mut self.input_field, &mut f);
+                })?;
             }
             thread::sleep(*ONE_MICROSECOND.deref());
         }
         backend.clear()?;
         Ok(())
     }
-    /// Create the user interface.
-    fn dummy() {}
     /// Handle one single event in the queue.
     fn handle_event(&mut self) {
         if let Some(event) = self.events.next() {
@@ -143,23 +143,6 @@ impl Tui {
         } else if query == "quit" {
             self.is_main_loop_running = false;
         }
-    }
-    /// Draw the machines current state.
-    fn draw_machine(&mut self, backend: &mut Backend) -> Result<(), IOError> {
-        let mut outer_block = Block::default()
-            .title("Minirechner 2a")
-            .borders(Borders::ALL);
-        backend.draw(|mut f| {
-            let mut area = f.size();
-            area.height -= 3;
-            // machine
-            outer_block.render(&mut f, area);
-            let inner_area = outer_block.inner(area).inner(1);
-            self.machine.render(&mut f, inner_area);
-            // input
-            let area = Rect::new(area.x, area.y + area.height, area.width, 3);
-            self.input_field.render(&mut f, area.inner(1));
-        })
     }
 }
 
