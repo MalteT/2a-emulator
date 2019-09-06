@@ -22,7 +22,7 @@ pub enum ByteOrLabel {
 
 #[derive(Debug, Clone)]
 pub struct ByteCode {
-    lines: Vec<(Line, Vec<u8>)>,
+    pub lines: Vec<(Line, Vec<u8>)>,
 }
 
 // # TODO: Handle Stacksize

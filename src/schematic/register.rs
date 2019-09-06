@@ -139,6 +139,11 @@ impl Register {
         let no = no as u8;
         self.content[4] = (self.content[4] & 0b1111_1110) | no;
     }
+    /// Get register content.
+    pub fn get(&self, rn: RegisterNumber) -> u8 {
+        let index: usize = rn.into();
+        self.content[index]
+    }
 }
 
 impl From<RegisterNumber> for usize {

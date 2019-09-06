@@ -56,6 +56,10 @@ pub struct Machine {
     /// Frequency measurements
     measured_frequency: f32,
     frequency_measure_last_measurement: Instant,
+    /// Lines of the program.
+    program_lines: Vec<(String, usize)>,
+    /// Whether or not the machine halted.
+    machine_halted: bool,
 }
 
 impl Machine {
@@ -71,6 +75,8 @@ impl Machine {
         let input_level_int = false;
         let measured_frequency = 1000.0;
         let frequency_measure_last_measurement = Instant::now();
+        let program_lines = vec![];
+        let machine_halted = false;
         Machine {
             mp_ram,
             reg,
@@ -82,20 +88,61 @@ impl Machine {
             input_level_int,
             measured_frequency,
             frequency_measure_last_measurement,
+            program_lines,
+            machine_halted,
         }
     }
     /// Run the given [`Asm`] program.
     pub fn run(&mut self, program: &Asm) {
+        self.reset();
         let bytecode = Translator::compile(program);
+        // Safe the lines for later
+        self.program_lines = vec![];
+        for (line, bytes) in &bytecode.lines {
+            self.program_lines.push((line.to_string(), bytes.len()));
+        }
         let mut address = 0;
         for byte in bytecode.bytes() {
             self.bus.write(address, *byte);
             address += 1;
         }
     }
+    /// Get currently executed line of the program and the middle index.
+    pub fn get_current_lines(&self, context: isize) -> (usize, Vec<&String>) {
+        let current_byte_index = self.reg.get(RegisterNumber::R3) as isize;
+        // Find current line
+        let mut counter = current_byte_index;
+        let mut index: isize = 0;
+        while counter >= 0 && index < self.program_lines.len() as isize {
+            counter -= self.program_lines[index as usize].1 as isize;
+            if counter >= 0 {
+                index += 1;
+            }
+        }
+        let mut middle = context;
+        // Find left border
+        let left = if index - context >= 0 {
+            (index - context) as usize
+        } else {
+            middle += index - context;
+            0
+        };
+        // Find right border
+        let right = if index + context < self.program_lines.len() as isize {
+            (index + context) as usize
+        } else {
+            self.program_lines.len() - 1
+        };
+        let ret: Vec<_> = self.program_lines.iter().map(|(x, _)| x).collect();
+        (middle as usize, ret[left..=right].into())
+    }
     /// TODO: Dummy
     pub fn clk(&mut self) {
         self.update()
+    }
+    /// Has the machine reached a hardware stop?
+    pub fn is_halted(&self) -> bool {
+        self.machine_halted
     }
     /// Reset the machine.
     ///
@@ -108,8 +155,13 @@ impl Machine {
     // # TODO: Do we need to reset interrupt inputs?
     pub fn reset(&mut self) {
         self.reg.reset();
+        self.pending_flag_write = None;
+        self.pending_register_write = None;
         self.current_instruction = Instruction::reset();
+        self.input_edge_int = false;
+        self.input_level_int = false;
         self.mp_ram.reset();
+        self.machine_halted = false;
     }
     /// Input an edge interrupt.
     pub fn edge_int(&mut self) {
@@ -121,6 +173,9 @@ impl Machine {
     /// Update the machine.
     /// This should be equivalent to a CLK signal on the real machine.
     fn update(&mut self) {
+        if self.machine_halted {
+            return;
+        }
         let diff = Instant::now() - self.frequency_measure_last_measurement;
         self.measured_frequency = 1_000_000_000.0 / diff.as_nanos() as f32;
         self.frequency_measure_last_measurement = Instant::now();
@@ -179,6 +234,9 @@ impl Machine {
         } else if sig.mac0() && sig.mac2() {
             // Selecting next instruction
             self.current_instruction = Instruction::from_bits_truncate(bus_content);
+            if bus_content == 0x00 {
+                self.machine_halted = true;
+            }
             sig.set_current_instruction(&self.current_instruction);
             trace!("Instruction: {:?}", self.current_instruction);
         }

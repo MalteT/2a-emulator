@@ -2,11 +2,15 @@
 use lazy_static::lazy_static;
 use log::trace;
 use mr2a_asm_parser::asm::Asm;
+use mr2a_asm_parser::parser::AsmParser;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
+use log::error;
 
 use std::io::Error as IOError;
+use std::fs::read_to_string;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -16,6 +20,7 @@ pub mod grid;
 pub mod input;
 pub mod interface;
 
+use crate::cli::Error;
 use crate::schematic::Machine;
 use events::{Event, Events};
 use input::Input;
@@ -42,6 +47,8 @@ pub struct Tui {
     /// Time between two clock rising edges.
     clk_period: Duration,
     is_main_loop_running: bool,
+    /// Path to the currently executed program.
+    program_path: Option<PathBuf>,
 }
 
 impl Tui {
@@ -56,6 +63,7 @@ impl Tui {
         let time_since_last_draw = Instant::now();
         let clk_period = *DEFAULT_CLK_PERIOD.deref();
         let is_main_loop_running = false;
+        let program_path = None;
         Ok(Tui {
             machine,
             events,
@@ -65,10 +73,12 @@ impl Tui {
             time_since_last_draw,
             clk_period,
             is_main_loop_running,
+            program_path,
         })
     }
     /// Run the main loop using the optional asm program.
-    pub fn run(mut self, program: Option<Asm>) -> Result<(), IOError> {
+    pub fn run(mut self, path: Option<String>, program: Option<Asm>) -> Result<(), IOError> {
+        self.program_path = path.map(|s| s.into());
         // Initialize backend.
         let mut backend = Terminal::new(init_backend()?)?;
         // Initialize interface.
@@ -94,13 +104,17 @@ impl Tui {
             if now - self.time_since_last_draw >= *DURATION_BETWEEN_FRAMES.deref() {
                 self.time_since_last_draw = now;
                 backend.draw(|mut f| {
-                    interface.draw(&mut self.machine, &mut self.input_field, &mut f);
+                    interface.draw(&mut self, &mut f);
                 })?;
             }
             thread::sleep(*ONE_MICROSECOND.deref());
         }
         backend.clear()?;
         Ok(())
+    }
+    /// Get the currently running programs path.
+    pub fn get_program_path(&self) -> &Option<PathBuf> {
+        &self.program_path
     }
     /// Handle one single event in the queue.
     fn handle_event(&mut self) {
@@ -139,10 +153,22 @@ impl Tui {
     /// Handle the given input string.
     fn handle_input(&mut self, query: &String) {
         if query.starts_with("load ") {
-            // TODO: Load program
+            match self.load_program(query[5..].into()) {
+                Ok(()) => {},
+                Err(e) => error!("Failed to run program: {}", e),
+            }
         } else if query == "quit" {
             self.is_main_loop_running = false;
         }
+    }
+    /// Load a new program from the given path.
+    fn load_program(&mut self, path: PathBuf) -> Result<(), Error> {
+        let content = read_to_string(&path)?;
+        let program = AsmParser::parse(&content).map_err(|e| Error::from(e))?;
+        self.program_path = Some(path);
+        self.clk_auto_run_mode = false;
+        self.machine.run(&program);
+        Ok(())
     }
 }
 

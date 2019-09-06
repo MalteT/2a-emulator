@@ -63,14 +63,14 @@ pub fn handle_user_input() -> Result<(), Error> {
 /// If a program was given, run this.
 fn run_tui<S: ToString>(program_path: Option<S>) -> Result<(), Error> {
     let program_path = program_path.map(|s| s.to_string());
-    let program: Option<Asm> = if let Some(program_path) = program_path {
+    let program: Option<Asm> = if let Some(ref program_path) = program_path {
         let content = read_to_string(program_path.to_string())?;
         Some(AsmParser::parse(&content).map_err(|e| Error::from(e))?)
     } else {
         None
     };
     let tui = tui::Tui::new()?;
-    tui.run(program)?;
+    tui.run(program_path, program)?;
     Ok(())
 }
 

@@ -1,3 +1,4 @@
+use log::error;
 use log::trace;
 
 use std::fmt;
@@ -22,7 +23,7 @@ use std::fmt;
 // # TODO: Interrupt Timer
 // # TODO: Master Interrupt Control / Status Register
 // # TODO: UART
-// # TODO: Extern board
+// # TODO: External board
 #[derive(Clone)]
 pub struct Bus {
     ram: [u8; 0xF0],
@@ -43,6 +44,12 @@ impl Bus {
             output_reg,
         }
     }
+    /// Reset everything on the bus.
+    pub fn reset(&mut self) {
+        self.ram = [0; 0xF0];
+        self.input_reg = [0; 4];
+        self.output_reg = [0; 2];
+    }
     /// Write to the bus
     pub fn write(&mut self, addr: u8, byte: u8) {
         let addr = addr as usize;
@@ -50,7 +57,8 @@ impl Bus {
             self.ram[addr] = byte;
             trace!("RAM update: {:?}", self.ram.to_vec());
         } else if addr <= 0xFD {
-            unimplemented!("Cannot yet write to non ram bus content. address: {}", addr);
+            // TODO: Implement
+            error!("Cannot yet write to non ram bus content. address: {}", addr);
         } else {
             self.output_reg[addr - 0xFE] = byte;
             trace!("Output register update: {:?}", self.output_reg);
@@ -62,7 +70,9 @@ impl Bus {
         if addr <= 0xEF {
             self.ram[addr]
         } else if addr <= 0xFB {
-            unimplemented!("Cannot yet read from non ram bus content");
+            // TODO: Implement
+            error!("Cannot yet read from non ram bus content");
+            0
         } else {
             self.input_reg[addr - 0xFC]
         }
