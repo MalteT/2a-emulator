@@ -21,8 +21,8 @@ colored = "1.8.0"
 lazy_static = "1.3.0"
 
 [dependencies.mr2a_asm_parser]
-git = "https://v4.git.tammena.rocks/2a-emulator/asm-parser.git"
-version = "4.2.0"
+git = "https://gitlab.com/2a-emulator/2a-parser.git"
+version = "4.3.0"
 features = ["formatting"]
 
 [dependencies.clap]
