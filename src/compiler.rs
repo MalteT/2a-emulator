@@ -1,3 +1,15 @@
+//! Assembler to byte code compilation module.
+//! ```text
+//!           ;     .ORG 0x00
+//!
+//!        04 ;     CLR R0
+//!           ; LOOP:
+//!  F0 1F FF ;     ST (0xFF), R0
+//!  F0 1F F0 ;     ST (0xF0), R0
+//!        44 ;     INC R0
+//!     20 F7 ;     JR LOOP
+//! ```
+
 use colored::Colorize;
 use mr2a_asm_parser::asm::{
     Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Register,
@@ -10,6 +22,11 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 #[derive(Clone)]
+/// An either type for [`u8`]/[`Label`].
+///
+/// This is used for label references.
+/// During translation all labels will be translated into
+/// this type which is, after all Labels are defined, translated into the correct bytes.
 pub enum ByteOrLabel {
     /// An ordinary byte.
     Byte(u8),
@@ -21,12 +38,16 @@ pub enum ByteOrLabel {
 }
 
 #[derive(Debug, Clone)]
+/// This is the final byte code with additional information from which [`Line`]
+/// the byte code originates.
 pub struct ByteCode {
+    /// Lines with translated byte code.
     pub lines: Vec<(Line, Vec<u8>)>,
 }
 
 // # TODO: Handle Stacksize
 #[derive(Debug, Clone)]
+/// Translator for [`Asm`] -> [`ByteCode`]
 pub struct Translator {
     next_addr: u8,
     known_labels: HashMap<Label, u8>,

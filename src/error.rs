@@ -1,3 +1,7 @@
+//! Error module.
+//!
+//! This module defines the error type used through-out the program.
+
 use failure::Fail;
 use mr2a_asm_parser::parser::ParserError;
 
@@ -5,6 +9,7 @@ use std::fmt;
 use std::io::Error as IOError;
 
 #[derive(Fail, Debug)]
+/// THE error type.
 pub enum Error {
     /// Thrown when the validation of the ASM source file failes.
     ValidationFailed(#[cause] ParserError),
