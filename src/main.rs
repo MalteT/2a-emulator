@@ -25,7 +25,7 @@
 use pretty_env_logger;
 
 pub mod error;
-pub mod cli;
+pub mod helpers;
 pub mod compiler;
 pub mod schematic;
 pub mod tui;
@@ -35,7 +35,7 @@ use std::process;
 fn main() {
     pretty_env_logger::init();
 
-    match cli::handle_user_input() {
+    match helpers::handle_user_input() {
         Err(e) => {
             println!("{}", e);
             process::exit(1)
