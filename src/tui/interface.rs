@@ -12,6 +12,7 @@ use tui::widgets::Widget;
 
 use std::ops::Deref;
 
+use crate::helpers;
 use crate::tui::Tui;
 
 lazy_static! {
@@ -51,11 +52,18 @@ pub struct Interface<'a> {
     pub program_display: Block<'a>,
     pub freq_display: Block<'a>,
     pub help_display: Block<'a>,
+    /// For updating some things not every frame.
+    counter: usize,
+    /// Last displayed frequency.
+    measured_frequency: String,
+    frequency: String,
 }
 
 struct SpacedString {
     left: String,
     right: String,
+    left_style: Style,
+    right_style: Style,
 }
 
 struct ProgramDisplay<'a> {
@@ -75,6 +83,9 @@ impl<'a> Interface<'a> {
         let program_display = Block::default().borders(Borders::ALL);
         let freq_display = Block::default().borders(Borders::ALL);
         let help_display = Block::default().borders(Borders::ALL).title("HELP");
+        let counter = 0;
+        let measured_frequency = String::from("0Hz");
+        let frequency = String::from("0Hz");
         Interface {
             outer,
             main,
@@ -82,10 +93,14 @@ impl<'a> Interface<'a> {
             program_display,
             freq_display,
             help_display,
+            counter,
+            measured_frequency,
+            frequency,
         }
     }
     /// Draw the interface using information from the given [`Tui`]
     pub fn draw<'b>(&mut self, tui: &'b mut Tui, f: &mut Frame<CrosstermBackend>) {
+        self.counter = self.counter.overflowing_add(1).0;
         let area = f.size();
 
         // Outer area
@@ -96,7 +111,7 @@ impl<'a> Interface<'a> {
         main_area.height -= *INPUT_AREA_HEIGHT.deref();
         main_area.width -= *RIGHT_COLUMN_WIDTH.deref();
         self.main.render(f, main_area);
-        tui.machine.render(f, self.main.inner(main_area));
+        tui.executor.render(f, self.main.inner(main_area));
 
         // Input area
         let input_area = Rect::new(
@@ -141,7 +156,12 @@ impl<'a> Interface<'a> {
     }
 
     fn draw_help(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect) {
-        let items = vec![("CTRL+A", "Toggle autorun"), ("Enter", "Clock")];
+        let items = vec![
+            ("Clock", "Enter"),
+            ("Toggle autorun", "CTRL+A"),
+            ("Reset", "CTRL+R"),
+            ("Edge interrupt", "CTRL+E"),
+        ];
         for (key, help) in items {
             let mut ss = SpacedString::from(key, help);
             ss.render(f, area);
@@ -150,7 +170,7 @@ impl<'a> Interface<'a> {
         }
     }
 
-    fn draw_freq(&mut self, f: &mut Frame<CrosstermBackend>, area: Rect, tui: &Tui) {
+    fn draw_freq(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
         let program_name = match tui.get_program_path() {
             Some(program_path) => match program_path.file_name() {
                 Some(program_name_os) => program_name_os.to_str().unwrap_or(""),
@@ -158,37 +178,76 @@ impl<'a> Interface<'a> {
             },
             None => "",
         };
-        let mut ss = SpacedString::from("Program: ", program_name);
-        ss.render(f, area);
+        let mut program_ss =
+            SpacedString::from("Program: ", program_name).left_style(&helpers::DIMMED);
+        // Only update the frequency every 100 frames
+        if self.counter % 100 == 0 {
+            let measured_freq = tui.executor.get_measured_frequency();
+            self.measured_frequency = helpers::format_number(measured_freq);
+            let freq = tui.executor.get_frequency();
+            self.frequency = helpers::format_number(freq);
+        }
+        let mut frequency_measured_ss =
+            SpacedString::from("Measured Frequency: ", &self.measured_frequency)
+                .left_style(&helpers::DIMMED);
+        let mut frequency_ss =
+            SpacedString::from("Frequency: ", &self.frequency).left_style(&helpers::DIMMED);
+        program_ss.render(f, area);
+        area.y += 1;
+        frequency_ss.render(f, area);
+        area.y += 1;
+        frequency_measured_ss.render(f, area);
     }
 
     fn draw_program(&mut self, f: &mut Frame<CrosstermBackend>, area: Rect, tui: &Tui) {
         let context = (area.height - 1) / 2;
-        let (middle_index, lines) = tui.machine.get_current_lines(context as isize);
-        let mut pd = ProgramDisplay::from(middle_index, lines, tui.machine.is_halted());
+        let (middle_index, lines) = tui.executor.get_current_lines(context as isize);
+        let mut pd = ProgramDisplay::from(middle_index, lines, tui.executor.is_halted());
         pd.render(f, area);
     }
 }
 
 impl SpacedString {
-    fn from<'a, 'b>(left: &'a str, right: &'b str) -> Self {
+    /// Create a spaced string from two strings.
+    pub fn from<'a, 'b>(left: &'a str, right: &'b str) -> Self {
         SpacedString {
             left: left.into(),
             right: right.into(),
+            left_style: Style::default(),
+            right_style: Style::default(),
         }
+    }
+    /// Set the left style.
+    pub fn left_style<S: Deref<Target = Style>>(mut self, style: &S) -> Self {
+        self.left_style = *style.deref();
+        self
+    }
+    /// Set the right style.
+    pub fn right_style<S: Deref<Target = Style>>(mut self, style: &S) -> Self {
+        self.left_style = *style.deref();
+        self
     }
 }
 
 impl Widget for SpacedString {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
         let width = area.width - self.right.len() as u16;
-        let s = format!(
-            "{0:width$}{1}",
-            self.left,
-            self.right,
-            width = width as usize
+        buf.set_stringn(
+            area.x,
+            area.y,
+            &self.left,
+            area.width as usize,
+            self.left_style,
         );
-        buf.set_stringn(area.x, area.y, s, area.width as usize, Style::default());
+        if area.width > width {
+            buf.set_stringn(
+                area.x + width,
+                area.y,
+                &self.right,
+                (area.width - width) as usize,
+                self.right_style,
+            );
+        }
     }
 }
 

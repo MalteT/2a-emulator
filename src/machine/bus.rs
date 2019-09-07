@@ -44,10 +44,10 @@ impl Bus {
             output_reg,
         }
     }
-    /// Reset everything on the bus.
+    /// Reset the output registers.
+    ///
+    /// *Not* the input register nor the ram.
     pub fn reset(&mut self) {
-        self.ram = [0; 0xF0];
-        self.input_reg = [0; 4];
         self.output_reg = [0; 2];
     }
     /// Write to the bus

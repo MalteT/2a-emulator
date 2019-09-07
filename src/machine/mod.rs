@@ -51,8 +51,8 @@ pub struct Machine {
 }
 
 impl Machine {
-    /// Create a new Minirechner 2a
-    pub fn new() -> Self {
+    /// Create and run a new Minirechner 2a with an optional program.
+    pub fn new(program: Option<&Asm>) -> Self {
         let mp_ram = MicroprogramRam::new();
         let reg = Register::new();
         let bus = Bus::new();
@@ -65,7 +65,7 @@ impl Machine {
         let frequency_measure_last_measurement = Instant::now();
         let program_lines = vec![];
         let machine_halted = false;
-        Machine {
+        let mut machine = Machine {
             mp_ram,
             reg,
             bus,
@@ -78,25 +78,28 @@ impl Machine {
             frequency_measure_last_measurement,
             program_lines,
             machine_halted,
+        };
+        // Load program if given any
+        if let Some(program) = program {
+            let bytecode = Translator::compile(program);
+            // Safe the lines for later
+            for (line, bytes) in &bytecode.lines {
+                machine.program_lines.push((line.to_string(), bytes.len()));
+            }
+            let mut address = 0;
+            for byte in bytecode.bytes() {
+                machine.bus.write(address, *byte);
+                address += 1;
+            }
         }
-    }
-    /// Run the given [`Asm`] program.
-    pub fn run(&mut self, program: &Asm) {
-        self.reset();
-        let bytecode = Translator::compile(program);
-        // Safe the lines for later
-        self.program_lines = vec![];
-        for (line, bytes) in &bytecode.lines {
-            self.program_lines.push((line.to_string(), bytes.len()));
-        }
-        let mut address = 0;
-        for byte in bytecode.bytes() {
-            self.bus.write(address, *byte);
-            address += 1;
-        }
+        machine
     }
     /// Get currently executed line of the program and the middle index.
     pub fn get_current_lines(&self, context: isize) -> (usize, Vec<&String>) {
+        // If no program is loaded, no lines are available, prevent errors
+        if self.program_lines.is_empty() {
+            return (0, vec![]);
+        }
         let current_byte_index = self.reg.get(RegisterNumber::R3) as isize;
         // Find current line
         let mut counter = current_byte_index;
@@ -143,6 +146,7 @@ impl Machine {
     // # TODO: Do we need to reset interrupt inputs?
     pub fn reset(&mut self) {
         self.reg.reset();
+        self.bus.reset();
         self.pending_flag_write = None;
         self.pending_register_write = None;
         self.current_instruction = Instruction::reset();
