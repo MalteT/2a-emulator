@@ -1,8 +1,8 @@
 use failure::Fail;
-use mr2a_asm_parser::parser::{ParserError};
+use mr2a_asm_parser::parser::ParserError;
 
-use std::io::Error as IOError;
 use std::fmt;
+use std::io::Error as IOError;
 
 #[derive(Fail, Debug)]
 pub enum Error {

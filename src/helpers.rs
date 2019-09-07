@@ -1,14 +1,14 @@
-//! Types and functions to aid the command line interface.
+//! Functions to aid the program.
 
 use clap::{crate_version, load_yaml, App};
 use mr2a_asm_parser::asm::Asm;
-use mr2a_asm_parser::parser::{AsmParser};
+use mr2a_asm_parser::parser::AsmParser;
 
 use std::fs::read_to_string;
 
 use crate::compiler::Translator;
-use crate::tui;
 use crate::error::Error;
+use crate::tui;
 
 /// Handle user-given CLI parameter.
 ///
@@ -77,4 +77,3 @@ where
     println!("{}", compiled);
     Ok(())
 }
-

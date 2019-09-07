@@ -1,14 +1,14 @@
 /// Terminal User Interface.
 use lazy_static::lazy_static;
+use log::error;
 use log::trace;
 use mr2a_asm_parser::asm::Asm;
 use mr2a_asm_parser::parser::AsmParser;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
-use log::error;
 
-use std::io::Error as IOError;
 use std::fs::read_to_string;
+use std::io::Error as IOError;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::thread;
@@ -154,7 +154,7 @@ impl Tui {
     fn handle_input(&mut self, query: &String) {
         if query.starts_with("load ") {
             match self.load_program(query[5..].into()) {
-                Ok(()) => {},
+                Ok(()) => {}
                 Err(e) => error!("Failed to run program: {}", e),
             }
         } else if query == "quit" {
