@@ -20,7 +20,7 @@ pub mod grid;
 pub mod input;
 pub mod interface;
 
-use crate::cli::Error;
+use crate::error::Error;
 use crate::schematic::Machine;
 use events::{Event, Events};
 use input::Input;

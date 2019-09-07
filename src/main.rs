@@ -24,6 +24,7 @@
 
 use pretty_env_logger;
 
+pub mod error;
 pub mod cli;
 pub mod compiler;
 pub mod schematic;

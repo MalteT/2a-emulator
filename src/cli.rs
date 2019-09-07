@@ -1,24 +1,14 @@
 //! Types and functions to aid the command line interface.
 
 use clap::{crate_version, load_yaml, App};
-use failure::Fail;
 use mr2a_asm_parser::asm::Asm;
-use mr2a_asm_parser::parser::{AsmParser, ParserError};
+use mr2a_asm_parser::parser::{AsmParser};
 
-use std::fmt;
 use std::fs::read_to_string;
-use std::io::Error as IOError;
 
 use crate::compiler::Translator;
 use crate::tui;
-
-#[derive(Fail, Debug)]
-pub enum Error {
-    /// Thrown when the validation of the ASM source file failes.
-    ValidationFailed(#[cause] ParserError),
-    /// Thrown when, due to IO failure, no ASM source file could be opened.
-    OpeningSourceFileFailed(#[cause] IOError),
-}
+use crate::error::Error;
 
 /// Handle user-given CLI parameter.
 ///
@@ -88,25 +78,3 @@ where
     Ok(())
 }
 
-impl From<IOError> for Error {
-    fn from(ioe: IOError) -> Self {
-        Error::OpeningSourceFileFailed(ioe)
-    }
-}
-
-impl From<ParserError> for Error {
-    fn from(pe: ParserError) -> Self {
-        Error::ValidationFailed(pe)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::ValidationFailed(pe) => write!(f, "{}", pe),
-            Error::OpeningSourceFileFailed(ioe) => {
-                write!(f, "The source file could not be opened!:\n{}", ioe)
-            }
-        }
-    }
-}
