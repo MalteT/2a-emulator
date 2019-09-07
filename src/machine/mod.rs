@@ -1,3 +1,5 @@
+//! The actual emulated machine.
+
 use log::trace;
 use mr2a_asm_parser::asm::Asm;
 use tui::buffer::Buffer;
@@ -23,18 +25,6 @@ pub use signal::Signal;
 
 use crate::compiler::Translator;
 use crate::tui::display::Display;
-
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq)]
-pub enum Part {
-    Al1,
-    Al2,
-    Al3,
-    Il1,
-    Il2,
-    Iff1,
-    Iff2,
-    InterruptLogic,
-}
 
 #[derive(Debug)]
 pub struct Machine {
@@ -166,8 +156,6 @@ impl Machine {
         trace!("MACHINE: Received edge interrupt");
         self.input_edge_int = true;
     }
-    /// TODO: Dummy
-    pub fn show(&mut self, _part: Part) {}
     /// Update the machine.
     /// This should be equivalent to a CLK signal on the real machine.
     fn update(&mut self) {
