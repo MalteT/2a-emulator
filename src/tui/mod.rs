@@ -21,7 +21,7 @@ pub mod input;
 pub mod interface;
 
 use crate::error::Error;
-use crate::schematic::Machine;
+use crate::machine::Machine;
 use events::{Event, Events};
 use input::Input;
 use interface::Interface;

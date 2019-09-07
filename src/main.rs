@@ -27,7 +27,7 @@ use pretty_env_logger;
 pub mod compiler;
 pub mod error;
 pub mod helpers;
-pub mod schematic;
+pub mod machine;
 pub mod tui;
 
 use std::process;

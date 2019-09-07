@@ -9,7 +9,6 @@ use std::time::Instant;
 
 mod alu;
 mod bus;
-mod fns;
 mod instruction;
 mod mp_ram;
 mod register;
@@ -17,7 +16,6 @@ mod signal;
 
 pub use alu::Alu;
 pub use bus::Bus;
-pub use fns::*;
 pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
 pub use register::{Register, RegisterNumber};
