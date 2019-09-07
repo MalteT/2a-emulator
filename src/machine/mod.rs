@@ -94,6 +94,30 @@ impl Machine {
         }
         machine
     }
+    /// Input `number` into input register `FC`.
+    pub fn input_fc(&mut self, number: u8) {
+        self.bus.input_fc(number)
+    }
+    /// Input `number` into input register `FD`.
+    pub fn input_fd(&mut self, number: u8) {
+        self.bus.input_fd(number)
+    }
+    /// Input `number` into input register `FE`.
+    pub fn input_fe(&mut self, number: u8) {
+        self.bus.input_fe(number)
+    }
+    /// Input `number` into input register `FF`.
+    pub fn input_ff(&mut self, number: u8) {
+        self.bus.input_ff(number)
+    }
+    /// Content of output register `FE`.
+    pub fn output_fe(&self) -> u8 {
+        self.bus.output_fe()
+    }
+    /// Content of output register `FF`.
+    pub fn output_ff(&self) -> u8 {
+        self.bus.output_ff()
+    }
     /// Get currently executed line of the program and the middle index.
     pub fn get_current_lines(&self, context: isize) -> (usize, Vec<&String>) {
         // If no program is loaded, no lines are available, prevent errors

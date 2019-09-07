@@ -29,6 +29,7 @@ pub mod error;
 pub mod executor;
 pub mod helpers;
 pub mod machine;
+pub mod testing;
 pub mod tui;
 
 use std::process;

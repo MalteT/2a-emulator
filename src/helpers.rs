@@ -4,6 +4,7 @@ use ::tui::style::Modifier;
 use ::tui::style::Style;
 use clap::{crate_version, load_yaml, App};
 use lazy_static::lazy_static;
+use log::{trace, error};
 use mr2a_asm_parser::asm::Asm;
 use mr2a_asm_parser::parser::AsmParser;
 
@@ -12,6 +13,7 @@ use std::path::PathBuf;
 
 use crate::compiler::Translator;
 use crate::error::Error;
+use crate::testing::TestFile;
 use crate::tui;
 
 lazy_static! {
@@ -46,13 +48,10 @@ pub fn handle_user_input() -> Result<(), Error> {
         };
         run_tui(program_path)?;
     } else if matches.is_present("test") {
-        cli_validate_source_file(
-            matches
-                .value_of_lossy("PROGRAM")
-                .expect("Infallible")
-                .to_string(),
-        )?;
-        println!("Testing functionality is not available yet!");
+        let tests = matches.values_of_lossy("test").expect("TEST must be given");
+        for test_path in tests {
+            execute_test(test_path)
+        }
     } else if !matches.is_present("check") {
         let program = if matches.is_present("PROGRAM") {
             let program = matches
@@ -75,6 +74,23 @@ fn run_tui<P: Into<PathBuf>>(program_path: Option<P>) -> Result<(), Error> {
     let tui = tui::Tui::new()?;
     tui.run(program_path)?;
     Ok(())
+}
+
+/// Execute a test given by it's path.
+fn execute_test<P: Into<PathBuf>>(test_path: P) {
+    let path: PathBuf = test_path.into();
+    trace!("Executing tests from file {:?}", path);
+    match TestFile::parse(&path) {
+        Ok(file) => {
+            match file.execute() {
+                Ok(_) => {
+                    println!("Tests in '{}' were successful!", path.to_string_lossy());
+                }
+                Err(e) => error!("{}", e),
+            }
+        }
+        Err(e) => error!("{}", e),
+    }
 }
 
 /// Validate the given source code file.

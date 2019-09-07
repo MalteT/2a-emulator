@@ -17,7 +17,6 @@ args:
         number_of_values: 1
         takes_value: true
         value_name: TEST
-        requires: PROGRAM
         conflicts_with: interactive
     - check:
         help: Validate the given source file. If the validation fails, neither tests nor the interactive session will be executed

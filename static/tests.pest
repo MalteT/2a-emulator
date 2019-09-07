@@ -1,0 +1,32 @@
+program_path     = ${ "'" ~ (!"'" ~ ANY)* ~ "'" }
+ticks            = ${ ASCII_DIGIT* }
+hex_digit        = ${ ^"0x" ~ ASCII_HEX_DIGIT{1,2} }
+random           = ${ ^"RANDOM" }
+input            = _{ hex_digit | random }
+interrupt        = ${ ^"INTERRUPT" }
+random_interrupt = ${ ^"RANDOM INTERRUPT" }
+random_reset     = ${ ^"RANDOM RESET" }
+random_input     = ${ ^"RANDOM INPUT" }
+halt             = ${ ^"HALT" }
+no_halt          = ${ ^"NO HALT" }
+
+out_fe           =  { ^"FE" ~ "=" ~ hex_digit }
+out_ff           =  { ^"FF" ~ "=" ~ hex_digit }
+
+fc               =  { ^"FC" ~ "=" ~ input }
+fd               =  { ^"FD" ~ "=" ~ input }
+fe               =  { ^"FE" ~ "=" ~ input }
+ff               =  { ^"FF" ~ "=" ~ input }
+
+expectation  = _{ halt | no_halt | out_fe | out_ff }
+setting      = _{ random_input | random_reset | random_interrupt | interrupt
+                | fc | fd | fe | ff }
+
+expect_block =  { ^"EXPECT" ~ (expectation ~ ",")* ~ expectation }
+for_block    =  { ^"FOR" ~ ticks }
+with_block   =  { ^"WITH" ~ (setting ~ ",")* ~ setting }
+
+test         =  { ^"TEST " ~ program_path ~ with_block? ~ for_block? ~ expect_block? ~ ^"END" }
+file         = _{ SOI ~ test* ~ EOI }
+
+WHITESPACE = _{ " " | "\t" | "\n" }

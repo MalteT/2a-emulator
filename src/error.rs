@@ -4,9 +4,12 @@
 
 use failure::Fail;
 use mr2a_asm_parser::parser::ParserError;
+use pest::error::Error as PestError;
 
 use std::fmt;
 use std::io::Error as IOError;
+
+use crate::testing::Rule as TestRule;
 
 #[derive(Fail, Debug)]
 /// THE error type.
@@ -15,6 +18,10 @@ pub enum Error {
     ValidationFailed(#[cause] ParserError),
     /// Thrown when, due to IO failure, no ASM source file could be opened.
     OpeningSourceFileFailed(#[cause] IOError),
+    /// Thrown when a test file failed to parse.
+    TestFileParsingError(#[cause] PestError<TestRule>),
+    /// Thrown when a test failes.
+    TestFailed(String),
 }
 
 impl From<IOError> for Error {
@@ -29,6 +36,12 @@ impl From<ParserError> for Error {
     }
 }
 
+impl From<PestError<TestRule>> for Error {
+    fn from(pe: PestError<TestRule>) -> Self {
+        Error::TestFileParsingError(pe)
+    }
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -36,6 +49,8 @@ impl fmt::Display for Error {
             Error::OpeningSourceFileFailed(ioe) => {
                 write!(f, "The source file could not be opened!:\n{}", ioe)
             }
+            Error::TestFileParsingError(pe) => write!(f, "{}", pe),
+            Error::TestFailed(s) => write!(f, "Test failed: {}", s),
         }
     }
 }
