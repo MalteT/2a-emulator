@@ -163,7 +163,7 @@ impl From<RegisterNumber> for usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::schematic::{Instruction, MP28BitWord, Register, Signal};
+    use crate::machine::{Instruction, MP28BitWord, Register, Signal};
 
     #[test]
     fn test_register_block_basics() {
@@ -172,8 +172,8 @@ mod tests {
     }
     #[test]
     fn test_register_block_writing() {
-        use crate::schematic::Instruction as I;
-        use crate::schematic::MP28BitWord as W;
+        use crate::machine::Instruction as I;
+        use crate::machine::MP28BitWord as W;
 
         let mut reg = Register::new();
         // All inputs empty => IN A => R0
@@ -243,7 +243,7 @@ mod tests {
     }
     #[test]
     fn test_register_block_output_a() {
-        use crate::schematic::MP28BitWord as W;
+        use crate::machine::MP28BitWord as W;
 
         let reg = Register {
             content: [0xF0, 0xF1, 0xF2, 0xF3, 0x12, 0x32, 0x56, 0x00],
@@ -261,7 +261,7 @@ mod tests {
     }
     #[test]
     fn test_register_block_output_b() {
-        use crate::schematic::MP28BitWord as W;
+        use crate::machine::MP28BitWord as W;
 
         let reg = Register {
             content: [0xF0, 0xF1, 0xF2, 0xF3, 0x12, 0x32, 0x56, 0x00],
