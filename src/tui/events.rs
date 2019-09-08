@@ -11,6 +11,7 @@ pub enum Event {
     Clock,
     Step,
     ToggleAutoRun,
+    ToggleAsmStep,
     Reset,
     Interrupt,
     Backspace,
@@ -28,6 +29,7 @@ pub struct Config {
     pub key_clock: Vec<KE>,
     pub key_step: Vec<KE>,
     pub key_toggle_auto_run: Vec<KE>,
+    pub key_toggle_asm_step: Vec<KE>,
     pub key_interrupt: Vec<KE>,
     pub key_reset: Vec<KE>,
 }
@@ -36,6 +38,7 @@ impl Default for Config {
     fn default() -> Config {
         let key_exit = vec![KE::Ctrl('c')];
         let key_toggle_auto_run = vec![KE::Ctrl('a')];
+        let key_toggle_asm_step = vec![KE::Ctrl('w')];
         let key_clock = vec![KE::Char('\n')];
         let key_step = vec![KE::Ctrl('.')];
         let key_interrupt = vec![KE::Ctrl('e')];
@@ -43,6 +46,7 @@ impl Default for Config {
         Config {
             key_exit,
             key_toggle_auto_run,
+            key_toggle_asm_step,
             key_clock,
             key_step,
             key_interrupt,
@@ -85,6 +89,8 @@ impl Event {
                     Event::Step
                 } else if config.key_toggle_auto_run.contains(&ke) {
                     Event::ToggleAutoRun
+                } else if config.key_toggle_asm_step.contains(&ke) {
+                    Event::ToggleAsmStep
                 } else if config.key_interrupt.contains(&ke) {
                     Event::Interrupt
                 } else if config.key_reset.contains(&ke) {

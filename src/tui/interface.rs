@@ -152,13 +152,12 @@ impl<'a> Interface<'a> {
             help_height,
         );
         self.help_display.render(f, help_area);
-        self.draw_help(f, self.help_display.inner(help_area));
+        self.draw_help(f, self.help_display.inner(help_area), tui);
     }
 
-    fn draw_help(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect) {
+    fn draw_help(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
         let items = vec![
             ("Clock", "Enter"),
-            ("Toggle autorun", "CTRL+A"),
             ("Reset", "CTRL+R"),
             ("Edge interrupt", "CTRL+E"),
         ];
@@ -168,6 +167,18 @@ impl<'a> Interface<'a> {
             area.y += 1;
             area.height -= 1;
         }
+        let mut ss = SpacedString::from("Toggle autorun", "CTRL+A");
+        if tui.executor.is_auto_run_mode() {
+            ss = ss.left_style(&helpers::YELLOW);
+        }
+        ss.render(f, area);
+        area.y += 1;
+        area.height -= 1;
+        let mut ss = SpacedString::from("Toggle asm step", "CTRL+W");
+        if tui.executor.is_asm_step_mode() {
+            ss = ss.left_style(&helpers::YELLOW);
+        }
+        ss.render(f, area);
     }
 
     fn draw_freq(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {

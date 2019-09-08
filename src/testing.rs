@@ -67,8 +67,8 @@ impl TestFile {
         for test in parsed {
             match test.as_rule() {
                 Rule::test => tests.push(Test::parse(test)),
-                Rule::EOI => {},
-                _ => unreachable!()
+                Rule::EOI => {}
+                _ => unreachable!(),
             }
         }
         trace!("Parsed test file from path {:?}", path);
@@ -180,7 +180,7 @@ impl Test {
             match part.as_rule() {
                 Rule::program_path => {
                     let s = part.as_str();
-                    file_path = s[1..s.len()-1].into();
+                    file_path = s[1..s.len() - 1].into();
                 }
                 Rule::with_block => settings = Test::parse_settings(part),
                 Rule::for_block => ticks = Test::parse_ticks(part),

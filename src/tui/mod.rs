@@ -92,7 +92,7 @@ impl Tui {
                 })?;
             }
             if !self.executor.is_auto_run_mode() {
-                thread::sleep(*ONE_MICROSECOND.deref());
+                thread::sleep(*ONE_MILLISECOND.deref());
             }
             if !self.executor.is_at_full_capacity() {
                 thread::sleep(*ONE_NANOSECOND.deref());
@@ -123,6 +123,7 @@ impl Tui {
                 }
                 Event::Step => {}
                 Event::ToggleAutoRun => self.executor.toggle_auto_run_mode(),
+                Event::ToggleAsmStep => self.executor.toggle_asm_step_mode(),
                 Event::Interrupt => {
                     self.executor.edge_int();
                 }

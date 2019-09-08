@@ -25,6 +25,8 @@ pub struct Executor {
     machine: Machine,
     /// Auto run mode for emulation.
     clk_auto_run_mode: bool,
+    /// Asm step mode for emulation.
+    clk_asm_step_mode: bool,
     /// Path to the currently executed program.
     program_path: Option<PathBuf>,
     /// Time since the last rising clock edge.
@@ -48,6 +50,7 @@ impl Executor {
     pub fn new() -> Self {
         let machine = Machine::new(None);
         let clk_auto_run_mode = false;
+        let clk_asm_step_mode = false;
         let program_path = None;
         let last_clk_edge = Instant::now();
         let clk_period = *DEFAULT_CLK_PERIOD.deref();
@@ -55,6 +58,7 @@ impl Executor {
         Executor {
             machine,
             clk_auto_run_mode,
+            clk_asm_step_mode,
             program_path,
             last_clk_edge,
             clk_period,
@@ -77,13 +81,26 @@ impl Executor {
                 .push(1_000_000_000.0 / time_since_last_clk.as_nanos() as f32);
             if time_since_last_clk > self.clk_period {
                 self.last_clk_edge = now;
-                self.machine.clk();
+                self.next_clk();
             }
         }
     }
     /// Emulate a rising clock edge.
     pub fn next_clk(&mut self) {
-        self.machine.clk()
+        if self.clk_asm_step_mode {
+            while self.machine.is_instruction_done() {
+                self.machine.clk()
+            }
+            while !self.machine.is_instruction_done() {
+                self.machine.clk()
+            }
+        } else {
+            self.machine.clk()
+        }
+    }
+    /// Toggle between single step and asm step modes.
+    pub fn toggle_asm_step_mode(&mut self) {
+        self.clk_asm_step_mode = !self.clk_asm_step_mode;
     }
     /// Emulate a reset.
     pub fn reset(&mut self) {
@@ -104,6 +121,10 @@ impl Executor {
     /// Is auto-run-mode activated?
     pub fn is_auto_run_mode(&self) -> bool {
         self.clk_auto_run_mode
+    }
+    /// Is asm-step-mode activated?
+    pub fn is_asm_step_mode(&self) -> bool {
+        self.clk_asm_step_mode
     }
     /// Get the frequency settings.
     pub fn get_frequency(&self) -> f32 {

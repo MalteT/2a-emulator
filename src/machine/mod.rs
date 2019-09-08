@@ -151,9 +151,13 @@ impl Machine {
         let ret: Vec<_> = self.program_lines.iter().map(|(x, _)| x).collect();
         (middle as usize, ret[left..=right].into())
     }
-    /// TODO: Dummy
+    /// Next clock rising edge.
     pub fn clk(&mut self) {
-        self.update()
+            self.update()
+    }
+    /// Is the current instruction done executing?
+    pub fn is_instruction_done(&self) -> bool {
+        self.mp_ram.get().contains(MP28BitWord::MAC3)
     }
     /// Has the machine reached a hardware stop?
     pub fn is_halted(&self) -> bool {

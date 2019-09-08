@@ -2,9 +2,10 @@
 
 use ::tui::style::Modifier;
 use ::tui::style::Style;
+use ::tui::style::Color;
 use clap::{crate_version, load_yaml, App};
 use lazy_static::lazy_static;
-use log::{trace, error};
+use log::{error, trace};
 use mr2a_asm_parser::asm::Asm;
 use mr2a_asm_parser::parser::AsmParser;
 
@@ -18,6 +19,7 @@ use crate::tui;
 
 lazy_static! {
     pub static ref DIMMED: Style = Style::default().modifier(Modifier::DIM);
+    pub static ref YELLOW: Style = Style::default().fg(Color::Yellow);
 }
 
 /// Handle user-given CLI parameter.
@@ -81,14 +83,12 @@ fn execute_test<P: Into<PathBuf>>(test_path: P) {
     let path: PathBuf = test_path.into();
     trace!("Executing tests from file {:?}", path);
     match TestFile::parse(&path) {
-        Ok(file) => {
-            match file.execute() {
-                Ok(_) => {
-                    println!("Tests in '{}' were successful!", path.to_string_lossy());
-                }
-                Err(e) => error!("{}", e),
+        Ok(file) => match file.execute() {
+            Ok(_) => {
+                println!("Tests in '{}' were successful!", path.to_string_lossy());
             }
-        }
+            Err(e) => error!("{}", e),
+        },
         Err(e) => error!("{}", e),
     }
 }
