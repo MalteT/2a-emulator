@@ -1,8 +1,8 @@
 //! Types and Functions to aid the program.
 
+use ::tui::style::Color;
 use ::tui::style::Modifier;
 use ::tui::style::Style;
-use ::tui::style::Color;
 use clap::{crate_version, load_yaml, App};
 use lazy_static::lazy_static;
 use log::{error, trace};
@@ -20,6 +20,8 @@ use crate::tui;
 lazy_static! {
     pub static ref DIMMED: Style = Style::default().modifier(Modifier::DIM);
     pub static ref YELLOW: Style = Style::default().fg(Color::Yellow);
+    pub static ref RED: Style = Style::default().fg(Color::Red);
+    pub static ref GREEN: Style = Style::default().fg(Color::Green);
 }
 
 /// Handle user-given CLI parameter.

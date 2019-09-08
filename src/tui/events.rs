@@ -13,6 +13,7 @@ pub enum Event {
     ToggleAutoRun,
     ToggleAsmStep,
     Reset,
+    Continue,
     Interrupt,
     Backspace,
     Char(char),
@@ -32,6 +33,7 @@ pub struct Config {
     pub key_toggle_asm_step: Vec<KE>,
     pub key_interrupt: Vec<KE>,
     pub key_reset: Vec<KE>,
+    pub key_continue: Vec<KE>,
 }
 
 impl Default for Config {
@@ -43,6 +45,7 @@ impl Default for Config {
         let key_step = vec![KE::Ctrl('.')];
         let key_interrupt = vec![KE::Ctrl('e')];
         let key_reset = vec![KE::Ctrl('r')];
+        let key_continue = vec![KE::Ctrl('l')];
         Config {
             key_exit,
             key_toggle_auto_run,
@@ -51,6 +54,7 @@ impl Default for Config {
             key_step,
             key_interrupt,
             key_reset,
+            key_continue,
         }
     }
 }
@@ -95,6 +99,8 @@ impl Event {
                     Event::Interrupt
                 } else if config.key_reset.contains(&ke) {
                     Event::Reset
+                } else if config.key_continue.contains(&ke) {
+                    Event::Continue
                 } else if ke == KE::Backspace {
                     Event::Backspace
                 } else {

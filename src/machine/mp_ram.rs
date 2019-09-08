@@ -58,7 +58,7 @@ bitflags! {
 }
 
 impl MicroprogramRamParser {
-    /// Parse to [`Ram`].
+    /// Parse to [`MicroprogramRam`].
     ///
     /// The given file needs to be formatted like this:
     /// `addr | instruction | 28BitWord`

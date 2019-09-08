@@ -1,6 +1,5 @@
 use log::trace;
-use pest::error::Error as PestError;
-use pest::iterators::{Pair, Pairs};
+use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
 use rand::random;
@@ -121,12 +120,12 @@ impl Test {
                 trace!("Test: Randomly reseted machine");
             }
             if random_interrupt && 0.95 < random() {
-                machine.edge_int();
+                machine.key_edge_int();
                 trace!("Test: Randomly set edge interrupt on machine");
             }
             if interrupt && i > self.ticks / 2 {
                 interrupt = false;
-                machine.edge_int();
+                machine.key_edge_int();
                 trace!("Test: Interrupted the machine once");
             }
             machine.clk()
@@ -137,12 +136,12 @@ impl Test {
         for expectation in &self.expectations {
             match expectation {
                 Expectation::Halt => {
-                    if !machine.is_halted() {
+                    if !(machine.is_stopped() || machine.is_error_stopped()) {
                         return Err(Error::TestFailed("Machine did not halt!".into()));
                     }
                 }
                 Expectation::NoHalt => {
-                    if machine.is_halted() {
+                    if machine.is_stopped() || machine.is_error_stopped() {
                         return Err(Error::TestFailed("Machine halted!".into()));
                     }
                 }

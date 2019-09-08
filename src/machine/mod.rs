@@ -46,8 +46,14 @@ pub struct Machine {
     frequency_measure_last_measurement: Instant,
     /// Lines of the program.
     program_lines: Vec<(String, usize)>,
-    /// Whether or not the machine halted.
-    machine_halted: bool,
+    /// Whether or not the machine was stopped by software.
+    machine_stopped: bool,
+    /// Whether or not the machine was stopped by hardware.
+    machine_error_stopped: bool,
+    /// Waiting on rising clock edge for the memory.
+    waiting_for_memory: bool,
+    /// Is the last instruction done?
+    instruction_done: bool,
 }
 
 impl Machine {
@@ -64,7 +70,10 @@ impl Machine {
         let measured_frequency = 1000.0;
         let frequency_measure_last_measurement = Instant::now();
         let program_lines = vec![];
-        let machine_halted = false;
+        let machine_stopped = false;
+        let machine_error_stopped = false;
+        let waiting_for_memory = false;
+        let instruction_done = false;
         let mut machine = Machine {
             mp_ram,
             reg,
@@ -77,7 +86,10 @@ impl Machine {
             measured_frequency,
             frequency_measure_last_measurement,
             program_lines,
-            machine_halted,
+            machine_stopped,
+            machine_error_stopped,
+            waiting_for_memory,
+            instruction_done,
         };
         // Load program if given any
         if let Some(program) = program {
@@ -153,15 +165,23 @@ impl Machine {
     }
     /// Next clock rising edge.
     pub fn clk(&mut self) {
-            self.update()
+        self.update()
     }
     /// Is the current instruction done executing?
     pub fn is_instruction_done(&self) -> bool {
-        self.mp_ram.get().contains(MP28BitWord::MAC3)
+        self.instruction_done
+    }
+    /// Has the machine reached a stop?
+    pub fn is_stopped(&self) -> bool {
+        self.machine_stopped
     }
     /// Has the machine reached a hardware stop?
-    pub fn is_halted(&self) -> bool {
-        self.machine_halted
+    pub fn is_error_stopped(&self) -> bool {
+        self.machine_error_stopped
+    }
+    /// Continue the machine after a stop.
+    pub fn continue_from_stop(&mut self) {
+        self.machine_stopped = false;
     }
     /// Reset the machine.
     ///
@@ -181,17 +201,26 @@ impl Machine {
         self.input_edge_int = false;
         self.input_level_int = false;
         self.mp_ram.reset();
-        self.machine_halted = false;
+        self.machine_stopped = false;
+        self.machine_error_stopped = false;
+        self.waiting_for_memory = false;
     }
     /// Input an edge interrupt.
-    pub fn edge_int(&mut self) {
-        trace!("MACHINE: Received edge interrupt");
-        self.input_edge_int = true;
+    pub fn key_edge_int(&mut self) {
+        trace!("Received key edge interrupt");
+        self.input_edge_int |= self.bus.is_key_edge_int_enabled()
+    }
+    /// Is key edge interrupt enabled?
+    pub fn is_key_edge_int_enabled(&self) -> bool {
+        self.bus.is_key_edge_int_enabled()
     }
     /// Update the machine.
     /// This should be equivalent to a CLK signal on the real machine.
     fn update(&mut self) {
-        if self.machine_halted {
+        if self.machine_error_stopped || self.machine_stopped {
+            return;
+        } else if self.waiting_for_memory {
+            self.waiting_for_memory = false;
             return;
         }
         let diff = Instant::now() - self.frequency_measure_last_measurement;
@@ -214,6 +243,8 @@ impl Machine {
         // Use microprogram word from last iteration
         // ------------------------------------------------------------
         let mp_ram_out = self.mp_ram.get().clone();
+        // Safe MAC3 for later
+        self.instruction_done = mp_ram_out.contains(MP28BitWord::MAC3);
         let mut sig = Signal::new(&mp_ram_out, &self.current_instruction);
         trace!("Address: {:>08b} ({0})", self.mp_ram.current_addr());
         trace!("Word: {:?}", mp_ram_out);
@@ -240,6 +271,10 @@ impl Machine {
         if sig.busen() {
             bus_content = self.bus.read(doa);
             trace!("MEMDI: 0x{:>02X}", bus_content);
+            if doa <= 0xEF {
+                self.waiting_for_memory = true;
+                trace!("Generating wait signal");
+            }
         }
         // ------------------------------------------------------------
         // Update current instruction from bus
@@ -253,7 +288,9 @@ impl Machine {
             // Selecting next instruction
             self.current_instruction = Instruction::from_bits_truncate(bus_content);
             if bus_content == 0x00 {
-                self.machine_halted = true;
+                self.machine_error_stopped = true;
+            } else if bus_content == 0x01 {
+                self.machine_stopped = true;
             }
             sig.set_current_instruction(&self.current_instruction);
             trace!("Instruction: {:?}", self.current_instruction);
@@ -307,6 +344,10 @@ impl Machine {
         if sig.buswr() {
             trace!("Writing 0x{:>02X} to bus address 0x{:>02X}", memdo, doa);
             self.bus.write(doa, memdo);
+            if doa <= 0xEF {
+                trace!("Generating wait signal");
+                self.waiting_for_memory = true;
+            }
         }
         // Clearing edge interrupt if used
         if self.input_edge_int && sig.na0() && sig.mac0() && sig.mac1() {

@@ -2,7 +2,6 @@ use lazy_static::lazy_static;
 use tui::backend::CrosstermBackend;
 use tui::buffer::Buffer;
 use tui::layout::Rect;
-use tui::style::Color;
 use tui::style::Modifier;
 use tui::style::Style;
 use tui::terminal::Frame;
@@ -18,7 +17,7 @@ use crate::tui::Tui;
 lazy_static! {
     static ref RIGHT_COLUMN_WIDTH: u16 = 35;
     static ref PROGRAM_AREA_HEIGHT: u16 = 7;
-    static ref FREQ_AREA_HEIGHT: u16 = 5;
+    static ref FREQ_AREA_HEIGHT: u16 = 6;
     static ref INPUT_AREA_HEIGHT: u16 = 3;
 }
 
@@ -69,7 +68,6 @@ struct SpacedString {
 struct ProgramDisplay<'a> {
     lines: Vec<&'a String>,
     middle_index: usize,
-    machine_stop: bool,
 }
 
 impl<'a> Interface<'a> {
@@ -156,17 +154,34 @@ impl<'a> Interface<'a> {
     }
 
     fn draw_help(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
-        let items = vec![
-            ("Clock", "Enter"),
-            ("Reset", "CTRL+R"),
-            ("Edge interrupt", "CTRL+E"),
-        ];
+        let items = vec![("Reset", "CTRL+R")];
         for (key, help) in items {
             let mut ss = SpacedString::from(key, help);
             ss.render(f, area);
             area.y += 1;
             area.height -= 1;
         }
+        let mut ss = SpacedString::from("Clock", "Enter");
+        if tui.executor.is_stopped()
+            || tui.executor.is_error_stopped()
+            || tui.executor.is_auto_run_mode()
+        {
+            ss = ss
+                .left_style(&helpers::DIMMED)
+                .right_style(&helpers::DIMMED);
+        }
+        ss.render(f, area);
+        area.y += 1;
+        area.height -= 1;
+        let mut ss = SpacedString::from("Edge interrupt", "CTRL+E");
+        if !tui.executor.is_key_edge_int_enabled() {
+            ss = ss
+                .left_style(&helpers::DIMMED)
+                .right_style(&helpers::DIMMED);
+        }
+        ss.render(f, area);
+        area.y += 1;
+        area.height -= 1;
         let mut ss = SpacedString::from("Toggle autorun", "CTRL+A");
         if tui.executor.is_auto_run_mode() {
             ss = ss.left_style(&helpers::YELLOW);
@@ -177,6 +192,15 @@ impl<'a> Interface<'a> {
         let mut ss = SpacedString::from("Toggle asm step", "CTRL+W");
         if tui.executor.is_asm_step_mode() {
             ss = ss.left_style(&helpers::YELLOW);
+        }
+        ss.render(f, area);
+        area.y += 1;
+        area.height -= 1;
+        let mut ss = SpacedString::from("Continue", "CTRL+L");
+        if !tui.executor.is_stopped() {
+            ss = ss
+                .left_style(&helpers::DIMMED)
+                .right_style(&helpers::DIMMED);
         }
         ss.render(f, area);
     }
@@ -203,17 +227,27 @@ impl<'a> Interface<'a> {
                 .left_style(&helpers::DIMMED);
         let mut frequency_ss =
             SpacedString::from("Frequency: ", &self.frequency).left_style(&helpers::DIMMED);
+        let mut state_ss = SpacedString::from("State: ", "RUNNING").left_style(&helpers::DIMMED);
+        if tui.executor.is_error_stopped() {
+            state_ss.right = "ERROR STOP".into();
+            state_ss = state_ss.right_style(&helpers::RED);
+        } else if tui.executor.is_stopped() {
+            state_ss.right = "STOP".into();
+            state_ss = state_ss.right_style(&helpers::YELLOW);
+        }
         program_ss.render(f, area);
         area.y += 1;
         frequency_ss.render(f, area);
         area.y += 1;
         frequency_measured_ss.render(f, area);
+        area.y += 1;
+        state_ss.render(f, area);
     }
 
     fn draw_program(&mut self, f: &mut Frame<CrosstermBackend>, area: Rect, tui: &Tui) {
         let context = (area.height - 1) / 2;
         let (middle_index, lines) = tui.executor.get_current_lines(context as isize);
-        let mut pd = ProgramDisplay::from(middle_index, lines, tui.executor.is_halted());
+        let mut pd = ProgramDisplay::from(middle_index, lines);
         pd.render(f, area);
     }
 }
@@ -235,7 +269,7 @@ impl SpacedString {
     }
     /// Set the right style.
     pub fn right_style<S: Deref<Target = Style>>(mut self, style: &S) -> Self {
-        self.left_style = *style.deref();
+        self.right_style = *style.deref();
         self
     }
 }
@@ -263,11 +297,10 @@ impl Widget for SpacedString {
 }
 
 impl<'a> ProgramDisplay<'a> {
-    fn from(middle_index: usize, lines: Vec<&'a String>, machine_stop: bool) -> Self {
+    fn from(middle_index: usize, lines: Vec<&'a String>) -> Self {
         ProgramDisplay {
             middle_index,
             lines,
-            machine_stop,
         }
     }
 }
@@ -298,11 +331,6 @@ impl Widget for ProgramDisplay<'_> {
                 ),
                 _ => buf.set_string(area.x, area.y + i as u16, &empty, Style::default()),
             }
-        }
-        if self.machine_stop {
-            let red = Style::default().fg(Color::Red);
-            buf.set_string(area.x, area.y + middle as u16, "HALTED", red);
-            return;
         }
     }
 }

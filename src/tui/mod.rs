@@ -125,10 +125,13 @@ impl Tui {
                 Event::ToggleAutoRun => self.executor.toggle_auto_run_mode(),
                 Event::ToggleAsmStep => self.executor.toggle_asm_step_mode(),
                 Event::Interrupt => {
-                    self.executor.edge_int();
+                    self.executor.key_edge_int();
                 }
                 Event::Reset => {
                     self.executor.reset();
+                }
+                Event::Continue => {
+                    self.executor.continue_from_stop();
                 }
                 Event::Backspace | Event::Char(_) => {
                     self.input_field.handle(event.clone());

@@ -87,7 +87,7 @@ impl Executor {
     }
     /// Emulate a rising clock edge.
     pub fn next_clk(&mut self) {
-        if self.clk_asm_step_mode {
+        if self.clk_asm_step_mode && !(self.is_stopped() || self.is_error_stopped()) {
             while self.machine.is_instruction_done() {
                 self.machine.clk()
             }
@@ -107,16 +107,28 @@ impl Executor {
         self.machine.reset()
     }
     /// Emulate an edge interrupt.
-    pub fn edge_int(&mut self) {
-        self.machine.edge_int()
+    pub fn key_edge_int(&mut self) {
+        self.machine.key_edge_int()
     }
     /// Toggle the auto-run-mode.
     pub fn toggle_auto_run_mode(&mut self) {
         self.clk_auto_run_mode = !self.clk_auto_run_mode;
     }
-    /// Has the machine halted yet?
-    pub fn is_halted(&self) -> bool {
-        self.machine.is_halted()
+    /// Is key edge interrupt enabled?
+    pub fn is_key_edge_int_enabled(&self) -> bool {
+        self.machine.is_key_edge_int_enabled()
+    }
+    /// Was the machine stopped yet?
+    pub fn is_stopped(&self) -> bool {
+        self.machine.is_stopped()
+    }
+    /// Was the machine error stopped yet?
+    pub fn is_error_stopped(&self) -> bool {
+        self.machine.is_error_stopped()
+    }
+    /// Continue the machine after a stop.
+    pub fn continue_from_stop(&mut self) {
+        self.machine.continue_from_stop()
     }
     /// Is auto-run-mode activated?
     pub fn is_auto_run_mode(&self) -> bool {
@@ -140,7 +152,7 @@ impl Executor {
     /// - `context` The amount of lines before and after the currently executed line.
     ///
     /// # Returns
-    /// - A tuple with a list of [`String`]s of [`Line`]s and the index of the one
+    /// - A tuple with a list of [`String`]s of asm lines and the index of the one
     /// currently executed by the machine.
     pub fn get_current_lines(&self, context: isize) -> (usize, Vec<&String>) {
         self.machine.get_current_lines(context)
