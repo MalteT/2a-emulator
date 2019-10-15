@@ -1,0 +1,3 @@
+TEST 'should halt'
+EXPECT HALT
+END
