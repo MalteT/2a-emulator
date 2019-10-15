@@ -1,4 +1,4 @@
-use log::trace;
+use log::{info, trace};
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
@@ -43,7 +43,7 @@ pub enum Expectation {
 
 #[derive(Debug)]
 pub struct Test {
-    file_path: PathBuf,
+    name: String,
     ticks: usize,
     settings: Vec<Setting>,
     expectations: Vec<Expectation>,
@@ -73,10 +73,11 @@ impl TestFile {
         trace!("Parsed test file from path {:?}", path);
         Ok(TestFile { tests })
     }
-    pub fn execute(&self) -> Result<(), Error> {
+    pub fn execute_against<P: Into<PathBuf>>(&self, path: P) -> Result<(), Error> {
+        let path: PathBuf = path.into();
         for test in &self.tests {
-            trace!("Executing test for {:?}", test.file_path);
-            test.execute()?;
+            trace!("Executing test {:?} for {:?}", test.name, path);
+            test.execute_against(&path)?;
         }
         Ok(())
     }
@@ -84,8 +85,9 @@ impl TestFile {
 
 impl Test {
     /// Execute the test.
-    pub fn execute(&self) -> Result<(), Error> {
-        let program = helpers::read_asm_file(&self.file_path)?;
+    pub fn execute_against<P: Into<PathBuf>>(&self, path: P) -> Result<(), Error> {
+        let path: PathBuf = path.into();
+        let program = helpers::read_asm_file(&path)?;
         let mut machine = Machine::new(Some(&program));
         // Prepare
         let to_num = |inp| match inp {
@@ -132,7 +134,7 @@ impl Test {
         }
 
         // Verify
-        trace!("Verifying test case for {:?}", self.file_path);
+        trace!("Verifying test {:?} for {:?}", self.name, path);
         for expectation in &self.expectations {
             match expectation {
                 Expectation::Halt => {
@@ -165,21 +167,21 @@ impl Test {
                 }
             };
         }
-        trace!("Test for {:?} was successful", self.file_path);
+        info!("Test {:?} for {:?} was successful", self.name, path);
         Ok(())
     }
     /// Parse a test from the given Pest Pair.
     fn parse(pair: Pair<Rule>) -> Self {
-        let mut file_path = "".into();
+        let mut name = "".into();
         let mut ticks = 10_000;
         let mut settings = vec![];
         let mut expectations = vec![Expectation::NoHalt];
 
         for part in pair.into_inner() {
             match part.as_rule() {
-                Rule::program_path => {
+                Rule::test_name => {
                     let s = part.as_str();
-                    file_path = s[1..s.len() - 1].into();
+                    name = s[1..s.len() - 1].into();
                 }
                 Rule::with_block => settings = Test::parse_settings(part),
                 Rule::for_block => ticks = Test::parse_ticks(part),
@@ -189,7 +191,7 @@ impl Test {
         }
 
         Test {
-            file_path,
+            name,
             ticks,
             settings,
             expectations,
@@ -247,12 +249,12 @@ impl Test {
                 Rule::halt => Expectation::Halt,
                 Rule::no_halt => Expectation::NoHalt,
                 Rule::out_fe => {
-                    let raw = pair.into_inner().as_str();
+                    let raw = &pair.into_inner().as_str()[2..];
                     let number = u8::from_str_radix(raw, 16).expect("Infallible");
                     Expectation::OutputFe(number)
                 }
                 Rule::out_ff => {
-                    let raw = pair.into_inner().as_str();
+                    let raw = &pair.into_inner().as_str()[2..];
                     let number = u8::from_str_radix(raw, 16).expect("Infallible");
                     Expectation::OutputFf(number)
                 }

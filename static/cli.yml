@@ -18,6 +18,7 @@ args:
         takes_value: true
         value_name: TEST
         conflicts_with: interactive
+        requires: PROGRAM
     - check:
         help: Validate the given source file. If the validation fails, neither tests nor the interactive session will be executed
         long: check

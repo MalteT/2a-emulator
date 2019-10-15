@@ -53,8 +53,12 @@ pub fn handle_user_input() -> Result<(), Error> {
         run_tui(program_path)?;
     } else if matches.is_present("test") {
         let tests = matches.values_of_lossy("test").expect("TEST must be given");
+        let program = matches
+            .value_of_lossy("PROGRAM")
+            .expect("Unfallible")
+            .to_string();
         for test_path in tests {
-            execute_test(test_path)
+            execute_test(test_path, &program)
         }
     } else if !matches.is_present("check") {
         let program = if matches.is_present("PROGRAM") {
@@ -81,13 +85,22 @@ fn run_tui<P: Into<PathBuf>>(program_path: Option<P>) -> Result<(), Error> {
 }
 
 /// Execute a test given by it's path.
-fn execute_test<P: Into<PathBuf>>(test_path: P) {
-    let path: PathBuf = test_path.into();
-    trace!("Executing tests from file {:?}", path);
-    match TestFile::parse(&path) {
-        Ok(file) => match file.execute() {
+fn execute_test<P1, P2>(test_path: P1, program_path: P2)
+where
+    P1: Into<PathBuf>,
+    P2: Into<PathBuf>,
+{
+    let test_path: PathBuf = test_path.into();
+    let program_path: PathBuf = program_path.into();
+    trace!("Executing tests from file {:?}", test_path);
+    match TestFile::parse(&test_path) {
+        Ok(file) => match file.execute_against(&program_path) {
             Ok(_) => {
-                println!("Tests in '{}' were successful!", path.to_string_lossy());
+                println!(
+                    "Tests in {:?} ran successful against {:?}!",
+                    test_path,
+                    program_path
+                );
             }
             Err(e) => error!("{}", e),
         },

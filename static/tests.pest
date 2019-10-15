@@ -1,4 +1,4 @@
-program_path     = ${ "'" ~ (!"'" ~ ANY)* ~ "'" }
+test_name        = ${ "'" ~ (!"'" ~ ANY)* ~ "'" }
 ticks            = ${ ASCII_DIGIT* }
 hex_digit        = ${ ^"0x" ~ ASCII_HEX_DIGIT{1,2} }
 random           = ${ ^"RANDOM" }
@@ -26,7 +26,7 @@ expect_block =  { ^"EXPECT" ~ (expectation ~ ",")* ~ expectation }
 for_block    =  { ^"FOR" ~ ticks }
 with_block   =  { ^"WITH" ~ (setting ~ ",")* ~ setting }
 
-test         =  { ^"TEST " ~ program_path ~ with_block? ~ for_block? ~ expect_block? ~ ^"END" }
+test         =  { ^"TEST " ~ test_name ~ with_block? ~ for_block? ~ expect_block? ~ ^"END" }
 file         = _{ SOI ~ test* ~ EOI }
 
 WHITESPACE = _{ " " | "\t" | "\n" }
