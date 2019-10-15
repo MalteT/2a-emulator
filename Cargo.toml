@@ -21,8 +21,9 @@ colored = "1.8.0"
 lazy_static = "1.3.0"
 rand = "0.7.0"
 
-[dependencies.mr2a_asm_parser]
+[dependencies.parser2a]
 git = "https://v4.git.tammena.rocks/2a-emulator/2a-parser.git"
+package = "2a-parser"
 version = "4.3.0"
 features = ["formatting"]
 

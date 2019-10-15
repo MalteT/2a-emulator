@@ -3,7 +3,7 @@
 //! This module defines the error type used through-out the program.
 
 use failure::Fail;
-use mr2a_asm_parser::parser::ParserError;
+use parser2a::parser::ParserError;
 use pest::error::Error as PestError;
 
 use std::fmt;

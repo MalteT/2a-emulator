@@ -11,7 +11,7 @@
 //! ```
 
 use colored::Colorize;
-use mr2a_asm_parser::asm::{
+use parser2a::asm::{
     Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Register,
     RegisterDDI, RegisterDI, Source,
 };

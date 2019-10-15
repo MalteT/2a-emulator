@@ -6,8 +6,8 @@ use ::tui::style::Style;
 use clap::{crate_version, load_yaml, App};
 use lazy_static::lazy_static;
 use log::{error, trace};
-use mr2a_asm_parser::asm::Asm;
-use mr2a_asm_parser::parser::AsmParser;
+use parser2a::asm::Asm;
+use parser2a::parser::AsmParser;
 
 use std::fs::read_to_string;
 use std::path::PathBuf;

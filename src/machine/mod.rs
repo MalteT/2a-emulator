@@ -1,7 +1,7 @@
 //! The actual emulated machine.
 
 use log::trace;
-use mr2a_asm_parser::asm::Asm;
+use parser2a::asm::Asm;
 use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
