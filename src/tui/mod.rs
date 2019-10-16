@@ -115,10 +115,7 @@ impl Tui {
                     if self.input_field.is_empty() {
                         self.executor.next_clk();
                     } else {
-                        self.input_field.handle(Event::Char('\n'));
-                        let query = self.input_field.pop();
-                        self.handle_input(&query);
-                        trace!("Command entered: {}", query);
+                        self.handle_input();
                     }
                 }
                 Event::Step => {}
@@ -141,8 +138,11 @@ impl Tui {
             trace!("{:?}", event);
         }
     }
-    /// Handle the given input string.
-    fn handle_input(&mut self, query: &String) {
+    /// Handle the input field after an 'Enter'.
+    fn handle_input(&mut self) {
+        self.input_field.handle(Event::Char('\n'));
+        let query = self.input_field.pop();
+        trace!("Command entered: {}", query);
         if query.starts_with("load ") {
             let path: String = query[5..].into();
             match self.executor.execute(path) {
