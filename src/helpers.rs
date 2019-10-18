@@ -5,7 +5,7 @@ use ::tui::style::Modifier;
 use ::tui::style::Style;
 use clap::{crate_version, load_yaml, App};
 use lazy_static::lazy_static;
-use log::{error, trace};
+use log::trace;
 use parser2a::asm::Asm;
 use parser2a::parser::AsmParser;
 
@@ -58,7 +58,7 @@ pub fn handle_user_input() -> Result<(), Error> {
             .expect("Unfallible")
             .to_string();
         for test_path in tests {
-            execute_test(test_path, &program)
+            execute_test(test_path, &program)?
         }
     } else if !matches.is_present("check") {
         let program = if matches.is_present("PROGRAM") {
@@ -85,7 +85,7 @@ fn run_tui<P: Into<PathBuf>>(program_path: Option<P>) -> Result<(), Error> {
 }
 
 /// Execute a test given by it's path.
-fn execute_test<P1, P2>(test_path: P1, program_path: P2)
+fn execute_test<P1, P2>(test_path: P1, program_path: P2) -> Result<(), Error>
 where
     P1: Into<PathBuf>,
     P2: Into<PathBuf>,
@@ -93,18 +93,12 @@ where
     let test_path: PathBuf = test_path.into();
     let program_path: PathBuf = program_path.into();
     trace!("Executing tests from file {:?}", test_path);
-    match TestFile::parse(&test_path) {
-        Ok(file) => match file.execute_against(&program_path) {
-            Ok(_) => {
-                println!(
-                    "Tests in {:?} ran successful against {:?}!",
-                    test_path, program_path
-                );
-            }
-            Err(e) => error!("{}", e),
-        },
-        Err(e) => error!("{}", e),
-    }
+    TestFile::parse(&test_path)?.execute_against(&program_path)?;
+    println!(
+        "Tests in {:?} ran successful against {:?}!",
+        test_path, program_path
+    );
+    Ok(())
 }
 
 /// Validate the given source code file.

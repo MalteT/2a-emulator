@@ -21,7 +21,7 @@ pub enum Error {
     /// Thrown when a test file failed to parse.
     TestFileParsingError(#[cause] PestError<TestRule>),
     /// Thrown when a test failes.
-    TestFailed(String),
+    TestFailed(String, String),
 }
 
 impl From<IOError> for Error {
@@ -50,7 +50,7 @@ impl fmt::Display for Error {
                 write!(f, "The source file could not be opened!:\n{}", ioe)
             }
             Error::TestFileParsingError(pe) => write!(f, "{}", pe),
-            Error::TestFailed(s) => write!(f, "Test failed: {}", s),
+            Error::TestFailed(name, s) => write!(f, "Test {:?} failed: {}", name, s),
         }
     }
 }

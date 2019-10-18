@@ -1,16 +1,16 @@
-use log::{info, trace};
+use log::{error, info, trace};
+use parser2a::asm::Asm;
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
 use rand::{random, thread_rng, Rng};
-use parser2a::asm::Asm;
 
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
 use crate::error::Error;
-use crate::supervisor::{EmulationParameter, MachineState, Supervisor};
 use crate::helpers;
+use crate::supervisor::{EmulationParameter, MachineState, Supervisor};
 
 #[derive(Debug, Parser)]
 #[grammar = "../static/tests.pest"]
@@ -77,11 +77,18 @@ impl TestFile {
     pub fn execute_against<P: Into<PathBuf>>(&self, path: P) -> Result<(), Error> {
         let path: PathBuf = path.into();
         let asm = helpers::read_asm_file(&path)?;
+        let mut res = Ok(());
         for test in &self.tests {
             trace!("Executing test {:?} for {:?}", test.name, path);
-            test.execute_against(&path, asm.clone())?;
+            res = match test.execute_against(&path, asm.clone()) {
+                Err(e) => {
+                    error!("{}", e);
+                    Err(e)
+                }
+                Ok(()) => res,
+            };
         }
-        Ok(())
+        res
     }
 }
 
@@ -140,37 +147,41 @@ impl Test {
                     MachineState::ErrorStopped => {}
                     MachineState::Stopped => {}
                     MachineState::Running => {
-                        return Err(Error::TestFailed("Machine did not halt!".into()))
+                        return self.create_error("Machine did not halt!")
                     }
                 },
                 Expectation::NoHalt => match final_state.final_machine_state {
                     MachineState::ErrorStopped | MachineState::Stopped => {
-                        return Err(Error::TestFailed("Machine halted!".into()))
+                        return self.create_error("Machine halted!")
                     }
                     MachineState::Running => {}
                 },
                 Expectation::OutputFe(nr) => {
                     if final_outputs.is_some() && final_outputs.unwrap().0 != *nr {
-                        return Err(Error::TestFailed(format!(
+                        return self.create_error(&format!(
                             "Different output on FE: {} != {}",
                             nr,
                             final_outputs.unwrap().0
-                        )));
+                        ))
                     }
                 }
                 Expectation::OutputFf(nr) => {
                     if final_outputs.is_some() && final_outputs.unwrap().1 != *nr {
-                        return Err(Error::TestFailed(format!(
+                        return self.create_error(&format!(
                             "Different output on FF: {} != {}",
                             nr,
                             final_outputs.unwrap().1
-                        )));
+                        ));
                     }
                 }
             };
         }
         info!("Test {:?} for {:?} was successful", self.name, path);
         Ok(())
+    }
+    /// Wraps the given &str into an `Err(Error)` for easy error creation.
+    fn create_error(&self, s: &str) -> Result<(), Error> {
+        Err(Error::TestFailed(self.name.clone(), s.into()))
     }
     /// Parse a test from the given Pest Pair.
     fn parse(pair: Pair<Rule>) -> Self {
