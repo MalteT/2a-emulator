@@ -98,8 +98,7 @@ where
             Ok(_) => {
                 println!(
                     "Tests in {:?} ran successful against {:?}!",
-                    test_path,
-                    program_path
+                    test_path, program_path
                 );
             }
             Err(e) => error!("{}", e),

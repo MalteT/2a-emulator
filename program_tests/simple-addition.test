@@ -11,7 +11,8 @@ END
 TEST '-1 + -1'
 WITH
     FC = 0xFF,
-    FD = 0xFF
+    FD = 0xFF,
+    RANDOM RESET
 FOR 1000
 EXPECT
     NO HALT,

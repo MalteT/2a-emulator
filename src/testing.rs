@@ -2,14 +2,15 @@ use log::{info, trace};
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
-use rand::random;
+use rand::{random, thread_rng, Rng};
+use parser2a::asm::Asm;
 
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
 use crate::error::Error;
+use crate::supervisor::{EmulationParameter, MachineState, Supervisor};
 use crate::helpers;
-use crate::machine::Machine;
 
 #[derive(Debug, Parser)]
 #[grammar = "../static/tests.pest"]
@@ -75,9 +76,10 @@ impl TestFile {
     }
     pub fn execute_against<P: Into<PathBuf>>(&self, path: P) -> Result<(), Error> {
         let path: PathBuf = path.into();
+        let asm = helpers::read_asm_file(&path)?;
         for test in &self.tests {
             trace!("Executing test {:?} for {:?}", test.name, path);
-            test.execute_against(&path)?;
+            test.execute_against(&path, asm.clone())?;
         }
         Ok(())
     }
@@ -85,83 +87,83 @@ impl TestFile {
 
 impl Test {
     /// Execute the test.
-    pub fn execute_against<P: Into<PathBuf>>(&self, path: P) -> Result<(), Error> {
+    pub fn execute_against<P: Into<PathBuf>>(&self, path: P, asm: Asm) -> Result<(), Error> {
         let path: PathBuf = path.into();
-        let program = helpers::read_asm_file(&path)?;
-        let mut machine = Machine::new(Some(&program));
-        // Prepare
-        let to_num = |inp| match inp {
-            Input::Number(nr) => nr,
-            Input::Random => random(),
-        };
-        let mut random_reset = false;
-        let mut random_interrupt = false;
-        let mut interrupt = false;
+        let mut rng = thread_rng();
+
+        // Initialize stuff
+        let mut ep = EmulationParameter::default();
+        ep.program = Some((path.clone(), asm));
+
+        ep.ticks = self.ticks;
+        let mut initial_input = (0, 0, 0, 0);
         for setting in &self.settings {
             match setting {
-                Setting::InputFc(nr) => machine.input_fc(to_num(*nr)),
-                Setting::InputFd(nr) => machine.input_fd(to_num(*nr)),
-                Setting::InputFe(nr) => machine.input_fe(to_num(*nr)),
-                Setting::InputFf(nr) => machine.input_ff(to_num(*nr)),
+                Setting::InputFc(nr) => initial_input.0 = nr.to_num(),
+                Setting::InputFd(nr) => initial_input.1 = nr.to_num(),
+                Setting::InputFe(nr) => initial_input.2 = nr.to_num(),
+                Setting::InputFf(nr) => initial_input.3 = nr.to_num(),
                 Setting::RandomInput => {
-                    machine.input_fc(random());
-                    machine.input_fd(random());
-                    machine.input_fe(random());
-                    machine.input_ff(random());
+                    initial_input.0 = random();
+                    initial_input.1 = random();
+                    initial_input.2 = random();
+                    initial_input.3 = random();
                 }
-                Setting::RandomReset => random_reset = true,
-                Setting::RandomInterrupt => random_interrupt = true,
-                Setting::Interrupt => interrupt = true,
+                Setting::RandomReset => {
+                    for _ in 1..rng.gen_range(1, self.ticks / 200) {
+                        ep.resets.insert(rng.gen_range(1, self.ticks));
+                    }
+                }
+                Setting::RandomInterrupt => {
+                    for _ in 1..rng.gen_range(1, self.ticks / 200) {
+                        ep.interrupts.insert(rng.gen_range(1, self.ticks));
+                    }
+                }
+                Setting::Interrupt => {
+                    ep.interrupts.insert(self.ticks / 2);
+                }
             }
         }
 
-        // Execute
-        for i in 0..self.ticks {
-            if random_reset && 0.95 < random() {
-                machine.reset();
-                trace!("Test: Randomly reseted machine");
-            }
-            if random_interrupt && 0.95 < random() {
-                machine.key_edge_int();
-                trace!("Test: Randomly set edge interrupt on machine");
-            }
-            if interrupt && i > self.ticks / 2 {
-                interrupt = false;
-                machine.key_edge_int();
-                trace!("Test: Interrupted the machine once");
-            }
-            machine.clk()
-        }
+        // Set initial inputs
+        ep.inputs.insert(0, initial_input);
+
+        // Run the emulation
+        let final_state = Supervisor::execute_with_parameter(ep);
+        let final_outputs = final_state.final_outputs();
 
         // Verify
         trace!("Verifying test {:?} for {:?}", self.name, path);
         for expectation in &self.expectations {
             match expectation {
-                Expectation::Halt => {
-                    if !(machine.is_stopped() || machine.is_error_stopped()) {
-                        return Err(Error::TestFailed("Machine did not halt!".into()));
+                Expectation::Halt => match final_state.final_machine_state {
+                    MachineState::ErrorStopped => {}
+                    MachineState::Stopped => {}
+                    MachineState::Running => {
+                        return Err(Error::TestFailed("Machine did not halt!".into()))
                     }
-                }
-                Expectation::NoHalt => {
-                    if machine.is_stopped() || machine.is_error_stopped() {
-                        return Err(Error::TestFailed("Machine halted!".into()));
+                },
+                Expectation::NoHalt => match final_state.final_machine_state {
+                    MachineState::ErrorStopped | MachineState::Stopped => {
+                        return Err(Error::TestFailed("Machine halted!".into()))
                     }
-                }
+                    MachineState::Running => {}
+                },
                 Expectation::OutputFe(nr) => {
-                    if machine.output_fe() != *nr {
+                    if final_outputs.is_some() && final_outputs.unwrap().0 != *nr {
                         return Err(Error::TestFailed(format!(
                             "Different output on FE: {} != {}",
                             nr,
-                            machine.output_fe()
+                            final_outputs.unwrap().0
                         )));
                     }
                 }
                 Expectation::OutputFf(nr) => {
-                    if machine.output_ff() != *nr {
+                    if final_outputs.is_some() && final_outputs.unwrap().1 != *nr {
                         return Err(Error::TestFailed(format!(
                             "Different output on FF: {} != {}",
                             nr,
-                            machine.output_ff()
+                            final_outputs.unwrap().1
                         )));
                     }
                 }
@@ -263,5 +265,14 @@ impl Test {
             ret.push(expectation);
         }
         ret
+    }
+}
+
+impl Input {
+    pub fn to_num(self) -> u8 {
+        match self {
+            Input::Number(nr) => nr,
+            Input::Random => random(),
+        }
     }
 }

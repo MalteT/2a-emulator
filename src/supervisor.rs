@@ -1,11 +1,13 @@
 //! Supervisor of the emulated Machine.
 
 use lazy_static::lazy_static;
+use log::trace;
+use parser2a::asm::Asm;
 use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::widgets::Widget;
-use parser2a::asm::Asm;
 
+use std::collections::{HashSet, HashMap};
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -21,6 +23,9 @@ lazy_static! {
     static ref DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
 }
 
+/// Supervisor of the machine.
+///
+/// Helps keeping emulation and displaying apart.
 pub struct Supervisor {
     /// The actual minirechner.
     machine: Machine,
@@ -47,25 +52,43 @@ struct FreqMeasurements {
 }
 
 /// Assortment of parameters used for emulation.
+#[derive(Debug, Default)]
 pub struct EmulationParameter {
     /// The program path and code to execute, if any.
-    program: Option<(PathBuf, Asm)>,
+    pub program: Option<(PathBuf, Asm)>,
     /// The number of rising clock edges before the emulation ends.
-    ticks: usize,
+    pub ticks: usize,
     /// The inputs that should occur at specific ticks.
-    inputs: Vec<(usize, u8, u8, u8, u8)>,
-    // TODO: Interrupts
+    pub inputs: HashMap<usize, (u8, u8, u8, u8)>,
+    /// The resets that should occur at specific ticks.
+    pub resets: HashSet<usize>,
+    /// The interrupts that should occur at specific ticks.
+    pub interrupts: HashSet<usize>,
 }
 
-/// Final state of an emulation, containing all details about the process.
-pub struct FinalState {
+/// State of an emulation, containing all details about the process.
+#[derive(Debug)]
+pub struct EmulationState {
     /// The program, which was emulated, if any.
-    program: Option<(PathBuf, Asm)>,
+    pub program: Option<(PathBuf, Asm)>,
     /// The inputs with the given tick at which they occured.
-    inputs: Vec<(usize, u8, u8, u8, u8)>,
+    pub inputs: HashMap<usize, (u8, u8, u8, u8)>,
     /// The outputs with the given tick at which they occured.
-    outputs: Vec<(usize, u8, u8)>,
-    // TODO: Interrupts
+    pub outputs: HashMap<usize, (u8, u8)>,
+    /// The resets with the given tick at which they occured.
+    pub resets: HashSet<usize>,
+    /// The interrupts with the given tick at which they occured.
+    pub interrupts: HashSet<usize>,
+    /// The final state of the machine.
+    pub final_machine_state: MachineState,
+}
+
+/// Machine state after execution.
+#[derive(Debug)]
+pub enum MachineState {
+    Stopped,
+    ErrorStopped,
+    Running,
 }
 
 impl Supervisor {
@@ -87,11 +110,11 @@ impl Supervisor {
         }
     }
     /// Emulate the machine with the given [`Parameter`].
-    /// This returns a [`FinalState`] containing all information about the emulation
+    /// This returns a [`EmulationState`] containing all information about the emulation
     /// process.
-    pub fn execute_with_parameter(param: EmulationParameter) -> FinalState {
-        // Create final state
-        let mut fs = FinalState::new();
+    pub fn execute_with_parameter(param: EmulationParameter) -> EmulationState {
+        // Create emulation state
+        let mut fs = EmulationState::new();
         // Create supervisor
         let mut sv = Supervisor::new();
         sv.toggle_auto_run_mode();
@@ -100,31 +123,50 @@ impl Supervisor {
             sv.machine = Machine::new(Some(&asm));
             fs.program = Some((path, asm));
         }
+        // Remember initial outputs
+        fs.outputs.insert(0, (0, 0));
         // Remember input/outputs
-        let mut input_index = 0;
         let mut last_outputs = (0, 0);
         // MAIN LOOP
         for tick in 0..param.ticks + 1 {
             // Input the inputs accordingly.
-            if param.inputs[input_index].0 == tick {
-                let inputs = param.inputs[input_index];
-                fs.inputs.push(inputs);
-                sv.machine.input_fc(inputs.1);
-                sv.machine.input_fd(inputs.2);
-                sv.machine.input_fe(inputs.3);
-                sv.machine.input_ff(inputs.4);
-                if param.inputs.len() > input_index + 1 {
-                    input_index += 1;
-                }
+            if param.inputs.contains_key(&tick) {
+                let inputs = param.inputs.get(&tick).unwrap();
+                fs.inputs.insert(tick, inputs.clone());
+                sv.machine.input_fc(inputs.0);
+                sv.machine.input_fd(inputs.1);
+                sv.machine.input_fe(inputs.2);
+                sv.machine.input_ff(inputs.3);
+                fs.inputs.insert(tick, *inputs);
             }
             // Check if outputs updated, and note them, if they did.
             if last_outputs != (sv.machine.output_fe(), sv.machine.output_ff()) {
                 last_outputs = (sv.machine.output_fe(), sv.machine.output_ff());
-                fs.outputs.push((tick, last_outputs.0, last_outputs.1));
+                fs.outputs.insert(tick, (last_outputs.0, last_outputs.1));
+            }
+            // Reset the machine if needed.
+            if param.resets.contains(&tick) {
+                sv.machine.reset();
+                fs.resets.insert(tick);
+                trace!("Test: Randomly reseted machine");
+            }
+            // Interrupt the machine if needed.
+            if param.interrupts.contains(&tick) {
+                sv.machine.key_edge_int();
+                fs.interrupts.insert(tick);
+                trace!("Test: Set edge interrupt on machine");
             }
             // Emulate rising clk
             sv.tick();
         }
+        let final_machine_state = if sv.machine.is_error_stopped() {
+            MachineState::ErrorStopped
+        } else if sv.machine.is_stopped() {
+            MachineState::Stopped
+        } else {
+            MachineState::Running
+        };
+        fs.final_machine_state = final_machine_state;
         fs
     }
     /// Load a new program from the given path.
@@ -263,14 +305,25 @@ impl FreqMeasurements {
     }
 }
 
-impl FinalState {
+impl EmulationState {
     /// Initialize a new final state.
     fn new() -> Self {
-        FinalState {
+        EmulationState {
             program: None,
-            inputs: vec![],
-            outputs: vec![(0, 0, 0)],
+            final_machine_state: MachineState::Running,
+            inputs: HashMap::new(),
+            outputs: HashMap::new(),
+            interrupts: HashSet::new(),
+            resets: HashSet::new(),
         }
+    }
+    /// Get the last outputs noted in the state.
+    pub fn final_outputs(&self) -> Option<(u8, u8)> {
+        let mut final_outputs_vec: Vec<(_, _)> = self.outputs.iter().collect();
+        final_outputs_vec.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
+        final_outputs_vec
+            .last()
+            .map(|(_, v)| *v.clone())
     }
 }
 
