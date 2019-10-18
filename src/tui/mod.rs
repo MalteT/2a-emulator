@@ -75,7 +75,7 @@ impl Tui {
         backend.hide_cursor()?;
         // Run program if given.
         if let Some(path) = path {
-            self.supervisor.execute(path)?;
+            self.supervisor.load_program(path)?;
         }
         self.is_main_loop_running = true;
         while self.is_main_loop_running {
@@ -145,7 +145,7 @@ impl Tui {
         trace!("Command entered: {}", query);
         if query.starts_with("load ") {
             let path: String = query[5..].into();
-            match self.supervisor.execute(path) {
+            match self.supervisor.load_program(path) {
                 Ok(()) => {}
                 Err(e) => error!("Failed to run program: {}", e),
             }

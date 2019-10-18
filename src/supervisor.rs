@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::widgets::Widget;
+use parser2a::asm::Asm;
 
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -29,8 +30,6 @@ pub struct Supervisor {
     clk_asm_step_mode: bool,
     /// Path to the currently executed program.
     program_path: Option<PathBuf>,
-    /// Time since the last rising clock edge.
-    last_clk_edge: Instant,
     /// Time between two rising clock edges.
     clk_period: Duration,
     /// Frequency measurement utility.
@@ -43,6 +42,30 @@ struct FreqMeasurements {
     oldest_index: usize,
     /// The measurements.
     measurements: [f32; NUMBER_OF_MEASUREMENTS],
+    /// Last time a clock occured.
+    last_clk: Instant,
+}
+
+/// Assortment of parameters used for emulation.
+pub struct EmulationParameter {
+    /// The program path and code to execute, if any.
+    program: Option<(PathBuf, Asm)>,
+    /// The number of rising clock edges before the emulation ends.
+    ticks: usize,
+    /// The inputs that should occur at specific ticks.
+    inputs: Vec<(usize, u8, u8, u8, u8)>,
+    // TODO: Interrupts
+}
+
+/// Final state of an emulation, containing all details about the process.
+pub struct FinalState {
+    /// The program, which was emulated, if any.
+    program: Option<(PathBuf, Asm)>,
+    /// The inputs with the given tick at which they occured.
+    inputs: Vec<(usize, u8, u8, u8, u8)>,
+    /// The outputs with the given tick at which they occured.
+    outputs: Vec<(usize, u8, u8)>,
+    // TODO: Interrupts
 }
 
 impl Supervisor {
@@ -52,7 +75,6 @@ impl Supervisor {
         let clk_auto_run_mode = false;
         let clk_asm_step_mode = false;
         let program_path = None;
-        let last_clk_edge = Instant::now();
         let clk_period = *DEFAULT_CLK_PERIOD.deref();
         let freq_measurements = FreqMeasurements::new();
         Supervisor {
@@ -60,13 +82,54 @@ impl Supervisor {
             clk_auto_run_mode,
             clk_asm_step_mode,
             program_path,
-            last_clk_edge,
             clk_period,
             freq_measurements,
         }
     }
+    /// Emulate the machine with the given [`Parameter`].
+    /// This returns a [`FinalState`] containing all information about the emulation
+    /// process.
+    pub fn execute_with_parameter(param: EmulationParameter) -> FinalState {
+        // Create final state
+        let mut fs = FinalState::new();
+        // Create supervisor
+        let mut sv = Supervisor::new();
+        sv.toggle_auto_run_mode();
+        if let Some((path, asm)) = param.program {
+            sv.program_path = Some(path.clone());
+            sv.machine = Machine::new(Some(&asm));
+            fs.program = Some((path, asm));
+        }
+        // Remember input/outputs
+        let mut input_index = 0;
+        let mut last_outputs = (0, 0);
+        // MAIN LOOP
+        for tick in 0..param.ticks + 1 {
+            // Input the inputs accordingly.
+            if param.inputs[input_index].0 == tick {
+                let inputs = param.inputs[input_index];
+                fs.inputs.push(inputs);
+                sv.machine.input_fc(inputs.1);
+                sv.machine.input_fd(inputs.2);
+                sv.machine.input_fe(inputs.3);
+                sv.machine.input_ff(inputs.4);
+                if param.inputs.len() > input_index + 1 {
+                    input_index += 1;
+                }
+            }
+            // Check if outputs updated, and note them, if they did.
+            if last_outputs != (sv.machine.output_fe(), sv.machine.output_ff()) {
+                last_outputs = (sv.machine.output_fe(), sv.machine.output_ff());
+                fs.outputs.push((tick, last_outputs.0, last_outputs.1));
+            }
+            // Emulate rising clk
+            sv.tick();
+        }
+        fs
+    }
     /// Load a new program from the given path.
-    pub fn execute<P: Into<PathBuf>>(&mut self, path: P) -> Result<(), Error> {
+    /// Resets the machine.
+    pub fn load_program<P: Into<PathBuf>>(&mut self, path: P) -> Result<(), Error> {
         self.program_path = Some(path.into());
         let program = helpers::read_asm_file(self.program_path.clone().unwrap())?;
         self.machine = Machine::new(Some(&program));
@@ -75,12 +138,8 @@ impl Supervisor {
     /// Do necessary calculation (i.e. in auto-run-mode).
     pub fn tick(&mut self) {
         if self.clk_auto_run_mode {
-            let now = Instant::now();
-            let time_since_last_clk = now - self.last_clk_edge;
-            self.freq_measurements
-                .push(1_000_000_000.0 / time_since_last_clk.as_nanos() as f32);
+            let time_since_last_clk = self.freq_measurements.add_diff();
             if time_since_last_clk > self.clk_period {
-                self.last_clk_edge = now;
                 self.next_clk();
             }
         }
@@ -177,22 +236,41 @@ impl FreqMeasurements {
     pub fn new() -> Self {
         let oldest_index = 0;
         let measurements = [0.0; NUMBER_OF_MEASUREMENTS];
+        let last_clk = Instant::now();
         FreqMeasurements {
             oldest_index,
             measurements,
+            last_clk,
         }
     }
     /// Add a new measurement, deleting the oldest.
-    pub fn push(&mut self, measurement: f32) {
+    /// The method returns the time since the last measurement.
+    pub fn add_diff(&mut self) -> Duration {
+        let clk_now = Instant::now();
+        let time_since_last_measurement = clk_now - self.last_clk;
+        let measurement = 1_000_000_000.0 / time_since_last_measurement.as_nanos() as f32;
         self.measurements[self.oldest_index] = measurement;
         self.oldest_index += 1;
         self.oldest_index %= NUMBER_OF_MEASUREMENTS;
+        self.last_clk = clk_now;
+        time_since_last_measurement
     }
     /// Return the average over the measured data.
     /// This is biased if less then x measurements have been pushed yet.
     pub fn get_average(&self) -> f32 {
         let sum: f32 = self.measurements.iter().sum();
         sum / NUMBER_OF_MEASUREMENTS as f32
+    }
+}
+
+impl FinalState {
+    /// Initialize a new final state.
+    fn new() -> Self {
+        FinalState {
+            program: None,
+            inputs: vec![],
+            outputs: vec![(0, 0, 0)],
+        }
     }
 }
 
