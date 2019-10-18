@@ -19,7 +19,7 @@ pub mod input;
 pub mod interface;
 
 use crate::error::Error;
-use crate::executor::Executor;
+use crate::supervisor::Supervisor;
 use events::{Event, Events};
 use input::Input;
 use interface::Interface;
@@ -34,8 +34,8 @@ lazy_static! {
 
 /// The Terminal User Interface (TUI)
 pub struct Tui {
-    /// The machine executor.
-    executor: Executor,
+    /// The machine's supervisor.
+    supervisor: Supervisor,
     /// Event iterator.
     events: Events,
     /// The input field at the bottom of the TUI.
@@ -48,13 +48,13 @@ pub struct Tui {
 impl Tui {
     /// Creates a new Tui and shows it.
     pub fn new() -> Result<Self, IOError> {
-        let executor = Executor::new();
+        let supervisor = Supervisor::new();
         let events = Events::new();
         let input_field = Input::new();
         let time_since_last_draw = Instant::now();
         let is_main_loop_running = false;
         Ok(Tui {
-            executor,
+            supervisor,
             events,
             input_field,
             time_since_last_draw,
@@ -75,12 +75,12 @@ impl Tui {
         backend.hide_cursor()?;
         // Run program if given.
         if let Some(path) = path {
-            self.executor.execute(path)?;
+            self.supervisor.execute(path)?;
         }
         self.is_main_loop_running = true;
         while self.is_main_loop_running {
-            // Let the executor do some work
-            self.executor.tick();
+            // Let the supervisor do some work
+            self.supervisor.tick();
             // Handle event
             self.handle_event();
             // Next draw of the machine
@@ -91,10 +91,10 @@ impl Tui {
                     interface.draw(&mut self, &mut f);
                 })?;
             }
-            if !self.executor.is_auto_run_mode() {
+            if !self.supervisor.is_auto_run_mode() {
                 thread::sleep(*ONE_MILLISECOND.deref());
             }
-            if !self.executor.is_at_full_capacity() {
+            if !self.supervisor.is_at_full_capacity() {
                 thread::sleep(*ONE_NANOSECOND.deref());
             }
         }
@@ -103,7 +103,7 @@ impl Tui {
     }
     /// Get the currently running programs path.
     pub fn get_program_path(&self) -> &Option<PathBuf> {
-        &self.executor.get_program_path()
+        &self.supervisor.get_program_path()
     }
     /// Handle one single event in the queue.
     fn handle_event(&mut self) {
@@ -113,22 +113,22 @@ impl Tui {
                 Event::Clock => {
                     // Only interpret Enter as CLK if no text was input
                     if self.input_field.is_empty() {
-                        self.executor.next_clk();
+                        self.supervisor.next_clk();
                     } else {
                         self.handle_input();
                     }
                 }
                 Event::Step => {}
-                Event::ToggleAutoRun => self.executor.toggle_auto_run_mode(),
-                Event::ToggleAsmStep => self.executor.toggle_asm_step_mode(),
+                Event::ToggleAutoRun => self.supervisor.toggle_auto_run_mode(),
+                Event::ToggleAsmStep => self.supervisor.toggle_asm_step_mode(),
                 Event::Interrupt => {
-                    self.executor.key_edge_int();
+                    self.supervisor.key_edge_int();
                 }
                 Event::Reset => {
-                    self.executor.reset();
+                    self.supervisor.reset();
                 }
                 Event::Continue => {
-                    self.executor.continue_from_stop();
+                    self.supervisor.continue_from_stop();
                 }
                 Event::Backspace | Event::Char(_) => {
                     self.input_field.handle(event.clone());
@@ -145,7 +145,7 @@ impl Tui {
         trace!("Command entered: {}", query);
         if query.starts_with("load ") {
             let path: String = query[5..].into();
-            match self.executor.execute(path) {
+            match self.supervisor.execute(path) {
                 Ok(()) => {}
                 Err(e) => error!("Failed to run program: {}", e),
             }

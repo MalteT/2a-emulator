@@ -109,7 +109,7 @@ impl<'a> Interface<'a> {
         main_area.height -= *INPUT_AREA_HEIGHT.deref();
         main_area.width -= *RIGHT_COLUMN_WIDTH.deref();
         self.main.render(f, main_area);
-        tui.executor.render(f, self.main.inner(main_area));
+        tui.supervisor.render(f, self.main.inner(main_area));
 
         // Input area
         let input_area = Rect::new(
@@ -162,9 +162,9 @@ impl<'a> Interface<'a> {
             area.height -= 1;
         }
         let mut ss = SpacedString::from("Clock", "Enter");
-        if tui.executor.is_stopped()
-            || tui.executor.is_error_stopped()
-            || tui.executor.is_auto_run_mode()
+        if tui.supervisor.is_stopped()
+            || tui.supervisor.is_error_stopped()
+            || tui.supervisor.is_auto_run_mode()
         {
             ss = ss
                 .left_style(&helpers::DIMMED)
@@ -174,7 +174,7 @@ impl<'a> Interface<'a> {
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedString::from("Edge interrupt", "CTRL+E");
-        if !tui.executor.is_key_edge_int_enabled() {
+        if !tui.supervisor.is_key_edge_int_enabled() {
             ss = ss
                 .left_style(&helpers::DIMMED)
                 .right_style(&helpers::DIMMED);
@@ -183,21 +183,21 @@ impl<'a> Interface<'a> {
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedString::from("Toggle autorun", "CTRL+A");
-        if tui.executor.is_auto_run_mode() {
+        if tui.supervisor.is_auto_run_mode() {
             ss = ss.left_style(&helpers::YELLOW);
         }
         ss.render(f, area);
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedString::from("Toggle asm step", "CTRL+W");
-        if tui.executor.is_asm_step_mode() {
+        if tui.supervisor.is_asm_step_mode() {
             ss = ss.left_style(&helpers::YELLOW);
         }
         ss.render(f, area);
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedString::from("Continue", "CTRL+L");
-        if !tui.executor.is_stopped() {
+        if !tui.supervisor.is_stopped() {
             ss = ss
                 .left_style(&helpers::DIMMED)
                 .right_style(&helpers::DIMMED);
@@ -217,9 +217,9 @@ impl<'a> Interface<'a> {
             SpacedString::from("Program: ", program_name).left_style(&helpers::DIMMED);
         // Only update the frequency every 100 frames
         if self.counter % 100 == 0 {
-            let measured_freq = tui.executor.get_measured_frequency();
+            let measured_freq = tui.supervisor.get_measured_frequency();
             self.measured_frequency = helpers::format_number(measured_freq);
-            let freq = tui.executor.get_frequency();
+            let freq = tui.supervisor.get_frequency();
             self.frequency = helpers::format_number(freq);
         }
         let mut frequency_measured_ss =
@@ -228,10 +228,10 @@ impl<'a> Interface<'a> {
         let mut frequency_ss =
             SpacedString::from("Frequency: ", &self.frequency).left_style(&helpers::DIMMED);
         let mut state_ss = SpacedString::from("State: ", "RUNNING").left_style(&helpers::DIMMED);
-        if tui.executor.is_error_stopped() {
+        if tui.supervisor.is_error_stopped() {
             state_ss.right = "ERROR STOP".into();
             state_ss = state_ss.right_style(&helpers::RED);
-        } else if tui.executor.is_stopped() {
+        } else if tui.supervisor.is_stopped() {
             state_ss.right = "STOP".into();
             state_ss = state_ss.right_style(&helpers::YELLOW);
         }
@@ -246,7 +246,7 @@ impl<'a> Interface<'a> {
 
     fn draw_program(&mut self, f: &mut Frame<CrosstermBackend>, area: Rect, tui: &Tui) {
         let context = (area.height - 1) / 2;
-        let (middle_index, lines) = tui.executor.get_current_lines(context as isize);
+        let (middle_index, lines) = tui.supervisor.get_current_lines(context as isize);
         let mut pd = ProgramDisplay::from(middle_index, lines);
         pd.render(f, area);
     }

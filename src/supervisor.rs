@@ -1,4 +1,4 @@
-//! Executor and supervisor of the emulated Machine.
+//! Supervisor of the emulated Machine.
 
 use lazy_static::lazy_static;
 use tui::buffer::Buffer;
@@ -20,7 +20,7 @@ lazy_static! {
     static ref DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
 }
 
-pub struct Executor {
+pub struct Supervisor {
     /// The actual minirechner.
     machine: Machine,
     /// Auto run mode for emulation.
@@ -45,8 +45,8 @@ struct FreqMeasurements {
     measurements: [f32; NUMBER_OF_MEASUREMENTS],
 }
 
-impl Executor {
-    /// Initialize a new Executor.
+impl Supervisor {
+    /// Initialize a new Supervisor.
     pub fn new() -> Self {
         let machine = Machine::new(None);
         let clk_auto_run_mode = false;
@@ -55,7 +55,7 @@ impl Executor {
         let last_clk_edge = Instant::now();
         let clk_period = *DEFAULT_CLK_PERIOD.deref();
         let freq_measurements = FreqMeasurements::new();
-        Executor {
+        Supervisor {
             machine,
             clk_auto_run_mode,
             clk_asm_step_mode,
@@ -196,7 +196,7 @@ impl FreqMeasurements {
     }
 }
 
-impl Widget for Executor {
+impl Widget for Supervisor {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
         self.machine.draw(area, buf)
     }

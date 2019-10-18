@@ -26,7 +26,7 @@ use pretty_env_logger;
 
 pub mod compiler;
 pub mod error;
-pub mod executor;
+pub mod supervisor;
 pub mod helpers;
 pub mod machine;
 pub mod testing;
