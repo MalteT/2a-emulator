@@ -130,10 +130,18 @@ impl Tui {
                 Event::Continue => {
                     self.supervisor.continue_from_stop();
                 }
-                Event::Backspace | Event::Char(_) => {
+                Event::Backspace
+                | Event::Left
+                | Event::Right
+                | Event::Up
+                | Event::Down
+                | Event::Delete
+                | Event::Char(_) => {
                     self.input_field.handle(event.clone());
                 }
-                x => unimplemented!("{:#?}", x),
+                Event::Unknown => {
+                    // TODO
+                }
             }
             trace!("{:?}", event);
         }
@@ -141,7 +149,7 @@ impl Tui {
     /// Handle the input field after an 'Enter'.
     fn handle_input(&mut self) {
         self.input_field.handle(Event::Char('\n'));
-        let query = self.input_field.pop();
+        let query = self.input_field.last().unwrap_or(String::new());
         trace!("Command entered: {}", query);
         if query.starts_with("load ") {
             let path: String = query[5..].into();

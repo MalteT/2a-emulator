@@ -16,6 +16,11 @@ pub enum Event {
     Continue,
     Interrupt,
     Backspace,
+    Left,
+    Right,
+    Up,
+    Down,
+    Delete,
     Char(char),
     Unknown,
 }
@@ -103,6 +108,16 @@ impl Event {
                     Event::Continue
                 } else if ke == KE::Backspace {
                     Event::Backspace
+                } else if ke == KE::Left {
+                    Event::Left
+                } else if ke == KE::Right {
+                    Event::Right
+                } else if ke == KE::Up {
+                    Event::Up
+                } else if ke == KE::Down {
+                    Event::Down
+                } else if ke == KE::Delete {
+                    Event::Delete
                 } else {
                     match ke {
                         KE::Char(char) => Event::Char(char),
