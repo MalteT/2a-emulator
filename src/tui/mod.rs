@@ -1,11 +1,13 @@
 //! Everything necessary to run the Terminal User Interface.
 
+use crossterm::KeyEvent;
 use lazy_static::lazy_static;
 use log::error;
 use log::trace;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
+use std::io::stdout;
 use std::io::Error as IOError;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -20,7 +22,7 @@ pub mod interface;
 
 use crate::error::Error;
 use crate::supervisor::Supervisor;
-use events::{Event, Events};
+use events::Events;
 use input::Input;
 use interface::Interface;
 
@@ -107,48 +109,39 @@ impl Tui {
     }
     /// Handle one single event in the queue.
     fn handle_event(&mut self) {
-        if let Some(event) = self.events.next() {
+        if let Some(event) = self.events.next_key() {
+            use KeyEvent::*;
             match event {
-                Event::Quit => self.is_main_loop_running = false,
-                Event::Clock => {
-                    // Only interpret Enter as CLK if no text was input
+                Ctrl('c') => self.is_main_loop_running = false,
+                Enter => {
                     if self.input_field.is_empty() {
                         self.supervisor.next_clk();
                     } else {
                         self.handle_input();
                     }
                 }
-                Event::Step => {}
-                Event::ToggleAutoRun => self.supervisor.toggle_auto_run_mode(),
-                Event::ToggleAsmStep => self.supervisor.toggle_asm_step_mode(),
-                Event::Interrupt => {
+                Ctrl('a') => self.supervisor.toggle_auto_run_mode(),
+                Ctrl('w') => self.supervisor.toggle_asm_step_mode(),
+                Ctrl('e') => {
                     self.supervisor.key_edge_int();
                 }
-                Event::Reset => {
+                Ctrl('r') => {
                     self.supervisor.reset();
                 }
-                Event::Continue => {
+                Ctrl('l') => {
                     self.supervisor.continue_from_stop();
                 }
-                Event::Backspace
-                | Event::Left
-                | Event::Right
-                | Event::Up
-                | Event::Down
-                | Event::Delete
-                | Event::Char(_) => {
+                Tab | Backspace | Left | Right | Up | Down | Delete | Char(_) => {
                     self.input_field.handle(event.clone());
                 }
-                Event::Unknown => {
-                    // TODO
-                }
+                _ => unimplemented!("TUI cannot handle event {:?}", event),
             }
             trace!("{:?}", event);
         }
     }
     /// Handle the input field after an 'Enter'.
     fn handle_input(&mut self) {
-        self.input_field.handle(Event::Char('\n'));
+        self.input_field.handle(KeyEvent::Enter);
         let query = self.input_field.last().unwrap_or(String::new());
         trace!("Command entered: {}", query);
         if query.starts_with("load ") {
@@ -164,8 +157,7 @@ impl Tui {
 }
 
 fn init_backend() -> Result<CrosstermBackend, IOError> {
-    use crossterm::{AlternateScreen, TerminalOutput};
-    let stdout = TerminalOutput::new(true);
-    let screen = AlternateScreen::to_alternate_screen(stdout, true)?;
+    use crossterm_tui::AlternateScreen;
+    let screen = AlternateScreen::to_alternate(true)?;
     CrosstermBackend::with_alternate_screen(screen)
 }

@@ -1,13 +1,13 @@
 //! Simple input field for the TUI.
+use crossterm::KeyEvent;
 
+use log::warn;
 use tui::buffer::Buffer;
 use tui::layout::Rect;
+use tui::style::Color;
 use tui::style::Style;
 use tui::widgets::Widget;
-use tui::style::Color;
-use log::error;
 
-use super::events::Event;
 use crate::helpers;
 
 /// An Input widget
@@ -34,39 +34,66 @@ impl Input {
         }
     }
     /// Let the Input widget handle the given event.
-    pub fn handle(&mut self, event: Event) {
+    pub fn handle(&mut self, event: KeyEvent) {
+        use KeyEvent::*;
         match event {
-            Event::Char('\n') => {
+            Enter => {
                 if self.input.len() > 0 {
                     self.history.push(self.input.drain(..).collect());
                 }
                 self.input_index = 0;
                 self.history_index = None;
             }
-            Event::Char('\t') => {
-                error!("No completion implemented yet!");
+            Tab => {
+                warn!("No completion implemented yet!");
             }
-            Event::Char(c) => {
+            Char(c) => {
                 self.input.insert(self.input_index, c);
                 self.input_index += 1;
             }
-            Event::Backspace => {
+            Backspace => {
                 if self.input_index > 0 {
                     self.input_index -= 1;
                     self.input.remove(self.input_index);
                 }
             }
-            Event::Left => {
+            Left => {
                 if self.input_index > 0 {
                     self.input_index -= 1;
                 }
             }
-            Event::Right => {
+            Right => {
                 if self.input_index < self.input.len() {
                     self.input_index += 1;
                 }
             }
-            Event::Delete => {
+            Up => match self.history_index {
+                Some(index) if index > 0 => {
+                    self.history_index = Some(index - 1);
+                    self.input = self.history[index - 1].chars().collect();
+                    self.input_index = self.input.len();
+                }
+                None if self.history.len() > 0 => {
+                    self.history_index = Some(self.history.len() - 1);
+                    self.input = self.history.last().expect("infallible").chars().collect();
+                    self.input_index = self.input.len();
+                }
+                _ => {}
+            },
+            Down => match self.history_index {
+                Some(index) if index < self.history.len() - 1 => {
+                    self.history_index = Some(index + 1);
+                    self.input = self.history[index + 1].chars().collect();
+                    self.input_index = self.input.len();
+                }
+                Some(index) if index == self.history.len() - 1 => {
+                    self.history_index = None;
+                    self.input = vec![];
+                    self.input_index = self.input.len();
+                }
+                _ => {}
+            },
+            Delete => {
                 if self.input_index < self.input.len() {
                     self.input.remove(self.input_index);
                 }
@@ -119,43 +146,45 @@ mod tests {
 
     #[test]
     fn is_empty() {
+        use KeyEvent::*;
         let mut i = Input::new();
         assert!(i.is_empty());
-        i.handle(Event::Char('x'));
+        i.handle(Char('x'));
         assert!(!i.is_empty());
-        i.handle(Event::Backspace);
+        i.handle(Backspace);
         assert!(i.is_empty());
     }
 
     #[test]
     fn basics() {
+        use KeyEvent::*;
         let mut i = Input::new();
         assert_eq!(i.history.len(), 0);
-        i.handle(Event::Char('\n'));
+        i.handle(Enter);
         assert_eq!(i.history.len(), 0);
-        i.handle(Event::Char('x'));
-        i.handle(Event::Char('\n'));
+        i.handle(Char('x'));
+        i.handle(Enter);
         assert_eq!(i.history.len(), 1);
         assert_eq!(i.last(), Some(String::from("x")));
         assert_eq!(i.input_index, 0);
         assert_eq!(i.input.len(), 0);
 
-        i.handle(Event::Backspace);
-        i.handle(Event::Char('a'));
-        i.handle(Event::Char('b'));
-        i.handle(Event::Char('c'));
+        i.handle(Backspace);
+        i.handle(Char('a'));
+        i.handle(Char('b'));
+        i.handle(Char('c'));
         assert_eq!(i.input, vec!['a', 'b', 'c']);
         assert_eq!(i.input_index, 3);
 
-        i.handle(Event::Left);
+        i.handle(Left);
         assert_eq!(i.input_index, 2);
 
-        i.handle(Event::Backspace);
+        i.handle(Backspace);
         assert_eq!(i.input, vec!['a', 'c']);
 
-        i.handle(Event::Char('d'));
-        i.handle(Event::Right);
-        i.handle(Event::Char('d'));
+        i.handle(Char('d'));
+        i.handle(Right);
+        i.handle(Char('d'));
         assert_eq!(i.input, vec!['a', 'd', 'c', 'd']);
     }
 }

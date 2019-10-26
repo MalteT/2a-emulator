@@ -1,56 +1,34 @@
 //! TUI I/O events
 
-use crossterm_input::{input, AsyncReader, InputEvent, KeyEvent as KE};
+use crossterm::{input, AsyncReader, InputEvent, KeyEvent};
 use log::info;
 
-use std::iter::Map;
-
-#[derive(Debug, PartialEq, Clone, Copy, Eq)]
-pub enum Event {
-    Quit,
-    Clock,
-    Step,
-    ToggleAutoRun,
-    ToggleAsmStep,
-    Reset,
-    Continue,
-    Interrupt,
-    Backspace,
-    Left,
-    Right,
-    Up,
-    Down,
-    Delete,
-    Char(char),
-    Unknown,
-}
-
 pub struct Events {
-    iter: Map<AsyncReader, Box<dyn FnMut(InputEvent) -> Event>>,
+    iter: AsyncReader,
 }
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub key_exit: Vec<KE>,
-    pub key_clock: Vec<KE>,
-    pub key_step: Vec<KE>,
-    pub key_toggle_auto_run: Vec<KE>,
-    pub key_toggle_asm_step: Vec<KE>,
-    pub key_interrupt: Vec<KE>,
-    pub key_reset: Vec<KE>,
-    pub key_continue: Vec<KE>,
+    pub key_exit: Vec<KeyEvent>,
+    pub key_clock: Vec<KeyEvent>,
+    pub key_step: Vec<KeyEvent>,
+    pub key_toggle_auto_run: Vec<KeyEvent>,
+    pub key_toggle_asm_step: Vec<KeyEvent>,
+    pub key_interrupt: Vec<KeyEvent>,
+    pub key_reset: Vec<KeyEvent>,
+    pub key_continue: Vec<KeyEvent>,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        let key_exit = vec![KE::Ctrl('c')];
-        let key_toggle_auto_run = vec![KE::Ctrl('a')];
-        let key_toggle_asm_step = vec![KE::Ctrl('w')];
-        let key_clock = vec![KE::Char('\n')];
-        let key_step = vec![KE::Ctrl('.')];
-        let key_interrupt = vec![KE::Ctrl('e')];
-        let key_reset = vec![KE::Ctrl('r')];
-        let key_continue = vec![KE::Ctrl('l')];
+        let key_exit = vec![KeyEvent::Ctrl('c')];
+        let key_toggle_auto_run = vec![KeyEvent::Ctrl('a')];
+        let key_toggle_asm_step = vec![KeyEvent::Ctrl('w')];
+        let key_clock = vec![KeyEvent::Char('\n')];
+        let key_step = vec![KeyEvent::Ctrl('.')];
+        let key_interrupt = vec![KeyEvent::Ctrl('e')];
+        let key_reset = vec![KeyEvent::Ctrl('r')];
+        let key_continue = vec![KeyEvent::Ctrl('l')];
         Config {
             key_exit,
             key_toggle_auto_run,
@@ -70,64 +48,23 @@ impl Events {
     }
 
     pub fn with_config(config: Config) -> Events {
-        let f = move |e| Event::from(e, &config);
-        let f_box: Box<dyn FnMut(InputEvent) -> Event> = Box::from(f);
-        let iter = input().read_async().map(f_box);
-        Events { iter }
+        Events {
+            iter: input().read_async(),
+        }
     }
 
-    pub fn iter<'a>(&'a mut self) -> &'a mut (impl Iterator<Item = Event> + 'a) {
+    pub fn iter<'a>(&'a mut self) -> &'a mut AsyncReader {
         &mut self.iter
     }
 
-    pub fn next(&mut self) -> Option<Event> {
+    pub fn next(&mut self) -> Option<InputEvent> {
         self.iter().next()
     }
-}
 
-impl Event {
-    fn from(tev: InputEvent, config: &Config) -> Self {
-        info!("Received input: {:?}", tev);
-        match tev {
-            InputEvent::Keyboard(ke) => {
-                if config.key_exit.contains(&ke) {
-                    Event::Quit
-                } else if config.key_clock.contains(&ke) {
-                    Event::Clock
-                } else if config.key_step.contains(&ke) {
-                    Event::Step
-                } else if config.key_toggle_auto_run.contains(&ke) {
-                    Event::ToggleAutoRun
-                } else if config.key_toggle_asm_step.contains(&ke) {
-                    Event::ToggleAsmStep
-                } else if config.key_interrupt.contains(&ke) {
-                    Event::Interrupt
-                } else if config.key_reset.contains(&ke) {
-                    Event::Reset
-                } else if config.key_continue.contains(&ke) {
-                    Event::Continue
-                } else if ke == KE::Backspace {
-                    Event::Backspace
-                } else if ke == KE::Left {
-                    Event::Left
-                } else if ke == KE::Right {
-                    Event::Right
-                } else if ke == KE::Up {
-                    Event::Up
-                } else if ke == KE::Down {
-                    Event::Down
-                } else if ke == KE::Delete {
-                    Event::Delete
-                } else {
-                    match ke {
-                        KE::Char(char) => Event::Char(char),
-                        _ => Event::Unknown,
-                    }
-                }
-            }
-            InputEvent::Mouse(_) | InputEvent::Unsupported(_) | InputEvent::Unknown => {
-                Event::Unknown
-            }
-        }
+    pub fn next_key(&mut self) -> Option<KeyEvent> {
+        self.next().and_then(|ie| match ie {
+            InputEvent::Keyboard(ke) => Some(ke),
+            _ => None,
+        })
     }
 }

@@ -100,6 +100,7 @@ impl<'a> Interface<'a> {
     pub fn draw<'b>(&mut self, tui: &'b mut Tui, f: &mut Frame<CrosstermBackend>) {
         self.counter = self.counter.overflowing_add(1).0;
         let area = f.size();
+        let area = Rect::new(area.x, area.y, area.width - 1, area.height - 1);
 
         // Outer area
         self.outer.render(f, area);
