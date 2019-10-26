@@ -146,9 +146,7 @@ impl Test {
                 Expectation::Halt => match final_state.final_machine_state {
                     MachineState::ErrorStopped => {}
                     MachineState::Stopped => {}
-                    MachineState::Running => {
-                        return self.create_error("Machine did not halt!")
-                    }
+                    MachineState::Running => return self.create_error("Machine did not halt!"),
                 },
                 Expectation::NoHalt => match final_state.final_machine_state {
                     MachineState::ErrorStopped | MachineState::Stopped => {
@@ -162,7 +160,7 @@ impl Test {
                             "Different output on FE: {} != {}",
                             nr,
                             final_outputs.unwrap().0
-                        ))
+                        ));
                     }
                 }
                 Expectation::OutputFf(nr) => {
