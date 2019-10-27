@@ -7,15 +7,14 @@ Download and install [rustup](https://rustup.rs/) for your operating system and 
 
 Use one of the [prebuild binaries](https://v4.git.tammena.rocks/2a-emulator/2a-emulator/releases).
 
-Or install using:
-```console
-$ cargo install --git https://v4.git.tammena.rocks/2a-emulator/2a-emulator
-```
-On Linux, the compiled binary can be found inside `~/.cargo/bin`.
-
 Or clone this repository and compile and run your own binary using [Cargo](https://github.com/rust-lang/cargo) (which should have already been installed by rustup):
 ```console
 $ cargo run --release --locked
+```
+
+You can also install the binary using:
+```console
+$ cargo install --git https://v4.git.tammena.rocks/2a-emulator/2a-emulator
 ```
 
 ## Compilation flags
