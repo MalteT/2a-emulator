@@ -1,5 +1,6 @@
 //! Simple input field for the TUI.
 use crossterm::KeyEvent;
+use rustyline::completion::FilenameCompleter;
 
 use log::warn;
 use tui::buffer::Buffer;
@@ -21,6 +22,8 @@ pub struct Input {
     /// Current position in the history.
     /// This is necessary for arrow key usage.
     history_index: Option<usize>,
+    /// Current completions and current index in that list.
+    curr_completions: Option<(Vec<Vec<char>>, usize)>,
 }
 
 impl Input {
@@ -31,6 +34,7 @@ impl Input {
             input_index: 0,
             history: Vec::new(),
             history_index: None,
+            curr_completions: None,
         }
     }
     /// Let the Input widget handle the given event.
@@ -45,7 +49,7 @@ impl Input {
                 self.history_index = None;
             }
             Tab => {
-                warn!("No completion implemented yet!");
+                self.next_completion();
             }
             Char(c) => {
                 self.input.insert(self.input_index, c);
@@ -100,6 +104,9 @@ impl Input {
             }
             _ => unimplemented!(),
         }
+        if event != Tab {
+            self.curr_completions = None;
+        }
     }
     /// Check if the input is empty.
     pub fn is_empty(&self) -> bool {
@@ -108,6 +115,68 @@ impl Input {
     /// Get the last input from the history.
     pub fn last(&self) -> Option<String> {
         self.history.last().cloned()
+    }
+    /// Switch to the next completion.
+    fn next_completion(&mut self) {
+        match &mut self.curr_completions {
+            Some((comps, idx)) => {
+                *idx = (*idx + 1) % comps.len();
+                self.input = comps[*idx].clone();
+                self.input_index = self.input.len();
+            }
+            None => self.complete(),
+        }
+    }
+    /// Try to complete the current input.
+    ///
+    /// # Possible instructions:
+    /// - l[oad] FILE
+    /// - FX[ = ] VALUE
+    fn complete(&mut self) {
+        let s: String = self.input.iter().collect();
+        if s.starts_with("load ") {
+            let file_comp = FilenameCompleter::new();
+            let s = &s[5..];
+            let pos = if self.input_index > 5 {
+                self.input_index - 5
+            } else {
+                0
+            };
+            let comps = file_comp.complete_path(s, pos);
+            match comps {
+                Ok((_, comps)) => {
+                    let start: String = "load ".into();
+                    let comps: Vec<Vec<char>> = comps
+                        .iter()
+                        .map(|p| &p.replacement)
+                        .map(|s| start.clone() + s)
+                        .map(|s| s.chars().collect())
+                        .collect();
+                    self.curr_completions = Some((comps, 0));
+                }
+                Err(e) => {
+                    warn!("Error during completion: {}", e);
+                }
+            }
+        } else if s.starts_with("l") {
+            self.curr_completions = Some((vec!["load ".chars().collect()], 0));
+        } else if s.starts_with("F") && self.input_index > 1 && self.input_index <= 4 {
+            let comp = match &s[1..2] {
+                "C" => "FC = ",
+                "D" => "FD = ",
+                "E" => "FE = ",
+                "F" => "FF = ",
+                _ => return,
+            };
+            self.curr_completions = Some((vec![comp.chars().collect()], 0));
+        }
+        if let Some((ref mut comps, idx)) = self.curr_completions {
+            // Add current input to completions
+            comps.push(self.input.clone());
+            // Select first completions
+            self.input = comps[idx].clone();
+            self.input_index = self.input.len();
+        }
     }
 }
 
@@ -188,43 +257,3 @@ mod tests {
         assert_eq!(i.input, vec!['a', 'd', 'c', 'd']);
     }
 }
-
-// fn main() -> Result<(), failure::Error> {
-//     // Terminal initialization
-//     let stdout = io::stdout().into_raw_mode()?;
-//     let stdout = MouseTerminal::from(stdout);
-//     let stdout = AlternateScreen::from(stdout);
-//     let backend = TermionBackend::new(stdout);
-//     let mut terminal = Terminal::new(backend)?;
-//
-//     // Setup event handlers
-//     let events = Events::new();
-//
-//     // Create default app state
-//     let mut app = App::default();
-//
-//     loop {
-//         // Draw UI
-//         terminal.draw(|mut f| {
-//             let chunks = Layout::default()
-//                 .direction(Direction::Vertical)
-//                 .margin(2)
-//                 .constraints([Constraint::Length(3), Constraint::Min(1)].as_ref())
-//                 .split(f.size());
-//             Paragraph::new([Text::raw(&app.input)].iter())
-//                 .style(Style::default().fg(Color::Yellow))
-//                 .block(Block::default().borders(Borders::ALL).title("Input"))
-//                 .render(&mut f, chunks[0]);
-//         })?;
-//
-//         // Put the cursor back inside the input box
-//         write!(
-//             terminal.backend_mut(),
-//             "{}",
-//             Goto(4 + app.input.width() as u16, 4)
-//         )?;
-//         // stdout is buffered, flush it to see the effect immediately when hitting backspace
-//         io::stdout().flush().ok();
-//     }
-//     Ok(())
-// }
