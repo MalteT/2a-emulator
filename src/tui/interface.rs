@@ -205,6 +205,11 @@ impl<'a> Interface<'a> {
             area.height -= 1;
         }
         let mut ss = SpacedString::from("Clock", "Enter");
+        if let Some(ref inst) = tui.last_clk_press {
+            if now - *inst < *HIGHLIGHT_DURATION {
+                ss = ss.left_style(&helpers::YELLOW);
+            }
+        }
         if tui.supervisor.is_stopped()
             || tui.supervisor.is_error_stopped()
             || tui.supervisor.is_auto_run_mode()
@@ -217,6 +222,11 @@ impl<'a> Interface<'a> {
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedString::from("Edge interrupt", "CTRL+E");
+        if let Some(ref inst) = tui.last_int_press {
+            if now - *inst < *HIGHLIGHT_DURATION {
+                ss = ss.left_style(&helpers::YELLOW);
+            }
+        }
         if !tui.supervisor.is_key_edge_int_enabled() {
             ss = ss
                 .left_style(&helpers::DIMMED)
@@ -240,6 +250,11 @@ impl<'a> Interface<'a> {
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedString::from("Continue", "CTRL+L");
+        if let Some(ref inst) = tui.last_continue_press {
+            if now - *inst < *HIGHLIGHT_DURATION {
+                ss = ss.left_style(&helpers::YELLOW);
+            }
+        }
         if !tui.supervisor.is_stopped() {
             ss = ss
                 .left_style(&helpers::DIMMED)

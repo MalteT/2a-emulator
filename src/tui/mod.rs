@@ -46,6 +46,9 @@ pub struct Tui {
     /// Time between two clock rising edges.
     is_main_loop_running: bool,
     last_reset_press: Option<Instant>,
+    last_clk_press: Option<Instant>,
+    last_int_press: Option<Instant>,
+    last_continue_press: Option<Instant>,
 }
 
 impl Tui {
@@ -57,6 +60,9 @@ impl Tui {
         let time_since_last_draw = Instant::now();
         let is_main_loop_running = false;
         let last_reset_press = None;
+        let last_clk_press = None;
+        let last_int_press = None;
+        let last_continue_press = None;
         Ok(Tui {
             supervisor,
             events,
@@ -64,6 +70,9 @@ impl Tui {
             time_since_last_draw,
             is_main_loop_running,
             last_reset_press,
+            last_clk_press,
+            last_int_press,
+            last_continue_press,
         })
     }
     /// Run the main loop using the optional asm program.
@@ -119,14 +128,20 @@ impl Tui {
                 Enter => {
                     if self.input_field.is_empty() {
                         self.supervisor.next_clk();
+                        self.last_clk_press = Some(Instant::now());
                     } else {
                         self.handle_input();
                     }
                 }
-                Ctrl('a') => self.supervisor.toggle_auto_run_mode(),
-                Ctrl('w') => self.supervisor.toggle_asm_step_mode(),
+                Ctrl('a') => {
+                    self.supervisor.toggle_auto_run_mode();
+                }
+                Ctrl('w') => {
+                    self.supervisor.toggle_asm_step_mode();
+                }
                 Ctrl('e') => {
                     self.supervisor.key_edge_int();
+                    self.last_int_press = Some(Instant::now());
                 }
                 Ctrl('r') => {
                     self.supervisor.reset();
@@ -134,6 +149,7 @@ impl Tui {
                 }
                 Ctrl('l') => {
                     self.supervisor.continue_from_stop();
+                    self.last_continue_press = Some(Instant::now());
                 }
                 Home | End | Tab | BackTab | Backspace | Left | Right | Up | Down | Delete
                 | Char(_) => {
