@@ -39,8 +39,8 @@ pub struct Machine {
     pending_register_write: Option<(RegisterNumber, u8)>,
     /// The pending flag write from last iteration.
     pending_flag_write: Option<(bool, bool, bool)>,
-    input_edge_int: bool,
-    input_level_int: bool,
+    edge_int: bool,
+    level_int: bool,
     /// Frequency measurements
     measured_frequency: f32,
     frequency_measure_last_measurement: Instant,
@@ -54,6 +54,8 @@ pub struct Machine {
     waiting_for_memory: bool,
     /// Is the last instruction done?
     instruction_done: bool,
+    /// Counting clock edges.
+    clk_counter: u128,
 }
 
 impl Machine {
@@ -65,8 +67,8 @@ impl Machine {
         let current_instruction = Instruction::reset();
         let pending_register_write = None;
         let pending_flag_write = None;
-        let input_edge_int = false;
-        let input_level_int = false;
+        let edge_int = false;
+        let level_int = false;
         let measured_frequency = 1000.0;
         let frequency_measure_last_measurement = Instant::now();
         let program_lines = vec![];
@@ -74,6 +76,7 @@ impl Machine {
         let machine_error_stopped = false;
         let waiting_for_memory = false;
         let instruction_done = false;
+        let clk_counter = 0;
         let mut machine = Machine {
             mp_ram,
             reg,
@@ -81,8 +84,8 @@ impl Machine {
             current_instruction,
             pending_register_write,
             pending_flag_write,
-            input_edge_int,
-            input_level_int,
+            edge_int,
+            level_int,
             measured_frequency,
             frequency_measure_last_measurement,
             program_lines,
@@ -90,6 +93,7 @@ impl Machine {
             machine_error_stopped,
             waiting_for_memory,
             instruction_done,
+            clk_counter,
         };
         // Load program if given any
         if let Some(program) = program {
@@ -165,6 +169,9 @@ impl Machine {
     }
     /// Next clock rising edge.
     pub fn clk(&mut self) {
+        // Increase the counter
+        self.clk_counter = self.clk_counter.overflowing_add(1).0;
+        // Execute the update
         self.update()
     }
     /// Is the current instruction done executing?
@@ -198,17 +205,17 @@ impl Machine {
         self.pending_flag_write = None;
         self.pending_register_write = None;
         self.current_instruction = Instruction::reset();
-        self.input_edge_int = false;
-        self.input_level_int = false;
+        self.edge_int = false;
+        self.level_int = false;
         self.mp_ram.reset();
         self.machine_stopped = false;
         self.machine_error_stopped = false;
         self.waiting_for_memory = false;
     }
-    /// Input an edge interrupt.
+    /// Input a key edge interrupt.
     pub fn key_edge_int(&mut self) {
         trace!("Received key edge interrupt");
-        self.input_edge_int |= self.bus.is_key_edge_int_enabled()
+        self.edge_int |= self.bus.is_key_edge_int_enabled()
     }
     /// Is key edge interrupt enabled?
     pub fn is_key_edge_int_enabled(&self) -> bool {
@@ -249,10 +256,15 @@ impl Machine {
         trace!("Address: {:>08b} ({0})", self.mp_ram.current_addr());
         trace!("Word: {:?}", mp_ram_out);
         // ------------------------------------------------------------
+        // Add some interrupts, if necessary
+        // ------------------------------------------------------------
+        self.edge_int |= self.bus.has_edge_int();
+        self.level_int = self.bus.has_level_int();
+        // ------------------------------------------------------------
         // Add inputs to sig
         // ------------------------------------------------------------
-        sig.set_edge_int(self.input_edge_int);
-        sig.set_level_int(self.input_level_int);
+        sig.set_edge_int(self.edge_int);
+        sig.set_level_int(self.level_int);
         // ------------------------------------------------------------
         // Get outputs of register block
         // ------------------------------------------------------------
@@ -350,9 +362,9 @@ impl Machine {
             }
         }
         // Clearing edge interrupt if used
-        if self.input_edge_int && sig.na0() && sig.mac0() && sig.mac1() {
+        if self.edge_int && sig.na0() && sig.mac0() && sig.mac1() {
             trace!("Clearing edge interrupt");
-            self.input_edge_int = false;
+            self.edge_int = false;
         }
         // ------------------------------------------------------------
         // Select next microprogram word

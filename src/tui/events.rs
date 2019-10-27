@@ -1,7 +1,6 @@
 //! TUI I/O events
 
 use crossterm::{input, AsyncReader, InputEvent, KeyEvent};
-use log::info;
 
 pub struct Events {
     iter: AsyncReader,
@@ -43,24 +42,21 @@ impl Default for Config {
 }
 
 impl Events {
+    /// Create a new async Event reader.
     pub fn new() -> Events {
-        Events::with_config(Config::default())
-    }
-
-    pub fn with_config(config: Config) -> Events {
         Events {
             iter: input().read_async(),
         }
     }
-
+    /// Get the underlying async reader.
     pub fn iter<'a>(&'a mut self) -> &'a mut AsyncReader {
         &mut self.iter
     }
-
+    /// Get the next [`InputEvent`].
     pub fn next(&mut self) -> Option<InputEvent> {
         self.iter().next()
     }
-
+    /// Get the next [`KeyEvent`].
     pub fn next_key(&mut self) -> Option<KeyEvent> {
         self.next().and_then(|ie| match ie {
             InputEvent::Keyboard(ke) => Some(ke),

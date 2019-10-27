@@ -1,5 +1,4 @@
 use bitflags::bitflags;
-use log::error;
 use log::trace;
 use log::warn;
 
@@ -22,9 +21,6 @@ use std::fmt;
 /// | `FC - FD` | Interrupt timer                   | `_w` |
 /// | `FE - FF` | Output register                   | `_w` |
 ///
-// # TODO: Interrupt Timer
-// # TODO: Master Interrupt Control / Status Register
-// # TODO: UART
 // # TODO: External board
 #[derive(Clone)]
 pub struct Bus {
@@ -42,6 +38,16 @@ pub struct Bus {
     dasr: DASR,
     daisr: DAISR,
     daicr: DAICR,
+    int_timer: InterruptTimer,
+}
+
+/// The interrupt timer.
+#[derive(Debug, Clone)]
+pub struct InterruptTimer {
+    enabled: bool,
+    div1: usize,
+    div2: usize,
+    div3: usize,
 }
 
 bitflags! {
@@ -147,6 +153,7 @@ impl Bus {
         let dasr = DASR::empty();
         let daisr = DAISR::empty();
         let daicr = DAICR::empty();
+        let int_timer = InterruptTimer::new();
         Bus {
             ram,
             input_reg,
@@ -162,6 +169,7 @@ impl Bus {
             dasr,
             daisr,
             daicr,
+            int_timer,
         }
     }
     /// Reset the output registers.
@@ -181,19 +189,20 @@ impl Bus {
         } else if addr == 0xF1 {
             self.dac2 = byte;
         } else if addr == 0xF2 {
-            error!("Cannot yet write to 0xF2")
+            warn!("Writing to 0xF2 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
         } else if addr == 0xF3 {
-            error!("Cannot yet write to 0xF3")
+            warn!("Writing to 0xF3 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
         } else if addr == 0xF4 {
-            error!("Cannot yet write to 0xF4")
+            warn!("Writing to 0xF4 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
         } else if addr == 0xF5 {
-            error!("Cannot yet write to 0xF5")
+            warn!("Writing to 0xF5 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
         } else if addr == 0xF6 {
-            error!("Cannot yet write to 0xF6")
+            warn!("Writing to 0xF6 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
         } else if addr == 0xF7 {
-            error!("Cannot yet write to 0xF7")
+            warn!("Writing to 0xF7 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
         } else if addr == 0xF8 {
             // 0xF8 serves no purpose
+            warn!("Writing to 0xF8 does nothing!. Ask Werner Dreher...");
         } else if addr == 0xF9 {
             self.micr = MICR::from_bits_truncate(byte);
         } else if addr == 0xFA {
@@ -201,11 +210,34 @@ impl Bus {
         } else if addr == 0xFB {
             self.ucr = UCR::from_bits_truncate(byte);
         } else if addr == 0xFC {
-            // TODO
-            error!("Cannot yet write to 0xFC")
+            let lower = byte as usize;
+            let orig = self.int_timer.div3;
+            self.int_timer.div3 = orig & 0xFF00 + lower;
         } else if addr == 0xFD {
-            // TODO
-            error!("Cannot yet write to 0xFD")
+            let top_bit_set = (byte & 0b1000_0000) == 1;
+            if top_bit_set {
+                self.int_timer.enabled = byte & 0b0001_0000 == 1;
+                let div2_select = (byte & 0b0000_1100) >> 2;
+                self.int_timer.div2 = match div2_select {
+                    0b00 => 1,
+                    0b01 => 10,
+                    0b10 => 100,
+                    0b11 => 1000,
+                    _ => unreachable!(),
+                };
+                let div1_select = byte & 0b0000_0011;
+                self.int_timer.div2 = match div1_select {
+                    0b00 => 1,
+                    0b01 => 16,
+                    0b10 => 256,
+                    0b11 => 4096,
+                    _ => unreachable!(),
+                };
+            } else {
+                let upper = (byte as usize & 0b0111_1111) << 8;
+                let orig = self.int_timer.div3;
+                self.int_timer.div3 = upper + orig & 0x00FF;
+            }
         } else if addr == 0xFE {
             self.output_reg[0] = byte;
         } else if addr == 0xFF {
@@ -218,29 +250,30 @@ impl Bus {
         if addr <= 0xEF {
             self.ram[addr]
         } else if addr == 0xF0 {
-            warn!("0xF0 is unsupported!");
+            warn!("Reading from 0xF0 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
             0
         } else if addr == 0xF1 {
             self.dasr.bits()
         } else if addr == 0xF2 {
-            error!("Cannot read from 0xF2 yet.");
-            0
+            // TODO
+            unimplemented!("Cannot read from 0xF2 yet.");
         } else if addr == 0xF3 {
             self.daisr.bits()
         } else if addr == 0xF4 {
-            error!("Cannot read from 0xF4 yet.");
+            warn!("Reading from 0xF4 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
             0
         } else if addr == 0xF5 {
-            error!("Cannot read from 0xF5 yet.");
+            warn!("Reading from 0xF5 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
             0
         } else if addr == 0xF6 {
-            error!("Cannot read from 0xF6 yet.");
+            warn!("Reading from 0xF6 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
             0
         } else if addr == 0xF7 {
-            error!("Cannot read from 0xF7 yet.");
+            warn!("Reading from 0xF7 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
             0
         } else if addr == 0xF8 {
-            error!("Cannot read from 0xF8 yet.");
+            // 0xF8 serves no purpose
+            warn!("Reading from 0xF8 does nothing!. Ask Werner Dreher...");
             0
         } else if addr == 0xF9 {
             self.misr.bits()
@@ -287,6 +320,10 @@ impl Bus {
         }
     }
     /// Did anything on the bus trigger an edge interrupt?
+    ///
+    /// # Note:
+    /// Level intterupts can also be triggered by the timer and by key!
+    /// These are not checked here.
     pub fn has_edge_int(&self) -> bool {
         if self.micr.contains(MICR::UART_EDGE_INTERRUPT_ENABLE) {
             self.has_uart_interrupt()
@@ -319,15 +356,24 @@ impl Bus {
         }
     }
     /// Did anything trigger an interrupt on the MR2DA2?
+    ///
+    /// # TODO
+    ///
+    /// This is not implemented (yet).
     fn has_mr2da2_interrupt(&self) -> bool {
-        if self.daicr.contains(DAICR::EDGE) {
-            self.daisr.contains(DAISR::INTERRUPT_FF)
-        } else {
-            if self.daicr.contains(DAICR::FALLING) {
-                unimplemented!()
-            } else {
-                unimplemented!()
-            }
+        warn!("MR2DA2 interrupts are not available in the emulator");
+        false
+    }
+}
+
+impl InterruptTimer {
+    /// Create a new, disabled interrupt timer.
+    pub fn new() -> Self {
+        InterruptTimer {
+            enabled: false,
+            div1: 0,
+            div2: 0,
+            div3: 0,
         }
     }
 }

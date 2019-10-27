@@ -109,7 +109,7 @@ impl Supervisor {
             freq_measurements,
         }
     }
-    /// Emulate the machine with the given [`Parameter`].
+    /// Emulate the machine with the given [`EmulationParameter`].
     /// This returns a [`EmulationState`] containing all information about the emulation
     /// process.
     pub fn execute_with_parameter(param: EmulationParameter) -> EmulationState {
@@ -206,6 +206,22 @@ impl Supervisor {
     /// Emulate a reset.
     pub fn reset(&mut self) {
         self.machine.reset()
+    }
+    /// Set input register FC.
+    pub fn input_fc(&mut self, byte: u8) {
+        self.machine.input_fc(byte)
+    }
+    /// Set input register FD.
+    pub fn input_fd(&mut self, byte: u8) {
+        self.machine.input_fd(byte)
+    }
+    /// Set input register FE.
+    pub fn input_fe(&mut self, byte: u8) {
+        self.machine.input_fe(byte)
+    }
+    /// Set input register FF.
+    pub fn input_ff(&mut self, byte: u8) {
+        self.machine.input_ff(byte)
     }
     /// Emulate an edge interrupt.
     pub fn key_edge_int(&mut self) {

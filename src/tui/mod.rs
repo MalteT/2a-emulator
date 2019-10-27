@@ -4,10 +4,10 @@ use crossterm::KeyEvent;
 use lazy_static::lazy_static;
 use log::error;
 use log::trace;
+use log::warn;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
-use std::io::stdout;
 use std::io::Error as IOError;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -150,10 +150,40 @@ impl Tui {
                 Ok(()) => {}
                 Err(e) => error!("Failed to run program: {}", e),
             }
+        } else if query.starts_with("FC = ") {
+            if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
+                self.supervisor.input_fc(x)
+            } else {
+                warn!("Invalid input: {}", query);
+            }
+        } else if query.starts_with("FD = ") {
+            if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
+                self.supervisor.input_fd(x)
+            } else {
+                warn!("Invalid input: {}", query);
+            }
+        } else if query.starts_with("FE = ") {
+            if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
+                self.supervisor.input_fe(x)
+            } else {
+                warn!("Invalid input: {}", query);
+            }
+        } else if query.starts_with("FF = ") {
+            if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
+                self.supervisor.input_ff(x)
+            } else {
+                warn!("Invalid input: {}", query);
+            }
         } else if query == "quit" {
             self.is_main_loop_running = false;
         }
     }
+}
+
+/// Parse the given [`str`] to u8 with base 16.
+/// The input should be something like 'F8'.
+fn parse_input_reg_to_u8(input: &str) -> Option<u8> {
+    u8::from_str_radix(input, 16).ok()
 }
 
 fn init_backend() -> Result<CrosstermBackend, IOError> {
