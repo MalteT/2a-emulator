@@ -311,7 +311,18 @@ impl SpacedString {
 
 impl Widget for SpacedString {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
-        let width = area.width - self.right.len() as u16;
+        let max_width = area
+            .width
+            .checked_sub(self.left.len() as u16)
+            .unwrap_or(0)
+            .checked_sub(1)
+            .unwrap_or(0);
+        let (left_width, right) = if self.right.len() > max_width as usize {
+            let right: String = self.right[self.right.len() - max_width as usize + 3..].into();
+            (self.left.len() as u16 + 1, String::from("...") + &right)
+        } else {
+            (area.width - self.right.len() as u16, self.right.clone())
+        };
         buf.set_stringn(
             area.x,
             area.y,
@@ -319,12 +330,12 @@ impl Widget for SpacedString {
             area.width as usize,
             self.left_style,
         );
-        if area.width > width {
+        if area.width > left_width {
             buf.set_stringn(
-                area.x + width,
+                area.x + left_width,
                 area.y,
-                &self.right,
-                (area.width - width) as usize,
+                &right,
+                (area.width - left_width) as usize,
                 self.right_style,
             );
         }

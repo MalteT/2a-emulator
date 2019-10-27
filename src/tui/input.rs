@@ -51,6 +51,9 @@ impl Input {
             Tab => {
                 self.next_completion();
             }
+            BackTab => {
+                self.previous_completion();
+            }
             Char(c) => {
                 self.input.insert(self.input_index, c);
                 self.input_index += 1;
@@ -60,6 +63,12 @@ impl Input {
                     self.input_index -= 1;
                     self.input.remove(self.input_index);
                 }
+            }
+            Home => {
+                self.input_index = 0;
+            }
+            End => {
+                self.input_index = self.input.len();
             }
             Left => {
                 if self.input_index > 0 {
@@ -104,7 +113,7 @@ impl Input {
             }
             _ => unimplemented!(),
         }
-        if event != Tab {
+        if event != Tab && event != BackTab {
             self.curr_completions = None;
         }
     }
@@ -121,6 +130,17 @@ impl Input {
         match &mut self.curr_completions {
             Some((comps, idx)) => {
                 *idx = (*idx + 1) % comps.len();
+                self.input = comps[*idx].clone();
+                self.input_index = self.input.len();
+            }
+            None => self.complete(),
+        }
+    }
+    /// Switch to the previous completion.
+    fn previous_completion(&mut self) {
+        match &mut self.curr_completions {
+            Some((comps, idx)) => {
+                *idx = (*idx as isize - 1) as usize % comps.len();
                 self.input = comps[*idx].clone();
                 self.input_index = self.input.len();
             }
@@ -182,27 +202,48 @@ impl Input {
 
 impl Widget for Input {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
+        let max_string_width = area.width as usize - 3;
+        let mut string: String = self.input.iter().collect();
+        let mut start = string
+            .len()
+            .checked_sub(max_string_width)
+            .unwrap_or(0);
+        // Move start to the left to include the cursor
+        if start > 0 && start + 5 > self.input_index {
+            start = self.input_index.checked_sub(5).unwrap_or(0);
+        }
+        // Replace start with dots
+        if start > 0 {
+            string = String::from("...") + &string[start + 3..];
+        }
+        // Replace end with dots
+        if string.len() > area.width as usize - 3 {
+            string.truncate(max_string_width - 3);
+            string = string + "...";
+        }
+        // Draw prompt
         buf.set_stringn(area.x, area.y, "> ", area.width as usize, *helpers::YELLOW);
-        for (i, c) in self.input.iter().enumerate() {
+        // Draw input chars
+        for (i, c) in string.chars().enumerate() {
             buf.set_stringn(
                 area.x + 2 + i as u16,
                 area.y,
                 &format!("{}", c),
                 area.width as usize - 2 - i,
-                if i == self.input_index {
+                if i == self.input_index - start {
                     Style::default().bg(Color::Yellow)
                 } else {
                     Style::default()
                 },
             );
         }
-        // Draw the box if necessary
+        // Draw the cursor if necessary
         if self.input_index == self.input.len() {
             buf.set_stringn(
-                area.x + self.input.len() as u16 + 2,
+                area.x + self.input_index as u16 - start as u16 + 2,
                 area.y,
                 "█",
-                area.width as usize - self.input.len() - 2,
+                1,
                 *helpers::YELLOW,
             );
         }

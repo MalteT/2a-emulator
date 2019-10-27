@@ -131,7 +131,7 @@ impl Tui {
                 Ctrl('l') => {
                     self.supervisor.continue_from_stop();
                 }
-                Tab | Backspace | Left | Right | Up | Down | Delete | Char(_) => {
+                Home | End | Tab | BackTab | Backspace | Left | Right | Up | Down | Delete | Char(_) => {
                     self.input_field.handle(event.clone());
                 }
                 _ => unimplemented!("TUI cannot handle event {:?}", event),
