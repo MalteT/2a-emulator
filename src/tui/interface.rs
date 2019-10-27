@@ -1,12 +1,15 @@
 use lazy_static::lazy_static;
 use tui::backend::CrosstermBackend;
 use tui::buffer::Buffer;
+use tui::layout::Alignment;
 use tui::layout::Rect;
 use tui::style::Modifier;
 use tui::style::Style;
 use tui::terminal::Frame;
 use tui::widgets::Block;
 use tui::widgets::Borders;
+use tui::widgets::Paragraph;
+use tui::widgets::Text;
 use tui::widgets::Widget;
 
 use std::ops::Deref;
@@ -14,11 +17,18 @@ use std::ops::Deref;
 use crate::helpers;
 use crate::tui::Tui;
 
+static MINIMUM_ALLOWED_WIDTH: u16 = 80;
+static MINIMUM_ALLOWED_HEIGHT: u16 = 40;
+
 lazy_static! {
     static ref RIGHT_COLUMN_WIDTH: u16 = 35;
     static ref PROGRAM_AREA_HEIGHT: u16 = 7;
     static ref FREQ_AREA_HEIGHT: u16 = 6;
     static ref INPUT_AREA_HEIGHT: u16 = 3;
+    static ref BLK_ERROR: Block<'static> = Block::default()
+        .title("Error")
+        .borders(Borders::ALL)
+        .border_style(*helpers::RED);
 }
 
 /// The user interface.
@@ -77,7 +87,9 @@ impl<'a> Interface<'a> {
             .title("Minirechner 2a")
             .borders(Borders::ALL);
         let main = Block::default().borders(Borders::ALL);
-        let input = Block::default().borders(Borders::ALL);
+        let input = Block::default()
+            .borders(Borders::ALL)
+            .border_style(*helpers::YELLOW);
         let program_display = Block::default().borders(Borders::ALL);
         let freq_display = Block::default().borders(Borders::ALL);
         let help_display = Block::default().borders(Borders::ALL).title("HELP");
@@ -102,13 +114,35 @@ impl<'a> Interface<'a> {
         let area = f.size();
         let area = Rect::new(area.x, area.y, area.width - 1, area.height - 1);
 
+        if area.width < MINIMUM_ALLOWED_WIDTH {
+            let test = [
+                Text::raw("Area width too small!\n"),
+                Text::raw("Please resize your terminal"),
+            ];
+            let mut paragraph = Paragraph::new(test.iter())
+                .alignment(Alignment::Center)
+                .block(*BLK_ERROR);
+            paragraph.render(f, area);
+            return;
+        } else if area.height < MINIMUM_ALLOWED_HEIGHT {
+            let test = [
+                Text::raw("Area height too small!\n"),
+                Text::raw("Please resize your terminal"),
+            ];
+            let mut paragraph = Paragraph::new(test.iter())
+                .alignment(Alignment::Center)
+                .block(*BLK_ERROR);
+            paragraph.render(f, area);
+            return;
+        }
+
         // Outer area
         self.outer.render(f, area);
 
         // Machine area (main)
         let mut main_area = self.outer.inner(area);
-        main_area.height -= *INPUT_AREA_HEIGHT.deref();
-        main_area.width -= *RIGHT_COLUMN_WIDTH.deref();
+        main_area.height -= *INPUT_AREA_HEIGHT;
+        main_area.width -= *RIGHT_COLUMN_WIDTH;
         self.main.render(f, main_area);
         tui.supervisor.render(f, self.main.inner(main_area));
 
@@ -117,7 +151,7 @@ impl<'a> Interface<'a> {
             main_area.x,
             main_area.y + main_area.height,
             main_area.width,
-            *INPUT_AREA_HEIGHT.deref(),
+            *INPUT_AREA_HEIGHT,
         );
         self.input.render(f, input_area);
         tui.input_field.render(f, self.input.inner(input_area));
@@ -126,8 +160,8 @@ impl<'a> Interface<'a> {
         let program_area = Rect::new(
             main_area.x + main_area.width,
             main_area.y,
-            *RIGHT_COLUMN_WIDTH.deref(),
-            *PROGRAM_AREA_HEIGHT.deref(),
+            *RIGHT_COLUMN_WIDTH,
+            *PROGRAM_AREA_HEIGHT,
         );
         self.program_display.render(f, program_area);
         self.draw_program(f, self.program_display.inner(program_area), tui);
@@ -136,8 +170,8 @@ impl<'a> Interface<'a> {
         let freq_area = Rect::new(
             program_area.x,
             program_area.y + program_area.height,
-            *RIGHT_COLUMN_WIDTH.deref(),
-            *FREQ_AREA_HEIGHT.deref(),
+            *RIGHT_COLUMN_WIDTH,
+            *FREQ_AREA_HEIGHT,
         );
         self.freq_display.render(f, freq_area);
         self.draw_freq(f, self.freq_display.inner(freq_area), tui);
@@ -147,7 +181,7 @@ impl<'a> Interface<'a> {
         let help_area = Rect::new(
             freq_area.x,
             freq_area.y + freq_area.height,
-            *RIGHT_COLUMN_WIDTH.deref(),
+            *RIGHT_COLUMN_WIDTH,
             help_height,
         );
         self.help_display.render(f, help_area);
@@ -265,12 +299,12 @@ impl SpacedString {
     }
     /// Set the left style.
     pub fn left_style<S: Deref<Target = Style>>(mut self, style: &S) -> Self {
-        self.left_style = *style.deref();
+        self.left_style = **style;
         self
     }
     /// Set the right style.
     pub fn right_style<S: Deref<Target = Style>>(mut self, style: &S) -> Self {
-        self.right_style = *style.deref();
+        self.right_style = **style;
         self
     }
 }
