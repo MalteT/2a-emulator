@@ -155,7 +155,7 @@ impl Tui {
                 | Char(_) => {
                     self.input_field.handle(event.clone());
                 }
-                _ => unimplemented!("TUI cannot handle event {:?}", event),
+                _ => warn!("TUI cannot handle event {:?}", event),
             }
             trace!("{:?}", event);
         }
