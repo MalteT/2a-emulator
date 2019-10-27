@@ -106,7 +106,6 @@ impl Translator {
                 }
                 vec![]
             }
-            // TODO: Fix AsmByte. It should only take integers
             AsmByte(nr) => {
                 self.next_addr += nr;
                 let mut ret = vec![];

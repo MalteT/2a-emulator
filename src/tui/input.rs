@@ -204,10 +204,7 @@ impl Widget for Input {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
         let max_string_width = area.width as usize - 3;
         let mut string: String = self.input.iter().collect();
-        let mut start = string
-            .len()
-            .checked_sub(max_string_width)
-            .unwrap_or(0);
+        let mut start = string.len().checked_sub(max_string_width).unwrap_or(0);
         // Move start to the left to include the cursor
         if start > 0 && start + 5 > self.input_index {
             start = self.input_index.checked_sub(5).unwrap_or(0);

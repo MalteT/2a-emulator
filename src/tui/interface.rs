@@ -13,6 +13,7 @@ use tui::widgets::Text;
 use tui::widgets::Widget;
 
 use std::ops::Deref;
+use std::time::{Duration, Instant};
 
 use crate::helpers;
 use crate::tui::Tui;
@@ -29,6 +30,7 @@ lazy_static! {
         .title("Error")
         .borders(Borders::ALL)
         .border_style(*helpers::RED);
+    static ref HIGHLIGHT_DURATION: Duration = Duration::from_millis(500);
 }
 
 /// The user interface.
@@ -190,8 +192,14 @@ impl<'a> Interface<'a> {
 
     fn draw_help(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
         let items = vec![("Reset", "CTRL+R")];
+        let now = Instant::now();
         for (key, help) in items {
             let mut ss = SpacedString::from(key, help);
+            if let Some(ref inst) = tui.last_reset_press {
+                if now - *inst < *HIGHLIGHT_DURATION {
+                    ss = ss.left_style(&helpers::YELLOW);
+                }
+            }
             ss.render(f, area);
             area.y += 1;
             area.height -= 1;

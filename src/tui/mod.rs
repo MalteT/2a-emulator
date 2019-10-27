@@ -45,6 +45,7 @@ pub struct Tui {
     time_since_last_draw: Instant,
     /// Time between two clock rising edges.
     is_main_loop_running: bool,
+    last_reset_press: Option<Instant>,
 }
 
 impl Tui {
@@ -55,12 +56,14 @@ impl Tui {
         let input_field = Input::new();
         let time_since_last_draw = Instant::now();
         let is_main_loop_running = false;
+        let last_reset_press = None;
         Ok(Tui {
             supervisor,
             events,
             input_field,
             time_since_last_draw,
             is_main_loop_running,
+            last_reset_press,
         })
     }
     /// Run the main loop using the optional asm program.
@@ -127,11 +130,13 @@ impl Tui {
                 }
                 Ctrl('r') => {
                     self.supervisor.reset();
+                    self.last_reset_press = Some(Instant::now());
                 }
                 Ctrl('l') => {
                     self.supervisor.continue_from_stop();
                 }
-                Home | End | Tab | BackTab | Backspace | Left | Right | Up | Down | Delete | Char(_) => {
+                Home | End | Tab | BackTab | Backspace | Left | Right | Up | Down | Delete
+                | Char(_) => {
                     self.input_field.handle(event.clone());
                 }
                 _ => unimplemented!("TUI cannot handle event {:?}", event),
