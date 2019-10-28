@@ -3,7 +3,7 @@
 
 This is an emulator for the Minirechner 2a, that is used during the Hardwarepraktikum at the university of Leipzig. This emulator was created for my bachelor thesis and is published under the GNU GPLv3. Please report all bugs, or no one will fix them. Just create an issue or write a message to me.
 
-![Demo image](./static/demo.png)
+![Demo image](/static/demo.png)
 
 **Warning**: There are still some unimplemented features, like the temperature sensor. Expect some bugs.
 
