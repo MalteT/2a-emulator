@@ -29,7 +29,7 @@ See the [Cargo Manual](https://doc.rust-lang.org/cargo/commands/cargo-install.ht
 ## Usage
 
 Simply run `2a-emulator YOUR_PROGRAM_FILE.asm` to start the interactive session. More usage information can be found with `2a-emulator --help`:
-```
+```text
 2a-emulator 0.10.0
 Malte Tammena <malte.tammena@gmx.de>
 Emulator for the Minirechner 2a microcomputer
