@@ -18,8 +18,8 @@ use std::time::{Duration, Instant};
 use crate::helpers;
 use crate::tui::Tui;
 
-static MINIMUM_ALLOWED_WIDTH: u16 = 80;
-static MINIMUM_ALLOWED_HEIGHT: u16 = 40;
+static MINIMUM_ALLOWED_WIDTH: u16 = 76;
+static MINIMUM_ALLOWED_HEIGHT: u16 = 24;
 
 lazy_static! {
     static ref RIGHT_COLUMN_WIDTH: u16 = 35;
@@ -115,11 +115,14 @@ impl<'a> Interface<'a> {
         self.counter = self.counter.overflowing_add(1).0;
         let area = f.size();
         let area = Rect::new(area.x, area.y, area.width - 1, area.height - 1);
-
+        // Draw a placeholder for too small windows
         if area.width < MINIMUM_ALLOWED_WIDTH {
             let test = [
-                Text::raw("Area width too small!\n"),
-                Text::raw("Please resize your terminal"),
+                Text::raw("Terminal width too small!\n Please"),
+                Text::styled(" resize your terminal", *helpers::YELLOW),
+                Text::raw(" or"),
+                Text::styled(" decrease your font size", *helpers::YELLOW),
+                Text::raw("!"),
             ];
             let mut paragraph = Paragraph::new(test.iter())
                 .alignment(Alignment::Center)
@@ -128,8 +131,11 @@ impl<'a> Interface<'a> {
             return;
         } else if area.height < MINIMUM_ALLOWED_HEIGHT {
             let test = [
-                Text::raw("Area height too small!\n"),
-                Text::raw("Please resize your terminal"),
+                Text::raw("Terminal height too small!\n Please"),
+                Text::styled(" resize your terminal", *helpers::YELLOW),
+                Text::raw(" or"),
+                Text::styled(" decrease your font size", *helpers::YELLOW),
+                Text::raw("!"),
             ];
             let mut paragraph = Paragraph::new(test.iter())
                 .alignment(Alignment::Center)

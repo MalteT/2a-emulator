@@ -111,7 +111,7 @@ impl Input {
                     self.input.remove(self.input_index);
                 }
             }
-            _ => unimplemented!(),
+            _ => unreachable!("The input field should not have received a {:?}", event),
         }
         if event != Tab && event != BackTab {
             self.curr_completions = None;
