@@ -10,6 +10,7 @@ use tui::widgets::Widget;
 use std::time::Instant;
 
 mod alu;
+mod board;
 mod bus;
 mod instruction;
 mod mp_ram;
@@ -23,8 +24,12 @@ pub use mp_ram::{MP28BitWord, MicroprogramRam};
 pub use register::{Register, RegisterNumber};
 pub use signal::Signal;
 
+
 use crate::compiler::Translator;
 use crate::tui::display::Display;
+use crate::helpers::Configuration;
+use crate::helpers;
+use crate::machine::board::{DASR};
 
 #[derive(Debug)]
 pub struct Machine {
@@ -34,7 +39,7 @@ pub struct Machine {
     /// The currently executed instruction byte.
     current_instruction: Instruction,
     /// The state of the bus.
-    bus: Bus,
+    pub(crate) bus: Bus,
     /// The pending register write from last iteration.
     pending_register_write: Option<(RegisterNumber, u8)>,
     /// The pending flag write from last iteration.
@@ -60,7 +65,7 @@ pub struct Machine {
 
 impl Machine {
     /// Create and run a new Minirechner 2a with an optional program.
-    pub fn new(program: Option<&Asm>) -> Self {
+    pub fn new(program: Option<&Asm>, conf: &Configuration) -> Self {
         let mp_ram = MicroprogramRam::new();
         let reg = Register::new();
         let bus = Bus::new();
@@ -107,6 +112,22 @@ impl Machine {
                 machine.bus.write(address, *byte);
                 address += 1;
             }
+        }
+        // Apply configuration
+        machine.bus.board.set_irg(conf.irg);
+        machine.bus.board.set_temp(conf.temp);
+        machine.bus.board.set_j1(conf.jumper[0]);
+        machine.bus.board.set_j2(conf.jumper[1]);
+        machine.bus.board.set_i1(conf.analog_inputs[0]);
+        machine.bus.board.set_i2(conf.analog_inputs[1]);
+        if let Some(val) = conf.uios[0] {
+            machine.bus.board.set_uio1(val);
+        }
+        if let Some(val) = conf.uios[1] {
+            machine.bus.board.set_uio2(val);
+        }
+        if let Some(val) = conf.uios[2] {
+            machine.bus.board.set_uio3(val);
         }
         machine
     }
@@ -215,7 +236,9 @@ impl Machine {
     /// Input a key edge interrupt.
     pub fn key_edge_int(&mut self) {
         trace!("Received key edge interrupt");
-        self.edge_int |= self.bus.is_key_edge_int_enabled()
+        if self.bus.is_key_edge_int_enabled() {
+            self.edge_int = true;
+        }
     }
     /// Is key edge interrupt enabled?
     pub fn is_key_edge_int_enabled(&self) -> bool {
@@ -258,7 +281,7 @@ impl Machine {
         // ------------------------------------------------------------
         // Add some interrupts, if necessary
         // ------------------------------------------------------------
-        self.edge_int |= self.bus.has_edge_int();
+        self.edge_int |= self.bus.fetch_edge_int();
         self.level_int = self.bus.has_level_int();
         // ------------------------------------------------------------
         // Add inputs to sig
@@ -406,6 +429,31 @@ impl Widget for Machine {
         buf.set_string(x + 15, y + 6, "FE", dimmed);
         buf.set_string(x + 24, y + 6, "FD", dimmed);
         buf.set_string(x + 33, y + 6, "FC", dimmed);
+
+        if self.bus.board.dasr.contains(DASR::J1) {
+            buf.set_string(area.width - 4, area.y, "╼━╾ J1", *helpers::GREEN);
+        }
+        if ! self.bus.board.dasr.contains(DASR::J2) {
+            buf.set_string(area.width - 4, area.y + 1, "╼ ╾ J2", *helpers::LIGHTRED);
+        }
+        if self.bus.board.irg != 0 {
+            let s = format!("{:>02X}  IRG", self.bus.board.irg);
+            buf.set_string(area.width - 7, area.y + 3, "0x", *helpers::DIMMED);
+            buf.set_string(area.width - 5, area.y + 3, s, *helpers::YELLOW);
+        }
+        if self.bus.board.org1 != 0 {
+            let s = format!("{:>02X} ORG1", self.bus.board.org1);
+            buf.set_string(area.width - 7, area.y + 4, "0x", *helpers::DIMMED);
+            buf.set_string(area.width - 5, area.y + 4, s, *helpers::YELLOW);
+        }
+        if self.bus.board.org2 != 0 {
+            let s = format!("{:>02X} ORG2", self.bus.board.org2);
+            buf.set_string(area.width - 7, area.y + 5, "0x", *helpers::DIMMED);
+            buf.set_string(area.width - 5, area.y + 5, s, *helpers::YELLOW);
+        }
+        if self.bus.board.temp != 0.0 {
+            buf.set_string(area.width - 2, area.y + 7, "TEMP", *helpers::YELLOW);
+        }
     }
 }
 

@@ -1,0 +1,3 @@
+TEST 'receiving interrupt' WITH INTERRUPT FOR 100 EXPECT HALT END
+TEST 'received nothing' EXPECT NO HALT END
+

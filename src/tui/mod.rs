@@ -21,6 +21,7 @@ pub mod input;
 pub mod interface;
 
 use crate::error::Error;
+use crate::helpers::Configuration;
 use crate::supervisor::Supervisor;
 use events::Events;
 use input::Input;
@@ -53,8 +54,8 @@ pub struct Tui {
 
 impl Tui {
     /// Creates a new Tui and shows it.
-    pub fn new() -> Result<Self, IOError> {
-        let supervisor = Supervisor::new();
+    pub fn new(conf: &Configuration) -> Result<Self, IOError> {
+        let supervisor = Supervisor::new(conf);
         let events = Events::new();
         let input_field = Input::new();
         let time_since_last_draw = Instant::now();
@@ -195,8 +196,74 @@ impl Tui {
             } else {
                 warn!("Invalid input: {}", query);
             }
+        } else if query.starts_with("set ") {
+            let query = &query[4..];
+            if query.starts_with("IRG = ") {
+                if let Some(x) = query[6..].parse().ok() {
+                    self.supervisor.set_irg(x);
+                } else {
+                    warn!("Invalid setting: {}", query);
+                }
+            } else if query.starts_with("TEMP = ") {
+                if let Some(x) = query[7..].parse().ok() {
+                    self.supervisor.set_temp(x);
+                } else {
+                    warn!("Invalid setting: {}", query);
+                }
+            } else if query == "J1" {
+                self.supervisor.set_j1(true);
+            } else if query == "J2" {
+                self.supervisor.set_j2(true);
+            } else if query == "J2" {
+                self.supervisor.set_j2(true);
+            } else if query.starts_with("I1 = ") {
+                if let Some(x) = query[5..].parse().ok() {
+                    self.supervisor.set_i1(x);
+                } else {
+                    warn!("Invalid setting: {}", query);
+                }
+            } else if query.starts_with("I2 = ") {
+                if let Some(x) = query[5..].parse().ok() {
+                    self.supervisor.set_i2(x);
+                } else {
+                    warn!("Invalid setting: {}", query);
+                }
+            } else if query.starts_with("UIO1 = ") {
+                if let Some(x) = query[7..].parse().ok() {
+                    self.supervisor.set_uio1(x);
+                } else {
+                    warn!("Invalid setting: {}", query);
+                }
+            } else if query.starts_with("UIO2 = ") {
+                if let Some(x) = query[7..].parse().ok() {
+                    self.supervisor.set_uio2(x);
+                } else {
+                    warn!("Invalid setting: {}", query);
+                }
+            } else if query.starts_with("UIO3 = ") {
+                if let Some(x) = query[7..].parse().ok() {
+                    self.supervisor.set_uio3(x);
+                } else {
+                    warn!("Invalid setting: {}", query);
+                }
+            } else {
+                warn!("Invalid setting: {}", query);
+            }
+        } else if query.starts_with("unset ") {
+            let query = &query[6..];
+            if query == "J1" {
+                self.supervisor.set_j1(false);
+            } else if query == "J2" {
+                self.supervisor.set_j2(false);
+            } else if query == "J2" {
+                self.supervisor.set_j2(false);
+            } else {
+                warn!("Invalid setting: {}", query);
+            }
         } else if query == "quit" {
             self.is_main_loop_running = false;
+        } else {
+            warn!("Unrecognized input: {}", query);
         }
     }
 }

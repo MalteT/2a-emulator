@@ -15,7 +15,6 @@ args:
         short: t
         multiple: true
         number_of_values: 1
-        takes_value: true
         value_name: TEST
         conflicts_with: interactive
         requires: PROGRAM
@@ -24,3 +23,41 @@ args:
         long: check
         short: c
         requires: PROGRAM
+    - irg:
+        help: Set the value for the 8-bit input port (0-255)
+        long: irg
+        value_name: BYTE
+        default_value: "0"
+    - temp:
+        help: Set the value for the temperature sensor (0.0-2.55).
+        long: temp
+        value_name: VOLT
+        default_value: "1.5707963267948966"
+    - j1:
+        help: Plug jumper J1 into the board
+        long: j1
+    - no-j2:
+        help: Unplug jumper J2 from the board
+        long: no-j2
+    - i1:
+        help: Set analog input port I1 (0.0-5.0)
+        long: i1
+        value_name: VOLT
+        default_value: "0.0"
+    - i2:
+        help: Set analog input port I2 (0.0-5.0)
+        long: i2
+        value_name: VOLT
+        default_value: "0.0"
+    - uio1:
+        help: Set universal analog input/output port UIO1 (0.0-5.0)
+        long: uio1
+        value_name: VOLT
+    - uio2:
+        help: Set universal analog input/output port UIO2 (0.0-5.0)
+        long: uio2
+        value_name: VOLT
+    - uio3:
+        help: Set universal analog input/output port UIO3 (0.0-5.0)
+        long: uio3
+        value_name: VOLT

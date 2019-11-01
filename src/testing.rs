@@ -10,6 +10,7 @@ use std::path::PathBuf;
 
 use crate::error::Error;
 use crate::helpers;
+use crate::helpers::Configuration;
 use crate::supervisor::{EmulationParameter, MachineState, Supervisor};
 
 #[derive(Debug, Parser)]
@@ -74,13 +75,17 @@ impl TestFile {
         trace!("Parsed test file from path {:?}", path);
         Ok(TestFile { tests })
     }
-    pub fn execute_against<P: Into<PathBuf>>(&self, path: P) -> Result<(), Error> {
+    pub fn execute_against<P: Into<PathBuf>>(
+        &self,
+        path: P,
+        conf: &Configuration,
+    ) -> Result<(), Error> {
         let path: PathBuf = path.into();
         let asm = helpers::read_asm_file(&path)?;
         let mut res = Ok(());
         for test in &self.tests {
             trace!("Executing test {:?} for {:?}", test.name, path);
-            res = match test.execute_against(&path, asm.clone()) {
+            res = match test.execute_against(&path, asm.clone(), conf) {
                 Err(e) => {
                     error!("{}", e);
                     Err(e)
@@ -94,7 +99,12 @@ impl TestFile {
 
 impl Test {
     /// Execute the test.
-    pub fn execute_against<P: Into<PathBuf>>(&self, path: P, asm: Asm) -> Result<(), Error> {
+    pub fn execute_against<P: Into<PathBuf>>(
+        &self,
+        path: P,
+        asm: Asm,
+        conf: &Configuration,
+    ) -> Result<(), Error> {
         let path: PathBuf = path.into();
         let mut rng = thread_rng();
 
@@ -136,7 +146,7 @@ impl Test {
         ep.inputs.insert(0, initial_input);
 
         // Run the emulation
-        let final_state = Supervisor::execute_with_parameter(ep);
+        let final_state = Supervisor::execute_with_parameter(ep, conf);
         let final_outputs = final_state.final_outputs();
 
         // Verify

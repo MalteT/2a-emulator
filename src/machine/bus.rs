@@ -4,6 +4,8 @@ use log::warn;
 
 use std::fmt;
 
+use crate::machine::board::Board;
+
 /// The bus used in the Minirechner 2a.
 ///
 /// # Address usage
@@ -31,14 +33,10 @@ pub struct Bus {
     misr: MISR,
     ucr: UCR,
     usr: USR,
-    dac1: u8,
-    dac2: u8,
     uart_send: u8,
     uart_recv: u8,
-    dasr: DASR,
-    daisr: DAISR,
-    daicr: DAICR,
     int_timer: InterruptTimer,
+    pub(crate) board: Board,
 }
 
 /// The interrupt timer.
@@ -102,39 +100,6 @@ bitflags! {
     }
 }
 
-bitflags! {
-    /// Digital Analog Status Register
-    struct DASR: u8 {
-        const J2        = 0b10000000;
-        const J1        = 0b01000000;
-        const FAN       = 0b00100000;
-        const COMP_DAC2 = 0b00010000;
-        const COMP_DAC1 = 0b00001000;
-        const UIO_3     = 0b00000100;
-        const UIO_2     = 0b00000010;
-        const UIO_1     = 0b00000001;
-    }
-}
-
-bitflags! {
-    /// Digital Analog Interrupt Status Register
-    struct DAISR: u8 {
-        const INTERRUPT_PENDING   = 0b00001000;
-        const INTERRUPT_REQUESTED = 0b00000100;
-        const INTERRUPT_FF        = 0b00000010;
-        const SOURCE              = 0b00000001;
-    }
-}
-
-bitflags! {
-    /// Digital Analog Interrupt Control Register
-    struct DAICR: u8 {
-        const IE      = 0b00100000;
-        const EDGE    = 0b00010000;
-        const FALLING = 0b00001000;
-    }
-}
-
 impl Bus {
     /// Create a new Bus.
     /// The ram is empty.
@@ -146,14 +111,10 @@ impl Bus {
         let misr = MISR::empty();
         let ucr = UCR::empty();
         let usr = USR::empty();
-        let dac1 = 0;
-        let dac2 = 0;
         let uart_send = 0;
         let uart_recv = 0;
-        let dasr = DASR::empty();
-        let daisr = DAISR::empty();
-        let daicr = DAICR::empty();
         let int_timer = InterruptTimer::new();
+        let board = Board::new();
         Bus {
             ram,
             input_reg,
@@ -162,14 +123,10 @@ impl Bus {
             misr,
             ucr,
             usr,
-            dac1,
-            dac2,
             uart_send,
             uart_recv,
-            dasr,
-            daisr,
-            daicr,
             int_timer,
+            board,
         }
     }
     /// Reset the output registers.
@@ -185,13 +142,19 @@ impl Bus {
         if addr <= 0xEF {
             self.ram[addr] = byte;
         } else if addr == 0xF0 {
-            self.dac1 = byte;
+            self.board.set_org1(byte);
         } else if addr == 0xF1 {
-            self.dac2 = byte;
+            self.board.set_org2(byte);
         } else if addr == 0xF2 {
-            warn!("Writing to 0xF2 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
+            match (byte & 0b1100_0000) >> 6 {
+                0b00 => self.board.set_uor(byte),
+                0b01 => warn!("Writing 0b11****** to 0xF2 does nothing"),
+                0b10 => self.board.set_udr(byte),
+                0b11 => self.board.set_icr(byte),
+                _ => unreachable!()
+            }
         } else if addr == 0xF3 {
-            warn!("Writing to 0xF3 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
+            self.board.delete_int_ff();
         } else if addr == 0xF4 {
             warn!("Writing to 0xF4 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
         } else if addr == 0xF5 {
@@ -250,15 +213,13 @@ impl Bus {
         if addr <= 0xEF {
             self.ram[addr]
         } else if addr == 0xF0 {
-            warn!("Reading from 0xF0 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
-            0
+            self.board.irg
         } else if addr == 0xF1 {
-            self.dasr.bits()
+            self.board.dasr.bits()
         } else if addr == 0xF2 {
-            // TODO
-            unimplemented!("Cannot read from 0xF2 yet.");
+            self.board.get_fan_period()
         } else if addr == 0xF3 {
-            self.daisr.bits()
+            self.board.daisr.bits()
         } else if addr == 0xF4 {
             warn!("Reading from 0xF4 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
             0
@@ -310,11 +271,11 @@ impl Bus {
         self.output_reg[1]
     }
     /// Did anything on the bus trigger a level interrupt?
-    pub fn has_level_int(&self) -> bool {
+    pub fn has_level_int(&mut self) -> bool {
         if self.micr.contains(MICR::UART_LEVEL_INTERRUPT_ENABLE) {
             self.has_uart_interrupt()
         } else if self.micr.contains(MICR::BUS_LEVEL_INTERRUPT_ENABLE) {
-            self.has_mr2da2_interrupt()
+            self.fetch_mr2da2_interrupt()
         } else {
             false
         }
@@ -324,11 +285,11 @@ impl Bus {
     /// # Note:
     /// Level intterupts can also be triggered by the timer and by key!
     /// These are not checked here.
-    pub fn has_edge_int(&self) -> bool {
+    pub fn fetch_edge_int(&mut self) -> bool {
         if self.micr.contains(MICR::UART_EDGE_INTERRUPT_ENABLE) {
             self.has_uart_interrupt()
         } else if self.micr.contains(MICR::BUS_EDGE_INTERRUPT_ENABLE) {
-            self.has_mr2da2_interrupt()
+            self.fetch_mr2da2_interrupt()
         } else {
             false
         }
@@ -360,9 +321,8 @@ impl Bus {
     /// # TODO
     ///
     /// This is not implemented (yet).
-    fn has_mr2da2_interrupt(&self) -> bool {
-        warn!("MR2DA2 interrupts are not available in the emulator");
-        false
+    fn fetch_mr2da2_interrupt(&mut self) -> bool {
+        self.board.fetch_interrupt()
     }
 }
 

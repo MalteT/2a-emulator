@@ -22,6 +22,8 @@ pub enum Error {
     TestFileParsingError(#[cause] PestError<TestRule>),
     /// Thrown when a test failes.
     TestFailed(String, String),
+    /// Invalid CLI input.
+    InvalidInput(String),
 }
 
 impl From<IOError> for Error {
@@ -51,6 +53,7 @@ impl fmt::Display for Error {
             }
             Error::TestFileParsingError(pe) => write!(f, "{}", pe),
             Error::TestFailed(name, s) => write!(f, "Test {:?} failed: {}", name, s),
+            Error::InvalidInput(s) => write!(f, "{}", s),
         }
     }
 }

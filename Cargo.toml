@@ -27,7 +27,7 @@ features = ["formatting"]
 
 [dependencies.clap]
 version = "~2.33.0"
-features = ["yaml"]
+features = ["yaml", "wrap_help"]
 
 [dependencies.tui]
 version = "0.6.2"
@@ -46,3 +46,6 @@ version = "0.12.1"
 # The std::fmt::Display implementation defaults to Display::to_utf8_string
 # instead of Display::to_ascii_string
 utf8 = []
+
+[profile.release]
+opt-level = 1

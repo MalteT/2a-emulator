@@ -15,6 +15,7 @@ use std::time::Instant;
 
 use crate::error::Error;
 use crate::helpers;
+use crate::helpers::Configuration;
 use crate::machine::Machine;
 
 const NUMBER_OF_MEASUREMENTS: usize = 10;
@@ -39,6 +40,8 @@ pub struct Supervisor {
     clk_period: Duration,
     /// Frequency measurement utility.
     freq_measurements: FreqMeasurements,
+    /// Initial configuration for the machine.
+    conf: Configuration,
 }
 
 /// Helper struct for frequency measurements.
@@ -93,13 +96,14 @@ pub enum MachineState {
 
 impl Supervisor {
     /// Initialize a new Supervisor.
-    pub fn new() -> Self {
-        let machine = Machine::new(None);
+    pub fn new(conf: &Configuration) -> Self {
+        let machine = Machine::new(None, conf);
         let clk_auto_run_mode = false;
         let clk_asm_step_mode = false;
         let program_path = None;
         let clk_period = *DEFAULT_CLK_PERIOD.deref();
         let freq_measurements = FreqMeasurements::new();
+        let conf = conf.clone();
         Supervisor {
             machine,
             clk_auto_run_mode,
@@ -107,20 +111,24 @@ impl Supervisor {
             program_path,
             clk_period,
             freq_measurements,
+            conf,
         }
     }
     /// Emulate the machine with the given [`EmulationParameter`].
     /// This returns a [`EmulationState`] containing all information about the emulation
     /// process.
-    pub fn execute_with_parameter(param: EmulationParameter) -> EmulationState {
+    pub fn execute_with_parameter(
+        param: EmulationParameter,
+        conf: &Configuration,
+    ) -> EmulationState {
         // Create emulation state
         let mut fs = EmulationState::new();
         // Create supervisor
-        let mut sv = Supervisor::new();
+        let mut sv = Supervisor::new(conf);
         sv.toggle_auto_run_mode();
         if let Some((path, asm)) = param.program {
             sv.program_path = Some(path.clone());
-            sv.machine = Machine::new(Some(&asm));
+            sv.machine = Machine::new(Some(&asm), conf);
             fs.program = Some((path, asm));
         }
         // Remember initial outputs
@@ -174,7 +182,7 @@ impl Supervisor {
     pub fn load_program<P: Into<PathBuf>>(&mut self, path: P) -> Result<(), Error> {
         self.program_path = Some(path.into());
         let program = helpers::read_asm_file(self.program_path.clone().unwrap())?;
-        self.machine = Machine::new(Some(&program));
+        self.machine = Machine::new(Some(&program), &self.conf);
         Ok(())
     }
     /// Do necessary calculation (i.e. in auto-run-mode).
@@ -286,6 +294,48 @@ impl Supervisor {
         } else {
             0.0
         }
+    }
+    /// Set the 8-bit input port.
+    pub fn set_irg(&mut self, value: u8) {
+        self.machine.bus.board.set_irg(value);
+    }
+    /// Set the temperature value.
+    pub fn set_temp(&mut self, value: f32) {
+        self.machine.bus.board.set_temp(value);
+    }
+    /// Set the jumper J1.
+    ///
+    /// - `true` => Plugged in.
+    /// - `false` => Unplugged.
+    pub fn set_j1(&mut self, plugged: bool) {
+        self.machine.bus.board.set_j1(plugged);
+    }
+    /// Set the jumper J2.
+    ///
+    /// - `true` => Plugged in.
+    /// - `false` => Unplugged.
+    pub fn set_j2(&mut self, plugged: bool) {
+        self.machine.bus.board.set_j2(plugged);
+    }
+    /// Set the analog input I1.
+    pub fn set_i1(&mut self, value: f32) {
+        self.machine.bus.board.set_i1(value);
+    }
+    /// Set the analog input I2.
+    pub fn set_i2(&mut self, value: f32) {
+        self.machine.bus.board.set_i2(value);
+    }
+    /// Set the Universal Input/Output UIO1.
+    pub fn set_uio1(&mut self, value: bool) {
+        self.machine.bus.board.set_uio1(value);
+    }
+    /// Set the Universal Input/Output UIO2.
+    pub fn set_uio2(&mut self, value: bool) {
+        self.machine.bus.board.set_uio2(value);
+    }
+    /// Set the Universal Input/Output UIO3.
+    pub fn set_uio3(&mut self, value: bool) {
+        self.machine.bus.board.set_uio3(value);
     }
 }
 

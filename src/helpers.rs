@@ -3,7 +3,7 @@
 use ::tui::style::Color;
 use ::tui::style::Modifier;
 use ::tui::style::Style;
-use clap::{crate_version, load_yaml, App};
+use clap::{crate_version, load_yaml, App, ArgMatches};
 use lazy_static::lazy_static;
 use log::trace;
 use parser2a::asm::Asm;
@@ -21,7 +21,77 @@ lazy_static! {
     pub static ref DIMMED: Style = Style::default().modifier(Modifier::DIM);
     pub static ref YELLOW: Style = Style::default().fg(Color::Yellow);
     pub static ref RED: Style = Style::default().fg(Color::Red);
+    pub static ref LIGHTRED: Style = Style::default().fg(Color::LightRed);
     pub static ref GREEN: Style = Style::default().fg(Color::Green);
+}
+
+/// Initial configuration for the machine, given through the CLI.
+#[derive(Debug, Clone)]
+pub struct Configuration {
+    /// 8-bit input port.
+    pub irg: u8,
+    /// Temperature sensor. \[0.0 - 2.55 \]
+    pub temp: f32,
+    /// Jumper J1 and J2.
+    pub jumper: [bool; 2],
+    /// Analog inputs I1 and I2.
+    pub analog_inputs: [f32; 2],
+    /// Universal I/O pins UIO1, UIO2 and UIO3.
+    pub uios: [Option<bool>; 3],
+}
+
+impl Configuration {
+    fn from_matches(matches: &ArgMatches) -> Result<Self, Error> {
+        let err_int =
+            |e, s| Error::InvalidInput(format!("Could not parse integer value of {}: {}", e, s));
+        let err_float =
+            |e, s| Error::InvalidInput(format!("Could not parse float value of {}: {}", e, s));
+        let err_bool =
+            |e, s| Error::InvalidInput(format!("Could not parse bool value of {}: {}", e, s));
+        let parse_uio = |v: &str, s| v.parse().map_err(|e| err_bool(e, s));
+        let irg = matches
+            .value_of_lossy("irg")
+            .expect("IRG has default")
+            .parse()
+            .map_err(|e| err_int(e, "IRG"))?;
+        let jumper = [matches.is_present("j1"), !matches.is_present("no-j2")];
+        let i1 = matches
+            .value_of_lossy("i1")
+            .expect("I1 has default")
+            .parse()
+            .map_err(|e| err_float(e, "I1"))?;
+        let i2 = matches
+            .value_of_lossy("i2")
+            .expect("I2 has default")
+            .parse()
+            .map_err(|e| err_float(e, "I2"))?;
+        let analog_inputs = [i1, i2];
+        let uio1 = matches
+            .value_of_lossy("uio1")
+            .map(|v| parse_uio(&v, "UIO1"))
+            .transpose()?;
+        let uio2 = matches
+            .value_of_lossy("uio2")
+            .map(|v| parse_uio(&v, "UIO2"))
+            .transpose()?;
+        let uio3 = matches
+            .value_of_lossy("uio3")
+            .map(|v| parse_uio(&v, "UIO3"))
+            .transpose()?;
+        let temp = matches
+            .value_of_lossy("temp")
+            .expect("TEMP has default")
+            .parse()
+            .map_err(|e| err_float(e, "TEMP"))?;
+        let uios = [uio1, uio2, uio3];
+        Ok(Configuration {
+            jumper,
+            irg,
+            analog_inputs,
+            temp,
+            uios,
+        })
+    }
 }
 
 /// Handle user-given CLI parameter.
@@ -31,6 +101,9 @@ lazy_static! {
 pub fn handle_user_input() -> Result<(), Error> {
     let yaml = load_yaml!("../static/cli.yml");
     let matches = App::from(yaml).version(crate_version!()).get_matches();
+
+    // Parse configuration
+    let conf = Configuration::from_matches(&matches)?;
 
     if matches.is_present("check") {
         cli_validate_source_file(
@@ -50,7 +123,7 @@ pub fn handle_user_input() -> Result<(), Error> {
         } else {
             None
         };
-        run_tui(program_path)?;
+        run_tui(program_path, &conf)?;
     } else if matches.is_present("test") {
         let tests = matches.values_of_lossy("test").expect("TEST must be given");
         let program = matches
@@ -58,7 +131,7 @@ pub fn handle_user_input() -> Result<(), Error> {
             .expect("Unfallible")
             .to_string();
         for test_path in tests {
-            execute_test(test_path, &program)?
+            execute_test(test_path, &program, &conf)?
         }
     } else if !matches.is_present("check") {
         let program = if matches.is_present("PROGRAM") {
@@ -70,7 +143,7 @@ pub fn handle_user_input() -> Result<(), Error> {
         } else {
             None
         };
-        run_tui(program)?;
+        run_tui(program, &conf)?;
     }
 
     Ok(())
@@ -78,14 +151,14 @@ pub fn handle_user_input() -> Result<(), Error> {
 
 /// Run the TUI.
 /// If a program was given, run this.
-fn run_tui<P: Into<PathBuf>>(program_path: Option<P>) -> Result<(), Error> {
-    let tui = tui::Tui::new()?;
+fn run_tui<P: Into<PathBuf>>(program_path: Option<P>, conf: &Configuration) -> Result<(), Error> {
+    let tui = tui::Tui::new(conf)?;
     tui.run(program_path)?;
     Ok(())
 }
 
 /// Execute a test given by it's path.
-fn execute_test<P1, P2>(test_path: P1, program_path: P2) -> Result<(), Error>
+fn execute_test<P1, P2>(test_path: P1, program_path: P2, conf: &Configuration) -> Result<(), Error>
 where
     P1: Into<PathBuf>,
     P2: Into<PathBuf>,
@@ -93,7 +166,7 @@ where
     let test_path: PathBuf = test_path.into();
     let program_path: PathBuf = program_path.into();
     trace!("Executing tests from file {:?}", test_path);
-    TestFile::parse(&test_path)?.execute_against(&program_path)?;
+    TestFile::parse(&test_path)?.execute_against(&program_path, conf)?;
     println!(
         "Tests in {:?} ran successful against {:?}!",
         test_path, program_path
@@ -102,7 +175,8 @@ where
 }
 
 /// Validate the given source code file.
-/// This fails with an [`Error`] if the source code is not worthy. See [`AsmParser::parse`].
+/// This fails with an [`Error`] if the source code is not worthy.
+/// See [`AsmParser::parse`].
 pub fn cli_validate_source_file<P>(path: P) -> Result<(), Error>
 where
     P: Into<PathBuf>,
