@@ -99,11 +99,8 @@ impl Translator {
         use ByteOrLabel::*;
         use Instruction::*;
         let bols = match inst.clone() {
-            AsmOrigin(orig) => {
-                match orig {
-                    Constant::Constant(c) => self.next_addr = c,
-                    Constant::Label(_label) => unimplemented!(".ORG label does not work yet!"),
-                }
+            AsmOrigin(addr) => {
+                self.next_addr = addr;
                 vec![]
             }
             AsmByte(nr) => {
