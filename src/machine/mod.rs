@@ -1,7 +1,7 @@
 //! The actual emulated machine.
 
 use log::trace;
-use parser2a::asm::Asm;
+use parser2a::asm::{Asm, Stacksize};
 use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
@@ -62,6 +62,9 @@ pub struct Machine {
     clk_counter: usize,
     /// Counting drawing cycles for conditional drawings.
     draw_counter: usize,
+    /// Stacksize, if any program is loaded.
+    /// For error checking.
+    stacksize: Option<Stacksize>,
 }
 
 impl Machine {
@@ -84,6 +87,7 @@ impl Machine {
         let instruction_done = false;
         let clk_counter = 0;
         let draw_counter = 0;
+        let stacksize = None;
         let mut machine = Machine {
             mp_ram,
             reg,
@@ -102,6 +106,7 @@ impl Machine {
             instruction_done,
             clk_counter,
             draw_counter,
+            stacksize,
         };
         // Load program if given any
         if let Some(program) = program {
@@ -115,6 +120,7 @@ impl Machine {
                 machine.bus.write(address, *byte);
                 address += 1;
             }
+            machine.stacksize = Some(bytecode.stacksize);
         }
         // Apply configuration
         machine.bus.board.set_irg(conf.irg);
@@ -266,6 +272,12 @@ impl Machine {
             trace!("Setting register: {:?} = {:>02X}", r, value);
             self.pending_register_write = None;
             self.reg.set(r, value);
+            // Check stackpointer
+            if let Some(stacksize) = self.stacksize {
+                if !self.reg.is_stackpointer_valid(stacksize) {
+                    self.machine_error_stopped = true;
+                }
+            }
         }
         if let Some((co, zo, no)) = self.pending_flag_write {
             self.reg.update_co(co);

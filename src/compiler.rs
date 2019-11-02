@@ -13,7 +13,7 @@
 use colored::Colorize;
 use parser2a::asm::{
     Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Register,
-    RegisterDDI, RegisterDI, Source, Word,
+    RegisterDDI, RegisterDI, Source, Stacksize, Word,
 };
 
 use std::collections::HashMap;
@@ -45,6 +45,8 @@ pub enum ByteOrLabel {
 pub struct ByteCode {
     /// Lines with translated byte code.
     pub lines: Vec<(Line, Vec<u8>)>,
+    /// Stacksize for limiting.
+    pub stacksize: Stacksize,
 }
 
 // # TODO: Handle Stacksize
@@ -54,6 +56,7 @@ pub struct Translator {
     next_addr: u8,
     known_labels: HashMap<Label, u8>,
     bytes: Vec<(Line, Vec<ByteOrLabel>)>,
+    stacksize: Stacksize,
 }
 
 impl ByteCode {
@@ -80,6 +83,8 @@ impl Translator {
             bytes: vec![],
             known_labels: HashMap::new(),
             next_addr: 0,
+            // TODO: Default?
+            stacksize: Stacksize::NotSet,
         }
     }
     /// Push a [`Line`] into the translator, adding the translated bytes,
@@ -127,7 +132,10 @@ impl Translator {
                 self.known_labels.insert(label, self.next_addr);
                 vec![c.into()]
             }
-            AsmStacksize(_ss) => vec![],
+            AsmStacksize(ss) => {
+                self.stacksize = ss;
+                vec![]
+            }
             Clr(reg) => {
                 let reg: u8 = reg_to_u8(reg);
                 vec![Byte(0b0000_01_00 + reg)]
@@ -227,7 +235,8 @@ impl Translator {
                 (line, bytes)
             })
             .collect();
-        ByteCode { lines }
+        let stacksize = self.stacksize;
+        ByteCode { lines, stacksize }
     }
 }
 

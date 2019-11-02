@@ -1,3 +1,5 @@
+use parser2a::asm::Stacksize;
+
 use super::Signal;
 
 /// The register block.
@@ -143,6 +145,20 @@ impl Register {
     pub fn get(&self, rn: RegisterNumber) -> u8 {
         let index: usize = rn.into();
         self.content[index]
+    }
+    /// Check the stackpointer.
+    pub fn is_stackpointer_valid(&self, ss: Stacksize) -> bool {
+        let sp = self.content[5];
+        if sp >= 0xF0 {
+            return false;
+        }
+        match ss {
+            Stacksize::_16 => sp >= 0xA0 && sp <= 0xAF,
+            Stacksize::_32 => sp >= 0xA0 && sp <= 0xBF,
+            Stacksize::_48 => sp >= 0xA0 && sp <= 0xCF,
+            Stacksize::_64 => sp >= 0xA0 && sp <= 0xDF,
+            Stacksize::NotSet => true,
+        }
     }
 }
 
