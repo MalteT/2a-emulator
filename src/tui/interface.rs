@@ -18,8 +18,8 @@ use std::time::{Duration, Instant};
 use crate::helpers;
 use crate::tui::Tui;
 
-static MINIMUM_ALLOWED_WIDTH: u16 = 76;
-static MINIMUM_ALLOWED_HEIGHT: u16 = 24;
+pub static MINIMUM_ALLOWED_WIDTH: u16 = 76;
+pub static MINIMUM_ALLOWED_HEIGHT: u16 = 24;
 
 lazy_static! {
     static ref RIGHT_COLUMN_WIDTH: u16 = 35;

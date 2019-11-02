@@ -446,80 +446,89 @@ impl Widget for Machine {
         buf.set_string(x + 24, y + 6, "FD", dimmed);
         buf.set_string(x + 33, y + 6, "FC", dimmed);
 
-        if self.bus.board.fan_rpm != 0 {
-            if self.draw_counter % 10 <= 5 {
-                let s = format!("{:>4} RPM ×", self.bus.board.fan_rpm);
-                buf.set_string(area.width - 9, area.y, s, *helpers::YELLOW);
-            } else {
-                let s = format!("{:>4} RPM +", self.bus.board.fan_rpm);
-                buf.set_string(area.width - 9, area.y, s, *helpers::YELLOW);
+        if area.width >= 46 && area.height >= 19 {
+            if self.bus.board.fan_rpm != 0 {
+                if self.draw_counter % 10 <= 5 {
+                    let s = format!("{:>4} RPM ×", self.bus.board.fan_rpm);
+                    buf.set_string(area.width - 9, area.y, s, *helpers::YELLOW);
+                } else {
+                    let s = format!("{:>4} RPM +", self.bus.board.fan_rpm);
+                    buf.set_string(area.width - 9, area.y, s, *helpers::YELLOW);
+                }
             }
-        }
-        if self.bus.board.irg != 0 {
-            let s = format!("{:>02X}  IRG", self.bus.board.irg);
-            buf.set_string(area.width - 7, area.y + 3, "0x", *helpers::DIMMED);
-            buf.set_string(area.width - 5, area.y + 3, s, *helpers::YELLOW);
-        }
-        if self.bus.board.org1 != 0 {
-            let s = format!("{:>02X} ORG1", self.bus.board.org1);
-            buf.set_string(area.width - 7, area.y + 4, "0x", *helpers::DIMMED);
-            buf.set_string(area.width - 5, area.y + 4, s, *helpers::YELLOW);
-        }
-        if self.bus.board.org2 != 0 {
-            let s = format!("{:>02X} ORG2", self.bus.board.org2);
-            buf.set_string(area.width - 7, area.y + 5, "0x", *helpers::DIMMED);
-            buf.set_string(area.width - 5, area.y + 5, s, *helpers::YELLOW);
-        }
-        if (self.bus.board.temp - 1.5707).abs() > 0.01 {
-            buf.set_string(area.width - 2, area.y + 7, "TEMP", *helpers::YELLOW);
-        }
+            if self.bus.board.irg != 0 {
+                let s = format!("{:>02X}  IRG", self.bus.board.irg);
+                buf.set_string(area.width - 7, area.y + 3, "0x", *helpers::DIMMED);
+                buf.set_string(area.width - 5, area.y + 3, s, *helpers::YELLOW);
+            }
+            if self.bus.board.org1 != 0 {
+                let s = format!("{:>02X} ORG1", self.bus.board.org1);
+                buf.set_string(area.width - 7, area.y + 4, "0x", *helpers::DIMMED);
+                buf.set_string(area.width - 5, area.y + 4, s, *helpers::YELLOW);
+            }
+            if self.bus.board.org2 != 0 {
+                let s = format!("{:>02X} ORG2", self.bus.board.org2);
+                buf.set_string(area.width - 7, area.y + 5, "0x", *helpers::DIMMED);
+                buf.set_string(area.width - 5, area.y + 5, s, *helpers::YELLOW);
+            }
+            if (self.bus.board.temp - 1.5707).abs() > 0.01 {
+                buf.set_string(area.width - 2, area.y + 7, "TEMP", *helpers::YELLOW);
+            }
 
-        if self.bus.board.analog_inputs[0] != 0.0 {
-            let s = format!("{:.1}V AI1", self.bus.board.analog_inputs[0]);
-            buf.set_string(area.width - 6, area.y + 9, s, *helpers::YELLOW);
-        }
-        if self.bus.board.analog_inputs[1] != 0.0 {
-            let s = format!("{:.1}V AI2", self.bus.board.analog_inputs[1]);
-            buf.set_string(area.width - 6, area.y + 10, s, *helpers::YELLOW);
-        }
-        if self.bus.board.analog_outputs[0] != 0.0 {
-            let s = format!("{:.1}V AO1", self.bus.board.analog_outputs[0]);
-            buf.set_string(area.width - 6, area.y + 11, s, *helpers::YELLOW);
-        }
-        if self.bus.board.analog_outputs[1] != 0.0 {
-            let s = format!("{:.1}V AO2", self.bus.board.analog_outputs[1]);
-            buf.set_string(area.width - 6, area.y + 12, s, *helpers::YELLOW);
-        }
-        let uio1 = self.bus.board.dasr.contains(DASR::UIO_1);
-        let uio2 = self.bus.board.dasr.contains(DASR::UIO_2);
-        let uio3 = self.bus.board.dasr.contains(DASR::UIO_3);
-        if self.bus.board.uio_dir[0] && uio1 {
-            let s = format!("« {} UIO1", uio1 as u8);
-            buf.set_string(area.width - 6, area.y + 13, s, *helpers::YELLOW);
-        } else if uio1 {
-            let s = format!("» {} UIO1", uio1 as u8);
-            buf.set_string(area.width - 6, area.y + 13, s, *helpers::YELLOW);
-        }
-        if self.bus.board.uio_dir[1] && uio2 {
-            let s = format!("« {} UIO2", uio2 as u8);
-            buf.set_string(area.width - 6, area.y + 14, s, *helpers::YELLOW);
-        } else if uio2 {
-            let s = format!("» {} UIO2", uio2 as u8);
-            buf.set_string(area.width - 6, area.y + 14, s, *helpers::YELLOW);
-        }
-        if self.bus.board.uio_dir[2] && uio3 {
-            let s = format!("« {} UIO3", uio3 as u8);
-            buf.set_string(area.width - 6, area.y + 15, s, *helpers::YELLOW);
-        } else if uio3 {
-            let s = format!("» {} UIO3", uio3 as u8);
-            buf.set_string(area.width - 6, area.y + 15, s, *helpers::YELLOW);
-        }
+            if self.bus.board.analog_inputs[0] != 0.0 {
+                let s = format!("{:.1}V AI1", self.bus.board.analog_inputs[0]);
+                buf.set_string(area.width - 6, area.y + 9, s, *helpers::YELLOW);
+            }
+            if self.bus.board.analog_inputs[1] != 0.0 {
+                let s = format!("{:.1}V AI2", self.bus.board.analog_inputs[1]);
+                buf.set_string(area.width - 6, area.y + 10, s, *helpers::YELLOW);
+            }
+            if self.bus.board.analog_outputs[0] != 0.0 {
+                let s = format!("{:.1}V AO1", self.bus.board.analog_outputs[0]);
+                buf.set_string(area.width - 6, area.y + 11, s, *helpers::YELLOW);
+            }
+            if self.bus.board.analog_outputs[1] != 0.0 {
+                let s = format!("{:.1}V AO2", self.bus.board.analog_outputs[1]);
+                buf.set_string(area.width - 6, area.y + 12, s, *helpers::YELLOW);
+            }
+            let uio1 = self.bus.board.dasr.contains(DASR::UIO_1);
+            let uio2 = self.bus.board.dasr.contains(DASR::UIO_2);
+            let uio3 = self.bus.board.dasr.contains(DASR::UIO_3);
+            if self.bus.board.uio_dir[0] && uio1 {
+                let s = format!("« {} UIO1", uio1 as u8);
+                buf.set_string(area.width - 6, area.y + 13, s, *helpers::YELLOW);
+            } else if uio1 {
+                let s = format!("» {} UIO1", uio1 as u8);
+                buf.set_string(area.width - 6, area.y + 13, s, *helpers::YELLOW);
+            }
+            if self.bus.board.uio_dir[1] && uio2 {
+                let s = format!("« {} UIO2", uio2 as u8);
+                buf.set_string(area.width - 6, area.y + 14, s, *helpers::YELLOW);
+            } else if uio2 {
+                let s = format!("» {} UIO2", uio2 as u8);
+                buf.set_string(area.width - 6, area.y + 14, s, *helpers::YELLOW);
+            }
+            if self.bus.board.uio_dir[2] && uio3 {
+                let s = format!("« {} UIO3", uio3 as u8);
+                buf.set_string(area.width - 6, area.y + 15, s, *helpers::YELLOW);
+            } else if uio3 {
+                let s = format!("» {} UIO3", uio3 as u8);
+                buf.set_string(area.width - 6, area.y + 15, s, *helpers::YELLOW);
+            }
 
-        if self.bus.board.dasr.contains(DASR::J1) {
-            buf.set_string(area.width - 4, area.height - 1, "╼━╾ J1", *helpers::GREEN);
-        }
-        if !self.bus.board.dasr.contains(DASR::J2) {
-            buf.set_string(area.width - 4, area.height, "╼ ╾ J2", *helpers::LIGHTRED);
+            if self.bus.board.dasr.contains(DASR::J1) {
+                buf.set_string(area.width - 4, area.height, "╼━╾ J1", *helpers::GREEN);
+            }
+            if !self.bus.board.dasr.contains(DASR::J2) {
+                buf.set_string(
+                    area.width - 4,
+                    area.height + 1,
+                    "╼ ╾ J2",
+                    *helpers::LIGHTRED,
+                );
+            }
+        } else {
+            buf.set_string(area.width - 1, area.height + 1, "...", *helpers::DIMMED);
         }
     }
 }
