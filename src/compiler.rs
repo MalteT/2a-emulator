@@ -13,7 +13,7 @@
 use colored::Colorize;
 use parser2a::asm::{
     Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Register,
-    RegisterDDI, RegisterDI, Source,
+    RegisterDDI, RegisterDI, Source, Word,
 };
 
 use std::collections::HashMap;
@@ -35,6 +35,8 @@ pub enum ByteOrLabel {
     /// A label that will be replaced by the address of the following byte
     /// which will the be transformed by the function.
     LabelFn(Label, Rc<dyn Fn(u8) -> u8>),
+    /// A label that will be replaced by the next to addresses.
+    WordLabel(Label),
 }
 
 #[derive(Debug, Clone)]
@@ -112,8 +114,14 @@ impl Translator {
                 ret
             }
             AsmDefineBytes(mut cs) => cs.drain(..).map(ByteOrLabel::from).collect(),
-            AsmDefineWords(_ws) => unimplemented!(".DW is not yet implemented"),
-            // TODO: Research how mcontrol does .EQU translation
+            AsmDefineWords(mut ws) => ws
+                .drain(..)
+                .map(|word| match word {
+                    Word::Constant(nr) => vec![Byte(nr as u8), Byte((nr & 0xFF00 >> 8) as u8)],
+                    Word::Label(l) => vec![WordLabel(l)],
+                })
+                .flatten()
+                .collect(),
             AsmEquals(label, c) => {
                 // Push Label!
                 self.known_labels.insert(label, self.next_addr);
@@ -197,17 +205,24 @@ impl Translator {
                 let bytes = bols
                     .drain(..)
                     .map(|bol| match bol {
-                        ByteOrLabel::Byte(byte) => byte,
-                        ByteOrLabel::Label(label) => *labels
+                        ByteOrLabel::Byte(byte) => vec![byte],
+                        ByteOrLabel::Label(label) => vec![*labels
                             .get(&label)
-                            .expect("infallible. Labels must be defined"),
+                            .expect("infallible. Labels must be defined")],
                         ByteOrLabel::LabelFn(label, f) => {
                             let b = *labels
                                 .get(&label)
                                 .expect("infallible. Labels must be defined");
-                            f.deref()(b)
+                            vec![f.deref()(b)]
+                        }
+                        ByteOrLabel::WordLabel(label) => {
+                            let addr = labels
+                                .get(&label)
+                                .expect("infallible. Labels must be defined");
+                            vec![*addr, addr + 1]
                         }
                     })
+                    .flatten()
                     .collect();
                 (line, bytes)
             })
@@ -479,6 +494,7 @@ impl fmt::Debug for ByteOrLabel {
             ByteOrLabel::Byte(b) => write!(f, "Byte({:>02X})", b),
             ByteOrLabel::Label(l) => write!(f, "Label({})", l),
             ByteOrLabel::LabelFn(l, _) => write!(f, "LabelFn({}, [hidden])", l),
+            ByteOrLabel::WordLabel(l) => write!(f, "WordLabel({})", l),
         }
     }
 }
