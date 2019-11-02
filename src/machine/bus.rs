@@ -151,7 +151,7 @@ impl Bus {
                 0b01 => warn!("Writing 0b11****** to 0xF2 does nothing"),
                 0b10 => self.board.set_udr(byte),
                 0b11 => self.board.set_icr(byte),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         } else if addr == 0xF3 {
             self.board.delete_int_ff();

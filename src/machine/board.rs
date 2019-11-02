@@ -26,14 +26,14 @@ pub struct Board {
     pub(super) analog_outputs: [f32; 2],
     /// Fan rpms. This is an oversimplification. The maximum fan rpm equals 4200.
     /// But this fan spins even at 0.1V supply voltage.
-    fan_rpm: usize,
+    pub(super) fan_rpm: usize,
     /// Interrupt source (DA-ICR[0-2].
     int_source: u8,
     /// UIO directions:
     ///
     /// - `true` => Output
     /// - `false` => Input
-    uio_dir: [bool; 3],
+    pub(super) uio_dir: [bool; 3],
 }
 
 bitflags! {
@@ -128,7 +128,7 @@ impl Board {
                     self.set_int_ff();
                 }
             } else if !self.dasr.contains(DASR::J1) && plugged {
-                if ! self.daicr.contains(DAICR::FALLING) {
+                if !self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
@@ -169,6 +169,9 @@ impl Board {
     }
     /// Set universal input/output port UIO1.
     pub fn set_uio1(&mut self, value: bool) {
+        if self.uio_dir[0] {
+            return;
+        }
         if self.int_source == 0b001 {
             if self.dasr.contains(DASR::UIO_1) && !value {
                 if self.daicr.contains(DAICR::FALLING) {
@@ -176,7 +179,7 @@ impl Board {
                     self.set_int_ff();
                 }
             } else if !self.dasr.contains(DASR::UIO_1) && value {
-                if ! self.daicr.contains(DAICR::FALLING) {
+                if !self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
@@ -186,6 +189,9 @@ impl Board {
     }
     /// Set universal input/output port UIO2.
     pub fn set_uio2(&mut self, value: bool) {
+        if self.uio_dir[1] {
+            return;
+        }
         if self.int_source == 0b010 {
             if self.dasr.contains(DASR::UIO_2) && !value {
                 if self.daicr.contains(DAICR::FALLING) {
@@ -193,7 +199,7 @@ impl Board {
                     self.set_int_ff();
                 }
             } else if !self.dasr.contains(DASR::UIO_2) && value {
-                if ! self.daicr.contains(DAICR::FALLING) {
+                if !self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
@@ -203,6 +209,9 @@ impl Board {
     }
     /// Set universal input/output port UIO3.
     pub fn set_uio3(&mut self, value: bool) {
+        if self.uio_dir[2] {
+            return;
+        }
         if self.int_source == 0b011 {
             if self.dasr.contains(DASR::UIO_3) && !value {
                 if self.daicr.contains(DAICR::FALLING) {
@@ -210,7 +219,7 @@ impl Board {
                     self.set_int_ff();
                 }
             } else if !self.dasr.contains(DASR::UIO_3) && value {
-                if ! self.daicr.contains(DAICR::FALLING) {
+                if !self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
@@ -224,7 +233,7 @@ impl Board {
         let analog = value as f32 / 100.0;
         self.analog_outputs[0] = analog;
         self.update_comp1();
-        self.fan_rpm = (MAX_FAN_RPM as f32 * analog) as usize;
+        self.fan_rpm = (MAX_FAN_RPM as f32 * analog / 2.55) as usize;
         self.dasr.insert(DASR::FAN);
     }
     /// Set the 8-bit output port ORG2.
@@ -277,7 +286,7 @@ impl Board {
     }
     /// Is there an interrupt?
     pub fn fetch_interrupt(&mut self) -> bool {
-        if ! self.daicr.contains(DAICR::IE) {
+        if !self.daicr.contains(DAICR::IE) {
             return false;
         }
         if self.int_source == 0b111 && self.fan_rpm > 0 {
@@ -307,7 +316,7 @@ impl Board {
                     self.set_int_ff();
                 }
             } else if !self.dasr.contains(DASR::COMP_DAC1) && new_value {
-                if ! self.daicr.contains(DAICR::FALLING) {
+                if !self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
@@ -328,7 +337,7 @@ impl Board {
                     self.set_int_ff();
                 }
             } else if !self.dasr.contains(DASR::COMP_DAC2) && new_value {
-                if ! self.daicr.contains(DAICR::FALLING) {
+                if !self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }

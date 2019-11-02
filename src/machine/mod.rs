@@ -24,12 +24,11 @@ pub use mp_ram::{MP28BitWord, MicroprogramRam};
 pub use register::{Register, RegisterNumber};
 pub use signal::Signal;
 
-
 use crate::compiler::Translator;
-use crate::tui::display::Display;
-use crate::helpers::Configuration;
 use crate::helpers;
-use crate::machine::board::{DASR};
+use crate::helpers::Configuration;
+use crate::machine::board::DASR;
+use crate::tui::display::Display;
 
 #[derive(Debug)]
 pub struct Machine {
@@ -60,7 +59,9 @@ pub struct Machine {
     /// Is the last instruction done?
     instruction_done: bool,
     /// Counting clock edges.
-    clk_counter: u128,
+    clk_counter: usize,
+    /// Counting drawing cycles for conditional drawings.
+    draw_counter: usize,
 }
 
 impl Machine {
@@ -82,6 +83,7 @@ impl Machine {
         let waiting_for_memory = false;
         let instruction_done = false;
         let clk_counter = 0;
+        let draw_counter = 0;
         let mut machine = Machine {
             mp_ram,
             reg,
@@ -99,6 +101,7 @@ impl Machine {
             waiting_for_memory,
             instruction_done,
             clk_counter,
+            draw_counter,
         };
         // Load program if given any
         if let Some(program) = program {
@@ -406,6 +409,7 @@ impl Widget for Machine {
         let in_ff = self.bus.read(0xFF).display();
         let out_fe = self.bus.output_fe().display();
         let out_ff = self.bus.output_ff().display();
+        self.draw_counter = self.draw_counter.overflowing_add(1).0;
 
         let x = area.x + 1;
         let y = area.y + 1;
@@ -430,11 +434,14 @@ impl Widget for Machine {
         buf.set_string(x + 24, y + 6, "FD", dimmed);
         buf.set_string(x + 33, y + 6, "FC", dimmed);
 
-        if self.bus.board.dasr.contains(DASR::J1) {
-            buf.set_string(area.width - 4, area.y, "╼━╾ J1", *helpers::GREEN);
-        }
-        if ! self.bus.board.dasr.contains(DASR::J2) {
-            buf.set_string(area.width - 4, area.y + 1, "╼ ╾ J2", *helpers::LIGHTRED);
+        if self.bus.board.fan_rpm != 0 {
+            if self.draw_counter % 10 <= 5 {
+                let s = format!("{:>4} RPM ×", self.bus.board.fan_rpm);
+                buf.set_string(area.width - 9, area.y, s, *helpers::YELLOW);
+            } else {
+                let s = format!("{:>4} RPM +", self.bus.board.fan_rpm);
+                buf.set_string(area.width - 9, area.y, s, *helpers::YELLOW);
+            }
         }
         if self.bus.board.irg != 0 {
             let s = format!("{:>02X}  IRG", self.bus.board.irg);
@@ -451,8 +458,56 @@ impl Widget for Machine {
             buf.set_string(area.width - 7, area.y + 5, "0x", *helpers::DIMMED);
             buf.set_string(area.width - 5, area.y + 5, s, *helpers::YELLOW);
         }
-        if self.bus.board.temp != 0.0 {
+        if (self.bus.board.temp - 1.5707).abs() > 0.01 {
             buf.set_string(area.width - 2, area.y + 7, "TEMP", *helpers::YELLOW);
+        }
+
+        if self.bus.board.analog_inputs[0] != 0.0 {
+            let s = format!("{:.1}V AI1", self.bus.board.analog_inputs[0]);
+            buf.set_string(area.width - 6, area.y + 9, s, *helpers::YELLOW);
+        }
+        if self.bus.board.analog_inputs[1] != 0.0 {
+            let s = format!("{:.1}V AI2", self.bus.board.analog_inputs[1]);
+            buf.set_string(area.width - 6, area.y + 10, s, *helpers::YELLOW);
+        }
+        if self.bus.board.analog_outputs[0] != 0.0 {
+            let s = format!("{:.1}V AO1", self.bus.board.analog_outputs[0]);
+            buf.set_string(area.width - 6, area.y + 11, s, *helpers::YELLOW);
+        }
+        if self.bus.board.analog_outputs[1] != 0.0 {
+            let s = format!("{:.1}V AO2", self.bus.board.analog_outputs[1]);
+            buf.set_string(area.width - 6, area.y + 12, s, *helpers::YELLOW);
+        }
+        let uio1 = self.bus.board.dasr.contains(DASR::UIO_1);
+        let uio2 = self.bus.board.dasr.contains(DASR::UIO_2);
+        let uio3 = self.bus.board.dasr.contains(DASR::UIO_3);
+        if self.bus.board.uio_dir[0] && uio1 {
+            let s = format!("« {} UIO1", uio1 as u8);
+            buf.set_string(area.width - 6, area.y + 13, s, *helpers::YELLOW);
+        } else if uio1 {
+            let s = format!("» {} UIO1", uio1 as u8);
+            buf.set_string(area.width - 6, area.y + 13, s, *helpers::YELLOW);
+        }
+        if self.bus.board.uio_dir[1] && uio2 {
+            let s = format!("« {} UIO2", uio2 as u8);
+            buf.set_string(area.width - 6, area.y + 14, s, *helpers::YELLOW);
+        } else if uio2 {
+            let s = format!("» {} UIO2", uio2 as u8);
+            buf.set_string(area.width - 6, area.y + 14, s, *helpers::YELLOW);
+        }
+        if self.bus.board.uio_dir[2] && uio3 {
+            let s = format!("« {} UIO3", uio3 as u8);
+            buf.set_string(area.width - 6, area.y + 15, s, *helpers::YELLOW);
+        } else if uio3 {
+            let s = format!("» {} UIO3", uio3 as u8);
+            buf.set_string(area.width - 6, area.y + 15, s, *helpers::YELLOW);
+        }
+
+        if self.bus.board.dasr.contains(DASR::J1) {
+            buf.set_string(area.width - 4, area.height - 1, "╼━╾ J1", *helpers::GREEN);
+        }
+        if !self.bus.board.dasr.contains(DASR::J2) {
+            buf.set_string(area.width - 4, area.height, "╼ ╾ J2", *helpers::LIGHTRED);
         }
     }
 }
