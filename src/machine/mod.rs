@@ -432,8 +432,8 @@ impl Widget for Machine {
         buf.set_string(x, y, "Outputs:", dimmed);
         display_u8_str(buf, x, y + 1, out_ff);
         display_u8_str(buf, x + 9, y + 1, out_fe);
-        buf.set_string(x + 6, y + 2, "FF", dimmed);
-        buf.set_string(x + 15, y + 2, "FE", dimmed);
+        buf.set_string(x + 6, y + 2, "FF", Style::default());
+        buf.set_string(x + 15, y + 2, "FE", Style::default());
 
         // Input register
         buf.set_string(x, y + 4, "Inputs:", dimmed);
@@ -441,11 +441,34 @@ impl Widget for Machine {
         display_u8_str(buf, x + 9, y + 5, in_fe);
         display_u8_str(buf, x + 18, y + 5, in_fd);
         display_u8_str(buf, x + 27, y + 5, in_fc);
-        buf.set_string(x + 6, y + 6, "FF", dimmed);
-        buf.set_string(x + 15, y + 6, "FE", dimmed);
-        buf.set_string(x + 24, y + 6, "FD", dimmed);
-        buf.set_string(x + 33, y + 6, "FC", dimmed);
+        buf.set_string(x + 6, y + 6, "FF", Style::default());
+        buf.set_string(x + 15, y + 6, "FE", Style::default());
+        buf.set_string(x + 24, y + 6, "FD", Style::default());
+        buf.set_string(x + 33, y + 6, "FC", Style::default());
 
+        // Register block
+        buf.set_string(x, y + 8, "Registers:", dimmed);
+        for (index, content) in self.reg.content.iter().enumerate() {
+            let reg = match index {
+                3 => "PC".to_owned(),
+                5 => "SP".to_owned(),
+                i => format!("R{}", i),
+            };
+            if index <= 3 {
+                buf.set_string(x, y + 9 + index as u16, reg, Style::default());
+                display_u8_str(buf, x + 3, y + 9 + index as u16, content.display());
+            } else {
+                buf.set_string(x, y + 9 + index as u16, reg, *helpers::DIMMED);
+                buf.set_string(
+                    x + 3,
+                    y + 9 + index as u16,
+                    content.display(),
+                    *helpers::DIMMED,
+                );
+            };
+        }
+
+        // Details
         if area.width >= 46 && area.height >= 19 {
             if self.bus.board.fan_rpm != 0 {
                 if self.draw_counter % 10 <= 5 {

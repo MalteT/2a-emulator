@@ -6,7 +6,7 @@ use super::Signal;
 /// Containing `R0` through `R7`
 #[derive(Debug, Clone)]
 pub struct Register {
-    content: [u8; 8],
+    pub(crate) content: [u8; 8],
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
