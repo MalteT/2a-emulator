@@ -22,7 +22,7 @@ rustyline = "5.0.3"
 [dependencies.parser2a]
 git = "https://v4.git.tammena.rocks/2a-emulator/2a-parser.git"
 package = "2a-parser"
-version = "4.3.0"
+version = "5.0.0"
 features = ["formatting"]
 
 [dependencies.clap]
