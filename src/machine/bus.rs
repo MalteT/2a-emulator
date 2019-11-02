@@ -129,11 +129,21 @@ impl Bus {
             board,
         }
     }
-    /// Reset the output registers.
+    /// Reset the bus.
     ///
-    /// *Not* the input register nor the ram.
+    /// # Note
+    ///
+    /// Resets:
+    /// - The output register.
+    /// - The external board.
+    /// - MICR.
+    /// - MISR.
+    /// - *Not* the input register nor the ram.
     pub fn reset(&mut self) {
         self.output_reg = [0; 2];
+        self.board.reset();
+        self.micr = MICR::empty();
+        self.misr = MISR::empty();
     }
     /// Write to the bus
     pub fn write(&mut self, addr: u8, byte: u8) {

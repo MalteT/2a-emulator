@@ -345,4 +345,17 @@ impl Board {
         }
         self.dasr.set(DASR::COMP_DAC2, new_value);
     }
+    /// Reset the board.
+    pub fn reset(&mut self) {
+        self.org1 = 0;
+        self.org2 = 0;
+        self.temp = 1.5707;
+        self.dasr = DASR::J2;
+        self.daisr = DAISR::empty();
+        self.daicr = DAICR::empty();
+        self.analog_outputs = [0.0; 2];
+        self.fan_rpm = 0;
+        self.int_source = 0;
+        self.uio_dir = [false; 3];
+    }
 }
