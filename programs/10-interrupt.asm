@@ -7,6 +7,7 @@ JR INTERRUPT
 
 MAIN:
     LDSP 0xEF
+    BITS (0xF9), 1
     EI
     CLR R0
 LOOP:

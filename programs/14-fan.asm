@@ -5,4 +5,5 @@
 LOOP:
     INC R0
     ST (0xF0), R0
+    ST (0xFF), R0
     JR LOOP
