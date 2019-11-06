@@ -30,6 +30,15 @@ use crate::helpers::Configuration;
 use crate::machine::board::DASR;
 use crate::tui::display::Display;
 
+const MINIMUM_ALLOWED_WIDTH_FOR_MEMORY_DISPLAY: u16 = 51;
+const MINIMUM_ALLOWED_HEIGHT_FOR_MEMORY_DISPLAY: u16 = 27;
+
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum Part {
+    RegisterBlock,
+    Memory,
+}
+
 #[derive(Debug)]
 pub struct Machine {
     mp_ram: MicroprogramRam,
@@ -65,6 +74,8 @@ pub struct Machine {
     /// Stacksize, if any program is loaded.
     /// For error checking.
     stacksize: Option<Stacksize>,
+    /// The part to show in the UI
+    showing: Part,
 }
 
 impl Machine {
@@ -88,6 +99,7 @@ impl Machine {
         let clk_counter = 0;
         let draw_counter = 0;
         let stacksize = None;
+        let showing = Part::RegisterBlock;
         let mut machine = Machine {
             mp_ram,
             reg,
@@ -107,6 +119,7 @@ impl Machine {
             clk_counter,
             draw_counter,
             stacksize,
+            showing,
         };
         // Load program if given any
         if let Some(program) = program {
@@ -252,6 +265,10 @@ impl Machine {
     /// Is key edge interrupt enabled?
     pub fn is_key_edge_int_enabled(&self) -> bool {
         self.bus.is_key_edge_int_enabled()
+    }
+    /// Select the element to show in the TUI.
+    pub fn show(&mut self, part: Part) {
+        self.showing = part;
     }
     /// Update the machine.
     /// This should be equivalent to a CLK signal on the real machine.
@@ -446,26 +463,58 @@ impl Widget for Machine {
         buf.set_string(x + 24, y + 6, "FD", Style::default());
         buf.set_string(x + 33, y + 6, "FC", Style::default());
 
-        // Register block
-        buf.set_string(x, y + 8, "Registers:", dimmed);
-        for (index, content) in self.reg.content.iter().enumerate() {
-            let reg = match index {
-                3 => "PC".to_owned(),
-                5 => "SP".to_owned(),
-                i => format!("R{}", i),
-            };
-            if index <= 3 {
-                buf.set_string(x, y + 9 + index as u16, reg, Style::default());
-                display_u8_str(buf, x + 3, y + 9 + index as u16, content.display());
+        if self.showing == Part::Memory {
+            buf.set_string(x, y + 8, "Memory:", dimmed);
+            if area.width < MINIMUM_ALLOWED_WIDTH_FOR_MEMORY_DISPLAY {
+                buf.set_string(x, y + 10, "Display width too small!", *helpers::LIGHTRED);
+            } else if area.height < MINIMUM_ALLOWED_HEIGHT_FOR_MEMORY_DISPLAY {
+                buf.set_string(x, y + 10, "Display height too small!", *helpers::LIGHTRED);
             } else {
-                buf.set_string(x, y + 9 + index as u16, reg, *helpers::DIMMED);
-                buf.set_string(
-                    x + 3,
-                    y + 9 + index as u16,
-                    content.display(),
-                    *helpers::DIMMED,
-                );
-            };
+                for i in 0..=0xFB {
+                    let data = self.bus.read(i);
+                    let color = if data == 0 {
+                        Default::default()
+                    } else {
+                        *helpers::YELLOW
+                    };
+                    let data = format!("{:>02X}", data);
+                    let x_pos = x + 2 + (i as u16 % 0x10) * 3;
+                    let y_pos = y + 10 + i as u16 / 0x10;
+                    let width = if area.width > x { area.width - x } else { 0 };
+                    buf.set_stringn(x_pos, y_pos, &data, width as usize, color);
+                    if i <= 0xF {
+                        let nr = format!("{:>2X}", i);
+                        buf.set_stringn(x_pos, y_pos - 1, &nr, width as usize, *helpers::DIMMED);
+                    }
+                    if i % 0x10 == 0 {
+                        let nr = format!("{:>2X}", i / 0x10);
+                        buf.set_stringn(x_pos - 3, y_pos, &nr, width as usize, *helpers::DIMMED);
+                    }
+                }
+            }
+        } else if self.showing == Part::RegisterBlock {
+            // Register block
+            buf.set_string(x, y + 8, "Registers:", dimmed);
+            for (index, content) in self.reg.content.iter().enumerate() {
+                let reg = match index {
+                    3 => "PC".to_owned(),
+                    4 => "FR".to_owned(),
+                    5 => "SP".to_owned(),
+                    i => format!("R{}", i),
+                };
+                if index <= 3 {
+                    buf.set_string(x, y + 9 + index as u16, reg, Style::default());
+                    display_u8_str(buf, x + 3, y + 9 + index as u16, content.display());
+                } else {
+                    buf.set_string(x, y + 9 + index as u16, reg, *helpers::DIMMED);
+                    buf.set_string(
+                        x + 3,
+                        y + 9 + index as u16,
+                        content.display(),
+                        *helpers::DIMMED,
+                    );
+                };
+            }
         }
 
         // Details

@@ -22,6 +22,7 @@ pub mod interface;
 
 use crate::error::Error;
 use crate::helpers::Configuration;
+use crate::machine::Part;
 use crate::supervisor::Supervisor;
 use events::Events;
 use input::Input;
@@ -259,6 +260,13 @@ impl Tui {
                 self.supervisor.set_j2(false);
             } else {
                 warn!("Invalid setting: {}", query);
+            }
+        } else if query.starts_with("show ") {
+            let query = &query[5..];
+            if query == "memory" {
+                self.supervisor.show(Part::Memory);
+            } else {
+                self.supervisor.show(Part::RegisterBlock);
             }
         } else if query == "quit" {
             self.is_main_loop_running = false;

@@ -17,6 +17,7 @@ use crate::error::Error;
 use crate::helpers;
 use crate::helpers::Configuration;
 use crate::machine::Machine;
+use crate::machine::Part;
 
 const NUMBER_OF_MEASUREMENTS: usize = 10;
 
@@ -336,6 +337,14 @@ impl Supervisor {
     /// Set the Universal Input/Output UIO3.
     pub fn set_uio3(&mut self, value: bool) {
         self.machine.bus.board.set_uio3(value);
+    }
+    /// Is an asm program loaded?
+    pub fn is_program_loaded(&self) -> bool {
+        self.program_path.is_some()
+    }
+    /// Select the part to show in the TUI.
+    pub fn show(&mut self, part: Part) {
+        self.machine.show(part);
     }
 }
 
