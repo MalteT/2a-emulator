@@ -267,6 +267,15 @@ impl<'a> Interface<'a> {
                 .right_style(&helpers::DIMMED);
         }
         ss.render(f, area);
+
+        // Display commands
+        area.y += 2;
+        area.height -= 2;
+        let mut ss = SpacedString::from("load PATH", "Load asm program");
+        if !tui.supervisor.is_program_loaded() {
+            ss = ss.left_style(&helpers::YELLOW);
+        }
+        ss.render(f, area);
     }
 
     fn draw_freq(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
