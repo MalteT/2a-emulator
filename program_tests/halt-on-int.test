@@ -1,3 +1,12 @@
-TEST 'receiving interrupt' WITH INTERRUPT FOR 100 EXPECT STOP, NO ERROR STOP END
-TEST 'received nothing' EXPECT NO STOP END
+TEST 'receiving interrupt'
+WITH INTERRUPT
+FOR 100
+EXPECT STOP, 
+       NO ERROR STOP
+END
+
+TEST 'received nothing'
+FOR 10000
+EXPECT NO STOP
+END
 

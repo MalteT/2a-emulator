@@ -1,3 +1,4 @@
 TEST 'should not halt'
+FOR 10000
 EXPECT NO STOP
 END
