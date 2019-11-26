@@ -302,10 +302,10 @@ impl<'a> Interface<'a> {
             SpacedString::from("Frequency: ", &self.frequency).left_style(&helpers::DIMMED);
         let mut state_ss = SpacedString::from("State: ", "RUNNING").left_style(&helpers::DIMMED);
         if tui.supervisor.is_error_stopped() {
-            state_ss.right = "ERROR STOP".into();
+            state_ss.right = "ERROR STOPPED".into();
             state_ss = state_ss.right_style(&helpers::RED);
         } else if tui.supervisor.is_stopped() {
-            state_ss.right = "STOP".into();
+            state_ss.right = "STOPPED".into();
             state_ss = state_ss.right_style(&helpers::YELLOW);
         }
         program_ss.render(f, area);
