@@ -37,8 +37,10 @@ pub enum Setting {
 
 #[derive(Debug)]
 pub enum Expectation {
-    Halt,
-    NoHalt,
+    Stop,
+    NoStop,
+    ErrorStop,
+    NoErrorStop,
     OutputFe(u8),
     OutputFf(u8),
 }
@@ -153,17 +155,25 @@ impl Test {
         trace!("Verifying test {:?} for {:?}", self.name, path);
         for expectation in &self.expectations {
             match expectation {
-                Expectation::Halt => match final_state.final_machine_state {
+                Expectation::Stop => match final_state.final_machine_state {
                     MachineState::ErrorStopped => {}
                     MachineState::Stopped => {}
-                    MachineState::Running => return self.create_error("Machine did not halt!"),
+                    MachineState::Running => return self.create_error("Machine did not stop!"),
                 },
-                Expectation::NoHalt => match final_state.final_machine_state {
+                Expectation::NoStop => match final_state.final_machine_state {
                     MachineState::ErrorStopped | MachineState::Stopped => {
-                        return self.create_error("Machine halted!")
+                        return self.create_error("Machine stopped!")
                     }
                     MachineState::Running => {}
                 },
+                Expectation::ErrorStop => match final_state.final_machine_state {
+                    MachineState::ErrorStopped => {}
+                    MachineState::Stopped | MachineState::Running => return self.create_error("Machine did not error stop!"),
+                }
+                Expectation::NoErrorStop => match final_state.final_machine_state {
+                    MachineState::ErrorStopped => return self.create_error("Machine error stopped!"),
+                    MachineState::Stopped | MachineState::Running => {}
+                }
                 Expectation::OutputFe(nr) => {
                     if final_outputs.is_some() && final_outputs.unwrap().0 != *nr {
                         return self.create_error(&format!(
@@ -196,7 +206,7 @@ impl Test {
         let mut name = "".into();
         let mut ticks = 10_000;
         let mut settings = vec![];
-        let mut expectations = vec![Expectation::NoHalt];
+        let mut expectations = vec![];
 
         for part in pair.into_inner() {
             match part.as_rule() {
@@ -267,8 +277,10 @@ impl Test {
         let mut ret = vec![];
         for pair in pair.into_inner() {
             let expectation = match pair.as_rule() {
-                Rule::halt => Expectation::Halt,
-                Rule::no_halt => Expectation::NoHalt,
+                Rule::stop => Expectation::Stop,
+                Rule::no_stop => Expectation::NoStop,
+                Rule::error_stop => Expectation::ErrorStop,
+                Rule::no_error_stop => Expectation::NoErrorStop,
                 Rule::out_fe => {
                     let raw = &pair.into_inner().as_str()[2..];
                     let number = u8::from_str_radix(raw, 16).expect("Infallible");

@@ -4,7 +4,7 @@ WITH
     FD = 0x01
 FOR 1000
 EXPECT
-    NO HALT,
+    NO ERROR STOP,
     FF = 0x02
 END
 
@@ -15,6 +15,6 @@ WITH
     RANDOM RESET
 FOR 1000
 EXPECT
-    NO HALT,
+    NO ERROR STOP,
     FF = 0xFE
 END

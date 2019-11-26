@@ -7,8 +7,10 @@ interrupt        = ${ ^"INTERRUPT" }
 random_interrupt = ${ ^"RANDOM INTERRUPT" }
 random_reset     = ${ ^"RANDOM RESET" }
 random_input     = ${ ^"RANDOM INPUT" }
-halt             = ${ ^"HALT" }
-no_halt          = ${ ^"NO HALT" }
+stop             = ${ ^"STOP" }
+no_stop          = ${ ^"NO STOP" }
+error_stop       = ${ ^"ERROR STOP" }
+no_error_stop    = ${ ^"NO ERROR STOP" }
 
 out_fe           =  { ^"FE" ~ "=" ~ hex_digit }
 out_ff           =  { ^"FF" ~ "=" ~ hex_digit }
@@ -18,7 +20,8 @@ fd               =  { ^"FD" ~ "=" ~ input }
 fe               =  { ^"FE" ~ "=" ~ input }
 ff               =  { ^"FF" ~ "=" ~ input }
 
-expectation  = _{ halt | no_halt | out_fe | out_ff }
+expectation  = _{ stop | no_stop | error_stop | no_error_stop
+                | out_fe | out_ff }
 setting      = _{ random_input | random_reset | random_interrupt | interrupt
                 | fc | fd | fe | ff }
 
