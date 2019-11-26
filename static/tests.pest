@@ -29,4 +29,4 @@ with_block   =  { ^"WITH" ~ (setting ~ ",")* ~ setting }
 test         =  { ^"TEST " ~ test_name ~ with_block? ~ for_block? ~ expect_block? ~ ^"END" }
 file         = _{ SOI ~ test* ~ EOI }
 
-WHITESPACE = _{ " " | "\t" | "\n" }
+WHITESPACE = _{ " " | "\t" | "\r\n" | "\r" | "\n" }
