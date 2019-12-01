@@ -13,7 +13,7 @@
 use colored::Colorize;
 use parser2a::asm::{
     Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Register,
-    RegisterDDI, RegisterDI, Source, Stacksize, Word,
+    RegisterDDI, RegisterDI, Source, Stacksize,
 };
 
 use std::collections::HashMap;
@@ -35,8 +35,6 @@ pub enum ByteOrLabel {
     /// A label that will be replaced by the address of the following byte
     /// which will the be transformed by the function.
     LabelFn(Label, Rc<dyn Fn(u8) -> u8>),
-    /// A label that will be replaced by the next to addresses.
-    WordLabel(Label),
 }
 
 #[derive(Debug, Clone)]
@@ -119,14 +117,6 @@ impl Translator {
                 ret
             }
             AsmDefineBytes(mut cs) => cs.drain(..).map(ByteOrLabel::from).collect(),
-            AsmDefineWords(mut ws) => ws
-                .drain(..)
-                .map(|word| match word {
-                    Word::Constant(nr) => vec![Byte(nr as u8), Byte((nr & 0xFF00 >> 8) as u8)],
-                    Word::Label(l) => vec![WordLabel(l)],
-                })
-                .flatten()
-                .collect(),
             AsmEquals(label, c) => {
                 // Push Label!
                 self.known_labels.insert(label, self.next_addr);
@@ -222,12 +212,6 @@ impl Translator {
                                 .get(&label)
                                 .expect("infallible. Labels must be defined");
                             vec![f.deref()(b)]
-                        }
-                        ByteOrLabel::WordLabel(label) => {
-                            let addr = labels
-                                .get(&label)
-                                .expect("infallible. Labels must be defined");
-                            vec![*addr, addr + 1]
                         }
                     })
                     .flatten()
@@ -503,7 +487,6 @@ impl fmt::Debug for ByteOrLabel {
             ByteOrLabel::Byte(b) => write!(f, "Byte({:>02X})", b),
             ByteOrLabel::Label(l) => write!(f, "Label({})", l),
             ByteOrLabel::LabelFn(l, _) => write!(f, "LabelFn({}, [hidden])", l),
-            ByteOrLabel::WordLabel(l) => write!(f, "WordLabel({})", l),
         }
     }
 }
