@@ -1,6 +1,8 @@
 use bitflags::bitflags;
 use log::warn;
 
+use std::u8;
+
 const MAX_FAN_RPM: usize = 4200;
 
 /// The external board of the Minirechner 2a.
@@ -26,6 +28,7 @@ pub struct Board {
     pub(super) analog_outputs: [f32; 2],
     /// Fan rpms. This is an oversimplification. The maximum fan rpm equals 4200.
     /// But this fan spins even at 0.1V supply voltage.
+    /// freq(volt) = 70Hz / 2.55V * volt
     pub(super) fan_rpm: usize,
     /// Interrupt source (DA-ICR[0-2].
     int_source: u8,
@@ -275,14 +278,11 @@ impl Board {
     }
     /// Get the fan period.
     ///
+    /// period(volt) = 255 - 255 / 2.55V * volt
+    ///
     /// The fan period is mapped to the range \[0..255\].
     pub fn get_fan_period(&self) -> u8 {
-        let period = if self.fan_rpm <= 1 {
-            60.0
-        } else {
-            60.0 / self.fan_rpm as f32
-        };
-        (period * 255.0 / 60.0) as u8
+        u8::MAX - (u8::MAX as f32 / self.fan_rpm as f32 * MAX_FAN_RPM as f32) as u8
     }
     /// Is there an interrupt?
     pub fn fetch_interrupt(&mut self) -> bool {
