@@ -168,12 +168,16 @@ impl Test {
                 },
                 Expectation::ErrorStop => match final_state.final_machine_state {
                     MachineState::ErrorStopped => {}
-                    MachineState::Stopped | MachineState::Running => return self.create_error("Machine did not error stop!"),
-                }
+                    MachineState::Stopped | MachineState::Running => {
+                        return self.create_error("Machine did not error stop!")
+                    }
+                },
                 Expectation::NoErrorStop => match final_state.final_machine_state {
-                    MachineState::ErrorStopped => return self.create_error("Machine error stopped!"),
+                    MachineState::ErrorStopped => {
+                        return self.create_error("Machine error stopped!")
+                    }
                     MachineState::Stopped | MachineState::Running => {}
-                }
+                },
                 Expectation::OutputFe(nr) => {
                     if final_outputs.is_some() && final_outputs.unwrap().0 != *nr {
                         return self.create_error(&format!(

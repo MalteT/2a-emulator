@@ -137,7 +137,7 @@ impl Supervisor {
         // Remember input/outputs
         let mut last_outputs = (0, 0);
         // MAIN LOOP
-        for tick in 0..param.ticks + 1 {
+        for tick in 0..=param.ticks {
             // Input the inputs accordingly.
             if param.inputs.contains_key(&tick) {
                 let inputs = param.inputs.get(&tick).unwrap();
@@ -168,6 +168,13 @@ impl Supervisor {
             // Emulate rising clk
             sv.tick();
         }
+        // Add final outputs if necessary
+        if last_outputs != (sv.machine.output_fe(), sv.machine.output_ff()) {
+            last_outputs = (sv.machine.output_fe(), sv.machine.output_ff());
+            fs.outputs
+                .insert(param.ticks, (last_outputs.0, last_outputs.1));
+        }
+        // get the machine state at the end of execution
         let final_machine_state = if sv.machine.is_error_stopped() {
             MachineState::ErrorStopped
         } else if sv.machine.is_stopped() {
