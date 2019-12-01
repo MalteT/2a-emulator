@@ -1,7 +1,7 @@
 #! mrasm
 
     .ORG 0
-    ;*STACKSIZE 16
+    *STACKSIZE 32
 
     LDSP 0xEF
     CLR R0

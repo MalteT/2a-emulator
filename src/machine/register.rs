@@ -1,3 +1,4 @@
+use log::warn;
 use parser2a::asm::Stacksize;
 
 use super::Signal;
@@ -155,13 +156,17 @@ impl Register {
         if sp >= 0xF0 {
             return false;
         }
-        match ss {
-            Stacksize::_16 => sp >= 0xA0 && sp <= 0xAF,
-            Stacksize::_32 => sp >= 0xA0 && sp <= 0xBF,
-            Stacksize::_48 => sp >= 0xA0 && sp <= 0xCF,
-            Stacksize::_64 => sp >= 0xA0 && sp <= 0xDF,
+        let valid = match ss {
+            Stacksize::_16 => sp <= 0xD0 || sp >= 0xDF,
+            Stacksize::_32 => sp <= 0xC0 || sp >= 0xCF,
+            Stacksize::_48 => sp <= 0xB0 || sp >= 0xBF,
+            Stacksize::_64 => sp <= 0xA0 || sp >= 0xAF,
             Stacksize::NotSet => true,
+        };
+        if !valid {
+            warn!("Stackpointer got invalid!")
         }
+        valid
     }
 }
 
