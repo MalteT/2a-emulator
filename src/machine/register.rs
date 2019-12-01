@@ -82,11 +82,13 @@ impl Register {
     }
     /// Write a new value into the register.
     /// The register number will be derived from the given signals
+    #[allow(dead_code)]
     pub fn write(&mut self, signal: &Signal, value: u8) {
         let selected: usize = Register::get_selected(signal).into();
         self.content[selected] = value;
     }
     /// Update flags in R4.
+    #[allow(dead_code)]
     pub fn write_flags(&mut self, signal: &Signal) {
         // Persistent IEF
         let mut value = (self.ief() as u8) << 3;
@@ -102,6 +104,7 @@ impl Register {
         self.content[4] = value;
     }
     /// Update the interrupt enable flag.
+    #[allow(dead_code)]
     pub fn set_ief(&mut self) {
         self.content[4] |= 0b0000_1000;
     }

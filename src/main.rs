@@ -24,13 +24,13 @@
 
 use pretty_env_logger;
 
-pub mod compiler;
-pub mod error;
-pub mod helpers;
-pub mod machine;
-pub mod supervisor;
-pub mod testing;
-pub mod tui;
+mod compiler;
+mod error;
+mod helpers;
+mod machine;
+mod supervisor;
+mod testing;
+mod tui;
 
 use std::process;
 

@@ -123,6 +123,7 @@ impl Signal {
     pub fn mac2(&self) -> bool {
         self.word.contains(MP28BitWord::MAC2)
     }
+    #[allow(dead_code)]
     pub fn mac3(&self) -> bool {
         self.word.contains(MP28BitWord::MAC3)
     }

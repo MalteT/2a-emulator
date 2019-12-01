@@ -23,7 +23,6 @@ use crate::machine::board::Board;
 /// | `FC - FD` | Interrupt timer                   | `_w` |
 /// | `FE - FF` | Output register                   | `_w` |
 ///
-// # TODO: External board
 #[derive(Clone)]
 pub struct Bus {
     ram: [u8; 0xF0],
@@ -309,6 +308,7 @@ impl Bus {
         self.micr.contains(MICR::KEY_EDGE_INTERRUPT_ENABLE)
     }
     /// Is timer edge interrupt enabled?
+    #[allow(dead_code)]
     pub fn is_timer_edge_int_enabled(&self) -> bool {
         self.micr.contains(MICR::TIMER_EDGE_INTERRUPT_ENABLE)
     }
