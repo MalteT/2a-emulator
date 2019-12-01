@@ -16,7 +16,6 @@ use std::time::{Duration, Instant};
 
 pub mod display;
 pub mod events;
-pub mod grid;
 pub mod input;
 pub mod interface;
 
