@@ -210,12 +210,6 @@ impl Tui {
                 } else {
                     warn!("Invalid setting: {}", query);
                 }
-            } else if query == "J1" {
-                self.supervisor.set_j1(true);
-            } else if query == "J2" {
-                self.supervisor.set_j2(true);
-            } else if query == "J2" {
-                self.supervisor.set_j2(true);
             } else if query.starts_with("I1 = ") {
                 if let Some(x) = query[5..].parse().ok() {
                     self.supervisor.set_i1(x);
@@ -228,24 +222,40 @@ impl Tui {
                 } else {
                     warn!("Invalid setting: {}", query);
                 }
-            } else if query.starts_with("UIO1 = ") {
-                if let Some(x) = query[7..].parse().ok() {
-                    self.supervisor.set_uio1(x);
+            } else if query.starts_with("FC = ") {
+                if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
+                    self.supervisor.input_fc(x)
                 } else {
-                    warn!("Invalid setting: {}", query);
+                    warn!("Invalid input: {}", query);
                 }
-            } else if query.starts_with("UIO2 = ") {
-                if let Some(x) = query[7..].parse().ok() {
-                    self.supervisor.set_uio2(x);
+            } else if query.starts_with("FD = ") {
+                if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
+                    self.supervisor.input_fd(x)
                 } else {
-                    warn!("Invalid setting: {}", query);
+                    warn!("Invalid input: {}", query);
                 }
-            } else if query.starts_with("UIO3 = ") {
-                if let Some(x) = query[7..].parse().ok() {
-                    self.supervisor.set_uio3(x);
+            } else if query.starts_with("FE = ") {
+                if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
+                    self.supervisor.input_fe(x)
                 } else {
-                    warn!("Invalid setting: {}", query);
+                    warn!("Invalid input: {}", query);
                 }
+            } else if query.starts_with("FF = ") {
+                if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
+                    self.supervisor.input_ff(x)
+                } else {
+                    warn!("Invalid input: {}", query);
+                }
+            } else if query == "J1" {
+                self.supervisor.set_j1(true);
+            } else if query == "J2" {
+                self.supervisor.set_j2(true);
+            } else if query.starts_with("UIO1") {
+                self.supervisor.set_uio1(true);
+            } else if query.starts_with("UIO2") {
+                self.supervisor.set_uio2(true);
+            } else if query.starts_with("UIO3") {
+                self.supervisor.set_uio3(true);
             } else {
                 warn!("Invalid setting: {}", query);
             }
@@ -255,8 +265,12 @@ impl Tui {
                 self.supervisor.set_j1(false);
             } else if query == "J2" {
                 self.supervisor.set_j2(false);
-            } else if query == "J2" {
-                self.supervisor.set_j2(false);
+            } else if query.starts_with("UIO1") {
+                self.supervisor.set_uio1(false);
+            } else if query.starts_with("UIO2") {
+                self.supervisor.set_uio2(false);
+            } else if query.starts_with("UIO3") {
+                self.supervisor.set_uio3(false);
             } else {
                 warn!("Invalid setting: {}", query);
             }

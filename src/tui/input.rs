@@ -180,6 +180,8 @@ impl Input {
             }
         } else if s.starts_with("l") {
             self.curr_completions = Some((vec!["load ".chars().collect()], 0));
+        } else if s.starts_with("s") {
+            self.curr_completions = Some((vec!["set ".chars().collect()], 0));
         } else if s.starts_with("F") && self.input_index > 1 && self.input_index <= 4 {
             let comp = match &s[1..2] {
                 "C" => "FC = ",
