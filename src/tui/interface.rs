@@ -196,7 +196,49 @@ impl<'a> Interface<'a> {
         self.draw_help(f, self.help_display.inner(help_area), tui);
     }
 
-    fn draw_help(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
+    fn draw_help_set(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect) {
+        let items = vec![
+            ("FC = XX", "Input reg FC"),
+            ("FD = XX", "Input reg FD"),
+            ("FE = XX", "Input reg FE"),
+            ("FD = XX", "Input reg FF"),
+            ("IRG = XX", "MR2DA2 input reg"),
+            ("TEMP = x.x", "MR2DA2 Temp voltage"),
+            ("I1 = x.x", "MR2DA2 analog input 1"),
+            ("I2 = x.x", "MR2DA2 analog input 2"),
+            ("J1", "MR2DA2 jumper 1"),
+            ("J2", "MR2DA2 jumper 2"),
+            ("UIO1", "MR2DA2 universal IO1"),
+            ("UIO2", "MR2DA2 universal IO2"),
+            ("UIO3", "MR2DA2 universal IO3"),
+        ];
+        // Show as much as possible
+        for (input, help) in items.iter().take(area.height as usize) {
+            let mut ss = SpacedString::from(input, help);
+            ss.render(f, area);
+            area.y += 1;
+            area.height -= 1;
+        }
+    }
+
+    fn draw_help_unset(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect) {
+        let items = vec![
+            ("J1", "MR2DA2 jumper 1"),
+            ("J2", "MR2DA2 jumper 2"),
+            ("UIO1", "MR2DA2 universal IO1"),
+            ("UIO2", "MR2DA2 universal IO2"),
+            ("UIO3", "MR2DA2 universal IO3"),
+        ];
+        // Show as much as possible
+        for (input, help) in items.iter().take(area.height as usize) {
+            let mut ss = SpacedString::from(input, help);
+            ss.render(f, area);
+            area.y += 1;
+            area.height -= 1;
+        }
+    }
+
+    fn draw_help_keys(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
         let items = vec![("Reset", "CTRL+R")];
         let now = Instant::now();
         for (key, help) in items {
@@ -276,6 +318,18 @@ impl<'a> Interface<'a> {
             ss = ss.left_style(&helpers::YELLOW);
         }
         ss.render(f, area);
+    }
+
+    fn draw_help(&mut self, f: &mut Frame<CrosstermBackend>, area: Rect, tui: &Tui) {
+        let input_field_content: String = tui.input_field().current().iter().collect();
+        // Draw information about `set` command when entered
+        if input_field_content.starts_with("set") {
+            self.draw_help_set(f, area);
+        } else if input_field_content.starts_with("unset") {
+            self.draw_help_unset(f, area);
+        } else {
+            self.draw_help_keys(f, area, tui);
+        }
     }
 
     fn draw_freq(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {

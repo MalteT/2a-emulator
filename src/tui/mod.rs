@@ -287,6 +287,9 @@ impl Tui {
             warn!("Unrecognized input: {}", query);
         }
     }
+    pub fn input_field(&self) -> &Input {
+        &self.input_field
+    }
 }
 
 /// Parse the given [`str`] to u8 with base 16.

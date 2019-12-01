@@ -125,6 +125,10 @@ impl Input {
     pub fn last(&self) -> Option<String> {
         self.history.last().cloned()
     }
+    /// Get the current input.
+    pub fn current(&self) -> &Vec<char> {
+        &self.input
+    }
     /// Switch to the next completion.
     fn next_completion(&mut self) {
         match &mut self.curr_completions {
