@@ -52,7 +52,7 @@ impl fmt::Display for Error {
                 write!(f, "The source file could not be opened!:\n{}", ioe)
             }
             Error::TestFileParsingError(pe) => write!(f, "{}", pe),
-            Error::TestFailed(name, s) => write!(f, "Test {:?} failed: {}", name, s),
+            Error::TestFailed(n, r) => write!(f, "Test {:?} failed: {}", n, r),
             Error::InvalidInput(s) => write!(f, "{}", s),
         }
     }

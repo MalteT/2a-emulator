@@ -1,4 +1,5 @@
-use log::{error, info, trace};
+use colored::*;
+use log::{info, trace};
 use parser2a::asm::Asm;
 use pest::iterators::Pair;
 use pest::Parser;
@@ -89,7 +90,7 @@ impl TestFile {
             trace!("Executing test {:?} for {:?}", test.name, path);
             res = match test.execute_against(&path, asm.clone(), conf) {
                 Err(e) => {
-                    error!("{}", e);
+                    eprintln!(" {} {}", "=>".bright_red(), e);
                     Err(e)
                 }
                 Ok(()) => res,
