@@ -205,10 +205,10 @@ impl Supervisor {
     /// Emulate a rising clock edge.
     pub fn next_clk(&mut self) {
         if self.clk_asm_step_mode && !(self.is_stopped() || self.is_error_stopped()) {
-            while self.machine.is_instruction_done() {
+            while self.machine.is_instruction_done() && !(self.is_stopped() || self.is_error_stopped()) {
                 self.machine.clk()
             }
-            while !self.machine.is_instruction_done() {
+            while !self.machine.is_instruction_done() && !(self.is_stopped() || self.is_error_stopped()) {
                 self.machine.clk()
             }
         } else {
