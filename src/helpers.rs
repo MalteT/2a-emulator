@@ -12,7 +12,6 @@ use parser2a::parser::AsmParser;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
-use crate::compiler::Translator;
 use crate::error::Error;
 use crate::testing::TestFile;
 use crate::tui;
@@ -181,10 +180,9 @@ pub fn cli_validate_source_file<P>(path: P) -> Result<(), Error>
 where
     P: Into<PathBuf>,
 {
-    let program = read_asm_file(path)?;
-    println!("{}", program);
-    let compiled = Translator::compile(&program);
-    println!("{}", compiled);
+    let path: PathBuf = path.into();
+    read_asm_file(path.clone())?;
+    println!("Source file {:?} is valid.", path);
     Ok(())
 }
 
