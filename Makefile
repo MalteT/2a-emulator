@@ -10,7 +10,7 @@ linux:
 	strip target/${LINUX}/release/2a-emulator
 	mkdir -p ${RELEASE_DIR}
 	cd ${RELEASE_DIR}
-	zip -r9 ${RELEASE_DIR}/2a-emulator-${LINUX}.zip \
+	zip -rj9 ${RELEASE_DIR}/2a-emulator-${LINUX}.zip \
 		target/${LINUX}/release/2a-emulator
 
 windows:
@@ -18,5 +18,5 @@ windows:
 	strip target/${WINDOWS}/release/2a-emulator.exe
 	mkdir -p ${RELEASE_DIR}
 	cd ${RELEASE_DIR}
-	zip -r9 ${RELEASE_DIR}/2a-emulator-${WINDOWS}.zip \
+	zip -rj9 ${RELEASE_DIR}/2a-emulator-${WINDOWS}.zip \
 		target/${WINDOWS}/release/2a-emulator.exe
