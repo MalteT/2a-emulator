@@ -7,8 +7,6 @@ use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
 use tui::widgets::Widget;
 
-use std::time::Instant;
-
 mod alu;
 mod board;
 mod bus;
@@ -54,9 +52,6 @@ pub struct Machine {
     pending_flag_write: Option<(bool, bool, bool)>,
     edge_int: bool,
     level_int: bool,
-    /// Frequency measurements
-    measured_frequency: f32,
-    frequency_measure_last_measurement: Instant,
     /// Lines of the program.
     program_lines: Vec<(String, usize)>,
     /// Whether or not the machine was stopped by software.
@@ -89,8 +84,6 @@ impl Machine {
         let pending_flag_write = None;
         let edge_int = false;
         let level_int = false;
-        let measured_frequency = 1000.0;
-        let frequency_measure_last_measurement = Instant::now();
         let program_lines = vec![];
         let machine_stopped = false;
         let machine_error_stopped = false;
@@ -109,8 +102,6 @@ impl Machine {
             pending_flag_write,
             edge_int,
             level_int,
-            measured_frequency,
-            frequency_measure_last_measurement,
             program_lines,
             machine_stopped,
             machine_error_stopped,
@@ -286,9 +277,6 @@ impl Machine {
             self.waiting_for_memory = false;
             return;
         }
-        let diff = Instant::now() - self.frequency_measure_last_measurement;
-        self.measured_frequency = 1_000_000_000.0 / diff.as_nanos() as f32;
-        self.frequency_measure_last_measurement = Instant::now();
         // ------------------------------------------------------------
         // Update register block with values from last iteration
         // ------------------------------------------------------------
