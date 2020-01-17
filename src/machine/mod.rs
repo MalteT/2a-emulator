@@ -177,7 +177,14 @@ impl Machine {
     pub fn output_ff(&self) -> u8 {
         self.bus.output_ff()
     }
-    /// Get currently executed line of the program and the middle index.
+    /// Get the currently executed lines of the program.
+    ///
+    /// # Arguments
+    /// - `context` The amount of lines before and after the currently executed line.
+    ///
+    /// # Returns
+    /// - A tuple with a list of [`String`]s of asm lines and the index of the one
+    /// currently executed by the machine.
     pub fn get_current_lines(&self, context: isize) -> (usize, Vec<&String>) {
         // If no program is loaded, no lines are available, prevent errors
         if self.program_lines.is_empty() {

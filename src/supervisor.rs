@@ -1,6 +1,5 @@
 //! Supervisor of the emulated Machine.
 
-use lazy_static::lazy_static;
 use log::trace;
 use parser2a::asm::Asm;
 use tui::buffer::Buffer;
@@ -8,7 +7,6 @@ use tui::layout::Rect;
 use tui::widgets::Widget;
 
 use std::collections::{HashMap, HashSet};
-use std::ops::Deref;
 use std::path::PathBuf;
 use std::time::Duration;
 use std::time::Instant;
@@ -21,9 +19,7 @@ use crate::machine::Part;
 
 const NUMBER_OF_MEASUREMENTS: usize = 10;
 
-lazy_static! {
-    static ref DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
-}
+const DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
 
 /// Supervisor of the machine.
 ///
@@ -102,7 +98,7 @@ impl Supervisor {
         let clk_auto_run_mode = false;
         let clk_asm_step_mode = false;
         let program_path = None;
-        let clk_period = *DEFAULT_CLK_PERIOD.deref();
+        let clk_period = DEFAULT_CLK_PERIOD;
         let freq_measurements = FreqMeasurements::new();
         let conf = conf.clone();
         Supervisor {
@@ -204,14 +200,16 @@ impl Supervisor {
     }
     /// Emulate a rising clock edge.
     pub fn next_clk(&mut self) {
-        if self.clk_asm_step_mode && !(self.is_stopped() || self.is_error_stopped()) {
+        if self.clk_asm_step_mode
+            && !(self.machine().is_stopped() || self.machine().is_error_stopped())
+        {
             while self.machine.is_instruction_done()
-                && !(self.is_stopped() || self.is_error_stopped())
+                && !(self.machine().is_stopped() || self.machine().is_error_stopped())
             {
                 self.machine.clk()
             }
             while !self.machine.is_instruction_done()
-                && !(self.is_stopped() || self.is_error_stopped())
+                && !(self.machine().is_stopped() || self.machine().is_error_stopped())
             {
                 self.machine.clk()
             }
@@ -251,17 +249,9 @@ impl Supervisor {
     pub fn toggle_auto_run_mode(&mut self) {
         self.clk_auto_run_mode = !self.clk_auto_run_mode;
     }
-    /// Is key edge interrupt enabled?
-    pub fn is_key_edge_int_enabled(&self) -> bool {
-        self.machine.is_key_edge_int_enabled()
-    }
-    /// Was the machine stopped yet?
-    pub fn is_stopped(&self) -> bool {
-        self.machine.is_stopped()
-    }
-    /// Was the machine error stopped yet?
-    pub fn is_error_stopped(&self) -> bool {
-        self.machine.is_error_stopped()
+    /// Get a reference to the underlying machine.
+    pub fn machine(&self) -> &Machine {
+        &self.machine
     }
     /// Continue the machine after a stop.
     pub fn continue_from_stop(&mut self) {
@@ -282,17 +272,6 @@ impl Supervisor {
     /// Returns whether the measured frequency is drastically below the frequency setting.
     pub fn is_at_full_capacity(&self) -> bool {
         self.get_measured_frequency() < self.get_frequency() * 0.9
-    }
-    /// Get the currently executed lines of the program.
-    ///
-    /// # Arguments
-    /// - `context` The amount of lines before and after the currently executed line.
-    ///
-    /// # Returns
-    /// - A tuple with a list of [`String`]s of asm lines and the index of the one
-    /// currently executed by the machine.
-    pub fn get_current_lines(&self, context: isize) -> (usize, Vec<&String>) {
-        self.machine.get_current_lines(context)
     }
     /// Get the currently running programs path.
     pub fn get_program_path(&self) -> &Option<PathBuf> {
@@ -353,9 +332,9 @@ impl Supervisor {
     pub fn is_program_loaded(&self) -> bool {
         self.program_path.is_some()
     }
-    /// Select the part to show in the TUI.
+    /// Show the given part of the underlying machine.
     pub fn show(&mut self, part: Part) {
-        self.machine.show(part);
+        self.machine.show(part)
     }
 }
 

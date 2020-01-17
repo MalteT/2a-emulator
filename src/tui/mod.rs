@@ -1,7 +1,6 @@
 //! Everything necessary to run the Terminal User Interface.
 
 use crossterm::KeyEvent;
-use lazy_static::lazy_static;
 use log::error;
 use log::trace;
 use log::warn;
@@ -9,7 +8,6 @@ use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
 use std::io::Error as IOError;
-use std::ops::Deref;
 use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -27,13 +25,11 @@ use events::Events;
 use input::Input;
 use interface::Interface;
 
-lazy_static! {
-    static ref DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(16_666);
-    static ref ONE_NANOSECOND: Duration = Duration::from_nanos(1);
-    static ref ONE_MICROSECOND: Duration = Duration::from_micros(1);
-    static ref ONE_MILLISECOND: Duration = Duration::from_millis(1);
-    static ref DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
-}
+const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(16_666);
+const ONE_NANOSECOND: Duration = Duration::from_nanos(1);
+//const ONE_MICROSECOND: Duration = Duration::from_micros(1);
+const ONE_MILLISECOND: Duration = Duration::from_millis(1);
+//const DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
 
 /// The Terminal User Interface (TUI)
 pub struct Tui {
@@ -100,25 +96,25 @@ impl Tui {
             self.handle_event();
             // Next draw of the machine
             let now = Instant::now();
-            if now - self.time_since_last_draw >= *DURATION_BETWEEN_FRAMES.deref() {
+            if now - self.time_since_last_draw >= DURATION_BETWEEN_FRAMES {
                 self.time_since_last_draw = now;
                 backend.draw(|mut f| {
                     interface.draw(&mut self, &mut f);
                 })?;
             }
             if !self.supervisor.is_auto_run_mode() {
-                thread::sleep(*ONE_MILLISECOND.deref());
+                thread::sleep(ONE_MILLISECOND);
             }
             if !self.supervisor.is_at_full_capacity() {
-                thread::sleep(*ONE_NANOSECOND.deref());
+                thread::sleep(ONE_NANOSECOND);
             }
         }
         backend.clear()?;
         Ok(())
     }
-    /// Get the currently running programs path.
-    pub fn get_program_path(&self) -> &Option<PathBuf> {
-        &self.supervisor.get_program_path()
+    /// Get a reference to the underlying supervisor.
+    pub fn supervisor(&self) -> &Supervisor {
+        &self.supervisor
     }
     /// Handle one single event in the queue.
     fn handle_event(&mut self) {

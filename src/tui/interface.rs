@@ -21,16 +21,16 @@ use crate::tui::Tui;
 pub static MINIMUM_ALLOWED_WIDTH: u16 = 76;
 pub static MINIMUM_ALLOWED_HEIGHT: u16 = 25;
 
+const RIGHT_COLUMN_WIDTH: u16 = 35;
+const PROGRAM_AREA_HEIGHT: u16 = 7;
+const FREQ_AREA_HEIGHT: u16 = 6;
+const INPUT_AREA_HEIGHT: u16 = 3;
+const HIGHLIGHT_DURATION: Duration = Duration::from_millis(500);
 lazy_static! {
-    static ref RIGHT_COLUMN_WIDTH: u16 = 35;
-    static ref PROGRAM_AREA_HEIGHT: u16 = 7;
-    static ref FREQ_AREA_HEIGHT: u16 = 6;
-    static ref INPUT_AREA_HEIGHT: u16 = 3;
     static ref BLK_ERROR: Block<'static> = Block::default()
         .title("Error")
         .borders(Borders::ALL)
         .border_style(*helpers::RED);
-    static ref HIGHLIGHT_DURATION: Duration = Duration::from_millis(500);
 }
 
 /// The user interface.
@@ -149,8 +149,8 @@ impl<'a> Interface<'a> {
 
         // Machine area (main)
         let mut main_area = self.outer.inner(area);
-        main_area.height -= *INPUT_AREA_HEIGHT;
-        main_area.width -= *RIGHT_COLUMN_WIDTH;
+        main_area.height -= INPUT_AREA_HEIGHT;
+        main_area.width -= RIGHT_COLUMN_WIDTH;
         self.main.render(f, main_area);
         tui.supervisor.render(f, self.main.inner(main_area));
 
@@ -159,7 +159,7 @@ impl<'a> Interface<'a> {
             main_area.x,
             main_area.y + main_area.height,
             main_area.width,
-            *INPUT_AREA_HEIGHT,
+            INPUT_AREA_HEIGHT,
         );
         self.input.render(f, input_area);
         tui.input_field.render(f, self.input.inner(input_area));
@@ -168,8 +168,8 @@ impl<'a> Interface<'a> {
         let program_area = Rect::new(
             main_area.x + main_area.width,
             main_area.y,
-            *RIGHT_COLUMN_WIDTH,
-            *PROGRAM_AREA_HEIGHT,
+            RIGHT_COLUMN_WIDTH,
+            PROGRAM_AREA_HEIGHT,
         );
         self.program_display.render(f, program_area);
         self.draw_program(f, self.program_display.inner(program_area), tui);
@@ -178,8 +178,8 @@ impl<'a> Interface<'a> {
         let freq_area = Rect::new(
             program_area.x,
             program_area.y + program_area.height,
-            *RIGHT_COLUMN_WIDTH,
-            *FREQ_AREA_HEIGHT,
+            RIGHT_COLUMN_WIDTH,
+            FREQ_AREA_HEIGHT,
         );
         self.freq_display.render(f, freq_area);
         self.draw_freq(f, self.freq_display.inner(freq_area), tui);
@@ -189,7 +189,7 @@ impl<'a> Interface<'a> {
         let help_area = Rect::new(
             freq_area.x,
             freq_area.y + freq_area.height,
-            *RIGHT_COLUMN_WIDTH,
+            RIGHT_COLUMN_WIDTH,
             help_height,
         );
         self.help_display.render(f, help_area);
@@ -244,7 +244,7 @@ impl<'a> Interface<'a> {
         for (key, help) in items {
             let mut ss = SpacedString::from(key, help);
             if let Some(ref inst) = tui.last_reset_press {
-                if now - *inst < *HIGHLIGHT_DURATION {
+                if now - *inst < HIGHLIGHT_DURATION {
                     ss = ss.left_style(&helpers::YELLOW);
                 }
             }
@@ -254,12 +254,12 @@ impl<'a> Interface<'a> {
         }
         let mut ss = SpacedString::from("Clock", "Enter");
         if let Some(ref inst) = tui.last_clk_press {
-            if now - *inst < *HIGHLIGHT_DURATION {
+            if now - *inst < HIGHLIGHT_DURATION {
                 ss = ss.left_style(&helpers::YELLOW);
             }
         }
-        if tui.supervisor.is_stopped()
-            || tui.supervisor.is_error_stopped()
+        if tui.supervisor.machine().is_stopped()
+            || tui.supervisor.machine().is_error_stopped()
             || tui.supervisor.is_auto_run_mode()
         {
             ss = ss
@@ -271,11 +271,11 @@ impl<'a> Interface<'a> {
         area.height -= 1;
         let mut ss = SpacedString::from("Edge interrupt", "CTRL+E");
         if let Some(ref inst) = tui.last_int_press {
-            if now - *inst < *HIGHLIGHT_DURATION {
+            if now - *inst < HIGHLIGHT_DURATION {
                 ss = ss.left_style(&helpers::YELLOW);
             }
         }
-        if !tui.supervisor.is_key_edge_int_enabled() {
+        if !tui.supervisor.machine().is_key_edge_int_enabled() {
             ss = ss
                 .left_style(&helpers::DIMMED)
                 .right_style(&helpers::DIMMED);
@@ -299,11 +299,11 @@ impl<'a> Interface<'a> {
         area.height -= 1;
         let mut ss = SpacedString::from("Continue", "CTRL+L");
         if let Some(ref inst) = tui.last_continue_press {
-            if now - *inst < *HIGHLIGHT_DURATION {
+            if now - *inst < HIGHLIGHT_DURATION {
                 ss = ss.left_style(&helpers::YELLOW);
             }
         }
-        if !tui.supervisor.is_stopped() {
+        if !tui.supervisor.machine().is_stopped() {
             ss = ss
                 .left_style(&helpers::DIMMED)
                 .right_style(&helpers::DIMMED);
@@ -333,7 +333,7 @@ impl<'a> Interface<'a> {
     }
 
     fn draw_freq(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
-        let program_name = match tui.get_program_path() {
+        let program_name = match tui.supervisor().get_program_path() {
             Some(program_path) => match program_path.file_name() {
                 Some(program_name_os) => program_name_os.to_str().unwrap_or(""),
                 None => "",
@@ -355,10 +355,10 @@ impl<'a> Interface<'a> {
         let mut frequency_ss =
             SpacedString::from("Frequency: ", &self.frequency).left_style(&helpers::DIMMED);
         let mut state_ss = SpacedString::from("State: ", "RUNNING").left_style(&helpers::DIMMED);
-        if tui.supervisor.is_error_stopped() {
+        if tui.supervisor.machine().is_error_stopped() {
             state_ss.right = "ERROR STOPPED".into();
             state_ss = state_ss.right_style(&helpers::RED);
-        } else if tui.supervisor.is_stopped() {
+        } else if tui.supervisor.machine().is_stopped() {
             state_ss.right = "STOPPED".into();
             state_ss = state_ss.right_style(&helpers::YELLOW);
         }
@@ -373,7 +373,7 @@ impl<'a> Interface<'a> {
 
     fn draw_program(&mut self, f: &mut Frame<CrosstermBackend>, area: Rect, tui: &Tui) {
         let context = (area.height - 1) / 2;
-        let (middle_index, lines) = tui.supervisor.get_current_lines(context as isize);
+        let (middle_index, lines) = tui.supervisor.machine().get_current_lines(context as isize);
         let mut pd = ProgramDisplay::from(middle_index, lines);
         pd.render(f, area);
     }
