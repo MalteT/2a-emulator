@@ -16,6 +16,7 @@ use std::ops::Deref;
 use std::time::{Duration, Instant};
 
 use crate::helpers;
+use crate::machine::State;
 use crate::tui::Tui;
 
 pub static MINIMUM_ALLOWED_WIDTH: u16 = 76;
@@ -258,8 +259,8 @@ impl<'a> Interface<'a> {
                 ss = ss.left_style(&helpers::YELLOW);
             }
         }
-        if tui.supervisor.machine().is_stopped()
-            || tui.supervisor.machine().is_error_stopped()
+        if tui.supervisor.machine().state() == State::ErrorStopped
+            || tui.supervisor.machine().state() == State::Stopped
             || tui.supervisor.is_auto_run_mode()
         {
             ss = ss
@@ -303,7 +304,7 @@ impl<'a> Interface<'a> {
                 ss = ss.left_style(&helpers::YELLOW);
             }
         }
-        if !tui.supervisor.machine().is_stopped() {
+        if tui.supervisor.machine().state() != State::Stopped {
             ss = ss
                 .left_style(&helpers::DIMMED)
                 .right_style(&helpers::DIMMED);
@@ -355,10 +356,10 @@ impl<'a> Interface<'a> {
         let mut frequency_ss =
             SpacedString::from("Frequency: ", &self.frequency).left_style(&helpers::DIMMED);
         let mut state_ss = SpacedString::from("State: ", "RUNNING").left_style(&helpers::DIMMED);
-        if tui.supervisor.machine().is_error_stopped() {
+        if tui.supervisor.machine().state() == State::ErrorStopped {
             state_ss.right = "ERROR STOPPED".into();
             state_ss = state_ss.right_style(&helpers::RED);
-        } else if tui.supervisor.machine().is_stopped() {
+        } else if tui.supervisor.machine().state() == State::Stopped {
             state_ss.right = "STOPPED".into();
             state_ss = state_ss.right_style(&helpers::YELLOW);
         }

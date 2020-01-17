@@ -37,6 +37,17 @@ pub enum Part {
     Memory,
 }
 
+/// State of the machine.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum State {
+    /// Machine stopped regularly.
+    Stopped,
+    /// Machine halted after an error.
+    ErrorStopped,
+    /// Machine is running.
+    Running,
+}
+
 #[derive(Debug)]
 pub struct Machine {
     mp_ram: MicroprogramRam,
@@ -54,10 +65,7 @@ pub struct Machine {
     level_int: bool,
     /// Lines of the program.
     program_lines: Vec<(String, usize)>,
-    /// Whether or not the machine was stopped by software.
-    machine_stopped: bool,
-    /// Whether or not the machine was stopped by hardware.
-    machine_error_stopped: bool,
+    state: State,
     /// Waiting on rising clock edge for the memory.
     waiting_for_memory: bool,
     /// Is the last instruction done?
@@ -85,26 +93,24 @@ impl Machine {
         let edge_int = false;
         let level_int = false;
         let program_lines = vec![];
-        let machine_stopped = false;
-        let machine_error_stopped = false;
         let waiting_for_memory = false;
         let instruction_done = false;
         let clk_counter = 0;
         let draw_counter = 0;
         let stacksize = None;
         let showing = Part::RegisterBlock;
+        let state = State::Running;
         let mut machine = Machine {
             mp_ram,
             reg,
             bus,
             current_instruction,
+            state,
             pending_register_write,
             pending_flag_write,
             edge_int,
             level_int,
             program_lines,
-            machine_stopped,
-            machine_error_stopped,
             waiting_for_memory,
             instruction_done,
             clk_counter,
@@ -219,17 +225,15 @@ impl Machine {
     pub fn is_instruction_done(&self) -> bool {
         self.instruction_done
     }
-    /// Has the machine reached a stop?
-    pub fn is_stopped(&self) -> bool {
-        self.machine_stopped
-    }
-    /// Has the machine reached a hardware stop?
-    pub fn is_error_stopped(&self) -> bool {
-        self.machine_error_stopped
+    /// State of the machine.
+    pub fn state(&self) -> State {
+        self.state
     }
     /// Continue the machine after a stop.
     pub fn continue_from_stop(&mut self) {
-        self.machine_stopped = false;
+        if self.state == State::Stopped {
+            self.state = State::Running;
+        }
     }
     /// Reset the machine.
     ///
@@ -249,9 +253,8 @@ impl Machine {
         self.edge_int = false;
         self.level_int = false;
         self.mp_ram.reset();
-        self.machine_stopped = false;
-        self.machine_error_stopped = false;
         self.waiting_for_memory = false;
+        self.state = State::Running;
     }
     /// Input a key edge interrupt.
     pub fn key_edge_int(&mut self) {
@@ -271,7 +274,7 @@ impl Machine {
     /// Update the machine.
     /// This should be equivalent to a CLK signal on the real machine.
     fn update(&mut self) {
-        if self.machine_error_stopped || self.machine_stopped {
+        if self.state != State::Running {
             return;
         } else if self.waiting_for_memory {
             self.waiting_for_memory = false;
@@ -287,7 +290,7 @@ impl Machine {
             // Check stackpointer
             if let Some(stacksize) = self.stacksize {
                 if !self.reg.is_stackpointer_valid(stacksize) {
-                    self.machine_error_stopped = true;
+                    self.state = State::ErrorStopped;
                 }
             }
         }
@@ -350,9 +353,9 @@ impl Machine {
             // Selecting next instruction
             self.current_instruction = Instruction::from_bits_truncate(bus_content);
             if bus_content == 0x00 {
-                self.machine_error_stopped = true;
+                self.state = State::ErrorStopped;
             } else if bus_content == 0x01 {
-                self.machine_stopped = true;
+                self.state = State::Stopped;
             }
             sig.set_current_instruction(&self.current_instruction);
             trace!("Instruction: {:?}", self.current_instruction);

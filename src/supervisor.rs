@@ -16,9 +16,9 @@ use crate::helpers;
 use crate::helpers::Configuration;
 use crate::machine::Machine;
 use crate::machine::Part;
+use crate::machine::State;
 
 const NUMBER_OF_MEASUREMENTS: usize = 10;
-
 const DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
 
 /// Supervisor of the machine.
@@ -80,15 +80,7 @@ pub struct EmulationState {
     /// The interrupts with the given tick at which they occured.
     pub interrupts: HashSet<usize>,
     /// The final state of the machine.
-    pub final_machine_state: MachineState,
-}
-
-/// Machine state after execution.
-#[derive(Debug)]
-pub enum MachineState {
-    Stopped,
-    ErrorStopped,
-    Running,
+    pub final_machine_state: State,
 }
 
 impl Supervisor {
@@ -171,14 +163,7 @@ impl Supervisor {
                 .insert(param.ticks, (last_outputs.0, last_outputs.1));
         }
         // get the machine state at the end of execution
-        let final_machine_state = if sv.machine.is_error_stopped() {
-            MachineState::ErrorStopped
-        } else if sv.machine.is_stopped() {
-            MachineState::Stopped
-        } else {
-            MachineState::Running
-        };
-        fs.final_machine_state = final_machine_state;
+        fs.final_machine_state = sv.machine.state();
         fs
     }
     /// Load a new program from the given path.
@@ -200,17 +185,11 @@ impl Supervisor {
     }
     /// Emulate a rising clock edge.
     pub fn next_clk(&mut self) {
-        if self.clk_asm_step_mode
-            && !(self.machine().is_stopped() || self.machine().is_error_stopped())
-        {
-            while self.machine.is_instruction_done()
-                && !(self.machine().is_stopped() || self.machine().is_error_stopped())
-            {
+        if self.clk_asm_step_mode && self.machine().state() == State::Running {
+            while self.machine.is_instruction_done() && self.machine().state() == State::Running {
                 self.machine.clk()
             }
-            while !self.machine.is_instruction_done()
-                && !(self.machine().is_stopped() || self.machine().is_error_stopped())
-            {
+            while !self.machine.is_instruction_done() && self.machine().state() == State::Running {
                 self.machine.clk()
             }
         } else {
@@ -375,7 +354,7 @@ impl EmulationState {
     fn new() -> Self {
         EmulationState {
             program: None,
-            final_machine_state: MachineState::Running,
+            final_machine_state: State::Running,
             inputs: HashMap::new(),
             outputs: HashMap::new(),
             interrupts: HashSet::new(),

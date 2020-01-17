@@ -12,7 +12,8 @@ use std::path::PathBuf;
 use crate::error::Error;
 use crate::helpers;
 use crate::helpers::Configuration;
-use crate::supervisor::{EmulationParameter, MachineState, Supervisor};
+use crate::machine::State;
+use crate::supervisor::{EmulationParameter, Supervisor};
 
 #[derive(Debug, Parser)]
 #[grammar = "../static/tests.pest"]
@@ -157,27 +158,25 @@ impl Test {
         for expectation in &self.expectations {
             match expectation {
                 Expectation::Stop => match final_state.final_machine_state {
-                    MachineState::ErrorStopped => {}
-                    MachineState::Stopped => {}
-                    MachineState::Running => return self.create_error("Machine did not stop!"),
+                    State::ErrorStopped => {}
+                    State::Stopped => {}
+                    State::Running => return self.create_error("Machine did not stop!"),
                 },
                 Expectation::NoStop => match final_state.final_machine_state {
-                    MachineState::ErrorStopped | MachineState::Stopped => {
+                    State::ErrorStopped | State::Stopped => {
                         return self.create_error("Machine stopped!")
                     }
-                    MachineState::Running => {}
+                    State::Running => {}
                 },
                 Expectation::ErrorStop => match final_state.final_machine_state {
-                    MachineState::ErrorStopped => {}
-                    MachineState::Stopped | MachineState::Running => {
+                    State::ErrorStopped => {}
+                    State::Stopped | State::Running => {
                         return self.create_error("Machine did not error stop!")
                     }
                 },
                 Expectation::NoErrorStop => match final_state.final_machine_state {
-                    MachineState::ErrorStopped => {
-                        return self.create_error("Machine error stopped!")
-                    }
-                    MachineState::Stopped | MachineState::Running => {}
+                    State::ErrorStopped => return self.create_error("Machine error stopped!"),
+                    State::Stopped | State::Running => {}
                 },
                 Expectation::OutputFe(nr) => {
                     if final_outputs.is_some() && final_outputs.unwrap().0 != *nr {
