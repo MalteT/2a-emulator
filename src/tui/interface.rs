@@ -199,11 +199,11 @@ impl<'a> Interface<'a> {
 
     fn draw_help_set(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect) {
         let items = vec![
-            ("FC = XX", "Input reg FC"),
-            ("FD = XX", "Input reg FD"),
-            ("FE = XX", "Input reg FE"),
-            ("FD = XX", "Input reg FF"),
-            ("IRG = XX", "MR2DA2 input reg"),
+            ("FC = x", "Input reg FC"),
+            ("FD = x", "Input reg FD"),
+            ("FE = x", "Input reg FE"),
+            ("FD = x", "Input reg FF"),
+            ("IRG = x", "MR2DA2 input reg"),
             ("TEMP = x.x", "MR2DA2 Temp voltage"),
             ("I1 = x.x", "MR2DA2 analog input 1"),
             ("I2 = x.x", "MR2DA2 analog input 2"),
@@ -318,6 +318,14 @@ impl<'a> Interface<'a> {
         if !tui.supervisor.is_program_loaded() {
             ss = ss.left_style(&helpers::YELLOW);
         }
+        ss.render(f, area);
+        area.y += 1;
+        area.height -= 1;
+        let mut ss = SpacedString::from("set", "Update settings");
+        ss.render(f, area);
+        area.y += 1;
+        area.height -= 1;
+        let mut ss = SpacedString::from("show", "Select part to display");
         ss.render(f, area);
     }
 
