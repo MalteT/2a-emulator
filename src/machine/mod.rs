@@ -302,7 +302,7 @@ impl Machine {
         // ------------------------------------------------------------
         // Use microprogram word from last iteration
         // ------------------------------------------------------------
-        let mp_ram_out = self.mp_ram.get().clone();
+        let mp_ram_out = self.mp_ram.get();
         // Safe MAC3 for later
         self.instruction_done = mp_ram_out.contains(MP28BitWord::MAC3);
         let mut sig = Signal::new(&mp_ram_out, &self.current_instruction);

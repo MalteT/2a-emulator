@@ -118,6 +118,7 @@ impl Tui {
     fn handle_event(&mut self) {
         if let Some(event) = self.events.next_key() {
             use KeyEvent::*;
+            trace!("{:?}", event);
             match event {
                 Ctrl('c') => self.is_main_loop_running = false,
                 Enter => {
@@ -148,11 +149,10 @@ impl Tui {
                 }
                 Home | End | Tab | BackTab | Backspace | Left | Right | Up | Down | Delete
                 | Char(_) => {
-                    self.input_field.handle(event.clone());
+                    self.input_field.handle(event);
                 }
                 _ => warn!("TUI cannot handle event {:?}", event),
             }
-            trace!("{:?}", event);
         }
     }
     /// Handle the input field after an 'Enter'.
