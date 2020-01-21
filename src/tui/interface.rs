@@ -71,9 +71,9 @@ pub struct Interface<'a> {
     frequency: String,
 }
 
-struct SpacedString {
-    left: String,
-    right: String,
+struct SpacedStr<'l, 'r> {
+    left: &'l str,
+    right: &'r str,
     left_style: Style,
     right_style: Style,
 }
@@ -215,7 +215,7 @@ impl<'a> Interface<'a> {
         ];
         // Show as much as possible
         for (input, help) in items.iter().take(area.height as usize) {
-            let mut ss = SpacedString::from(input, help);
+            let mut ss = SpacedStr::from(input, help);
             ss.render(f, area);
             area.y += 1;
             area.height -= 1;
@@ -232,7 +232,7 @@ impl<'a> Interface<'a> {
         ];
         // Show as much as possible
         for (input, help) in items.iter().take(area.height as usize) {
-            let mut ss = SpacedString::from(input, help);
+            let mut ss = SpacedStr::from(input, help);
             ss.render(f, area);
             area.y += 1;
             area.height -= 1;
@@ -243,7 +243,7 @@ impl<'a> Interface<'a> {
         let items = vec![("Reset", "CTRL+R")];
         let now = Instant::now();
         for (key, help) in items {
-            let mut ss = SpacedString::from(key, help);
+            let mut ss = SpacedStr::from(key, help);
             if let Some(ref inst) = tui.last_reset_press {
                 if now - *inst < HIGHLIGHT_DURATION {
                     ss = ss.left_style(&helpers::YELLOW);
@@ -253,7 +253,7 @@ impl<'a> Interface<'a> {
             area.y += 1;
             area.height -= 1;
         }
-        let mut ss = SpacedString::from("Clock", "Enter");
+        let mut ss = SpacedStr::from("Clock", "Enter");
         if let Some(ref inst) = tui.last_clk_press {
             if now - *inst < HIGHLIGHT_DURATION {
                 ss = ss.left_style(&helpers::YELLOW);
@@ -270,7 +270,7 @@ impl<'a> Interface<'a> {
         ss.render(f, area);
         area.y += 1;
         area.height -= 1;
-        let mut ss = SpacedString::from("Edge interrupt", "CTRL+E");
+        let mut ss = SpacedStr::from("Edge interrupt", "CTRL+E");
         if let Some(ref inst) = tui.last_int_press {
             if now - *inst < HIGHLIGHT_DURATION {
                 ss = ss.left_style(&helpers::YELLOW);
@@ -284,21 +284,21 @@ impl<'a> Interface<'a> {
         ss.render(f, area);
         area.y += 1;
         area.height -= 1;
-        let mut ss = SpacedString::from("Toggle autorun", "CTRL+A");
+        let mut ss = SpacedStr::from("Toggle autorun", "CTRL+A");
         if tui.supervisor.is_auto_run_mode() {
             ss = ss.left_style(&helpers::YELLOW);
         }
         ss.render(f, area);
         area.y += 1;
         area.height -= 1;
-        let mut ss = SpacedString::from("Toggle asm step", "CTRL+W");
+        let mut ss = SpacedStr::from("Toggle asm step", "CTRL+W");
         if tui.supervisor.is_asm_step_mode() {
             ss = ss.left_style(&helpers::YELLOW);
         }
         ss.render(f, area);
         area.y += 1;
         area.height -= 1;
-        let mut ss = SpacedString::from("Continue", "CTRL+L");
+        let mut ss = SpacedStr::from("Continue", "CTRL+L");
         if let Some(ref inst) = tui.last_continue_press {
             if now - *inst < HIGHLIGHT_DURATION {
                 ss = ss.left_style(&helpers::YELLOW);
@@ -314,18 +314,18 @@ impl<'a> Interface<'a> {
         // Display commands
         area.y += 2;
         area.height -= 2;
-        let mut ss = SpacedString::from("load PATH", "Load asm program");
+        let mut ss = SpacedStr::from("load PATH", "Load asm program");
         if !tui.supervisor.is_program_loaded() {
             ss = ss.left_style(&helpers::YELLOW);
         }
         ss.render(f, area);
         area.y += 1;
         area.height -= 1;
-        let mut ss = SpacedString::from("set", "Update settings");
+        let mut ss = SpacedStr::from("set", "Update settings");
         ss.render(f, area);
         area.y += 1;
         area.height -= 1;
-        let mut ss = SpacedString::from("show", "Select part to display");
+        let mut ss = SpacedStr::from("show", "Select part to display");
         ss.render(f, area);
     }
 
@@ -350,7 +350,7 @@ impl<'a> Interface<'a> {
             None => "",
         };
         let mut program_ss =
-            SpacedString::from("Program: ", program_name).left_style(&helpers::DIMMED);
+            SpacedStr::from("Program: ", program_name).left_style(&helpers::DIMMED);
         // Only update the frequency every 100 frames
         if self.counter % 100 == 0 {
             let measured_freq = tui.supervisor.get_measured_frequency();
@@ -359,16 +359,16 @@ impl<'a> Interface<'a> {
             self.frequency = helpers::format_number(freq);
         }
         let mut frequency_measured_ss =
-            SpacedString::from("Measured Frequency: ", &self.measured_frequency)
+            SpacedStr::from("Measured Frequency: ", &self.measured_frequency)
                 .left_style(&helpers::DIMMED);
         let mut frequency_ss =
-            SpacedString::from("Frequency: ", &self.frequency).left_style(&helpers::DIMMED);
-        let mut state_ss = SpacedString::from("State: ", "RUNNING").left_style(&helpers::DIMMED);
+            SpacedStr::from("Frequency: ", &self.frequency).left_style(&helpers::DIMMED);
+        let mut state_ss = SpacedStr::from("State: ", "RUNNING").left_style(&helpers::DIMMED);
         if tui.supervisor.machine().state() == State::ErrorStopped {
-            state_ss.right = "ERROR STOPPED".into();
+            state_ss.right = "ERROR STOPPED";
             state_ss = state_ss.right_style(&helpers::RED);
         } else if tui.supervisor.machine().state() == State::Stopped {
-            state_ss.right = "STOPPED".into();
+            state_ss.right = "STOPPED";
             state_ss = state_ss.right_style(&helpers::YELLOW);
         }
         program_ss.render(f, area);
@@ -388,12 +388,12 @@ impl<'a> Interface<'a> {
     }
 }
 
-impl SpacedString {
+impl<'l, 'r> SpacedStr<'l, 'r> {
     /// Create a spaced string from two strings.
-    pub fn from<'a, 'b>(left: &'a str, right: &'b str) -> Self {
-        SpacedString {
-            left: left.into(),
-            right: right.into(),
+    pub fn from(left: &'l str, right: &'r str) -> Self {
+        SpacedStr {
+            left: left,
+            right: right,
             left_style: Style::default(),
             right_style: Style::default(),
         }
@@ -410,35 +410,17 @@ impl SpacedString {
     }
 }
 
-impl Widget for SpacedString {
+impl Widget for SpacedStr<'_, '_> {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
-        let max_width = area
-            .width
-            .checked_sub(self.left.len() as u16)
-            .unwrap_or(0)
-            .checked_sub(1)
-            .unwrap_or(0);
-        let (left_width, right) = if self.right.len() > max_width as usize {
-            let right: String = self.right[self.right.len() - max_width as usize + 3..].into();
-            (self.left.len() as u16 + 1, String::from("...") + &right)
-        } else {
-            (area.width - self.right.len() as u16, self.right.clone())
-        };
-        buf.set_stringn(
-            area.x,
-            area.y,
-            &self.left,
-            area.width as usize,
-            self.left_style,
-        );
-        if area.width > left_width {
-            buf.set_stringn(
-                area.x + left_width,
-                area.y,
-                &right,
-                (area.width - left_width) as usize,
-                self.right_style,
-            );
+        let total_width = area.width as usize;
+        let left_len = self.left.len() as u16;
+        let right_len = self.right.len() as u16;
+        // Always display as much of the left part as possible.
+        buf.set_stringn(area.x, area.y, self.left, total_width, self.left_style);
+        // Display the right part, if possible
+        if left_len + right_len < area.width {
+            let right_start = area.x + area.width.saturating_sub(right_len);
+            buf.set_string(right_start, area.y, self.right, self.right_style);
         }
     }
 }
