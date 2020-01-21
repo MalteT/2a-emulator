@@ -8,8 +8,14 @@ use tui::layout::Rect;
 use tui::style::Color;
 use tui::style::Style;
 use tui::widgets::Widget;
+use nom::Err as NomErr;
+use nom::error::ErrorKind as NomErrorKind;
 
+mod parser;
+
+use parser::parse_cmd;
 use crate::helpers;
+use crate::machine::Part;
 
 /// An Input widget
 pub struct Input {
@@ -24,6 +30,46 @@ pub struct Input {
     history_index: Option<usize>,
     /// Current completions and current index in that list.
     curr_completions: Option<(Vec<Vec<char>>, usize)>,
+}
+
+/// Possible input registers
+#[derive(Debug, Clone, PartialEq, Hash, Copy, Eq)]
+pub enum InputRegister {
+    FC,
+    FD,
+    FE,
+    FF,
+}
+
+/// Possible commands to enter in the input
+#[derive(Debug, Clone, PartialEq)]
+pub enum Command<'a> {
+    /// Load a program from the path .0.
+    LoadProgram(&'a str),
+    /// Set the input register .0 to the value .1.
+    SetInputReg(InputRegister, u8),
+    /// Set the IRG to value .0.
+    SetIRG(u8),
+    /// Set the TEMP value to value .0.
+    SetTEMP(f32),
+    /// Set the I1 to value .0.
+    SetI1(f32),
+    /// Set the I2 to value .0.
+    SetI2(f32),
+    /// Set the J1 to value .0.
+    SetJ1(bool),
+    /// Set the J2 to value .0.
+    SetJ2(bool),
+    /// Set the UIO1 to value .0.
+    SetUIO1(bool),
+    /// Set the UIO2 to value .0.
+    SetUIO2(bool),
+    /// Set the UIO3 to value .0.
+    SetUIO3(bool),
+    /// Show the machine part .0.
+    Show(Part),
+    /// Quit the program.
+    Quit,
 }
 
 impl Input {
@@ -125,6 +171,10 @@ impl Input {
     pub fn last(&self) -> Option<String> {
         self.history.last().cloned()
     }
+    /// Get the last input as [`Command`].
+    pub fn last_cmd<'a>(&'a self) -> Option<Command<'a>> {
+        self.history.last().and_then(|s| Command::parse(s).ok())
+    }
     /// Get the current input.
     pub fn current(&self) -> &Vec<char> {
         &self.input
@@ -203,6 +253,12 @@ impl Input {
             self.input = comps[idx].clone();
             self.input_index = self.input.len();
         }
+    }
+}
+
+impl<'a> Command<'a> {
+    pub fn parse(input: &'a str) -> Result<Self, NomErr<(&str, NomErrorKind)>> {
+        parse_cmd(input).map(|(_, out)| out)
     }
 }
 

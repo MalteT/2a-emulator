@@ -19,10 +19,9 @@ pub mod interface;
 
 use crate::error::Error;
 use crate::helpers::Configuration;
-use crate::machine::Part;
 use crate::supervisor::Supervisor;
 use events::Events;
-use input::Input;
+use input::{Command, Input, InputRegister};
 use interface::Interface;
 
 const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(16_666);
@@ -160,138 +159,37 @@ impl Tui {
     /// Handle the input field after an 'Enter'.
     fn handle_input(&mut self) {
         self.input_field.handle(KeyEvent::Enter);
-        let query = self.input_field.last().unwrap_or(String::new());
-        trace!("Command entered: {}", query);
-        if query.starts_with("load ") {
-            let path: String = query[5..].into();
-            match self.supervisor.load_program(path) {
-                Ok(()) => {}
-                Err(e) => error!("Failed to run program: {}", e),
+        if let Some(cmd) = self.input_field.last_cmd() {
+            trace!("Command entered: {:?}", cmd);
+            use Command::*;
+            match cmd {
+                LoadProgram(path) => match self.supervisor.load_program(path) {
+                    Ok(()) => {}
+                    Err(e) => error!("Failed to run program: {}", e),
+                },
+                SetInputReg(InputRegister::FC, val) => self.supervisor.input_fc(val),
+                SetInputReg(InputRegister::FD, val) => self.supervisor.input_fd(val),
+                SetInputReg(InputRegister::FE, val) => self.supervisor.input_fe(val),
+                SetInputReg(InputRegister::FF, val) => self.supervisor.input_ff(val),
+                SetIRG(val) => self.supervisor.set_irg(val),
+                SetTEMP(val) => self.supervisor.set_temp(val),
+                SetI1(val) => self.supervisor.set_i1(val),
+                SetI2(val) => self.supervisor.set_i2(val),
+                SetJ1(val) => self.supervisor.set_j1(val),
+                SetJ2(val) => self.supervisor.set_j2(val),
+                SetUIO1(val) => self.supervisor.set_uio1(val),
+                SetUIO2(val) => self.supervisor.set_uio2(val),
+                SetUIO3(val) => self.supervisor.set_uio3(val),
+                Show(part) => self.supervisor.show(part),
+                Quit => self.is_main_loop_running = false,
             }
-        } else if query.starts_with("FC = ") {
-            if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
-                self.supervisor.input_fc(x)
-            } else {
-                warn!("Invalid input: {}", query);
-            }
-        } else if query.starts_with("FD = ") {
-            if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
-                self.supervisor.input_fd(x)
-            } else {
-                warn!("Invalid input: {}", query);
-            }
-        } else if query.starts_with("FE = ") {
-            if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
-                self.supervisor.input_fe(x)
-            } else {
-                warn!("Invalid input: {}", query);
-            }
-        } else if query.starts_with("FF = ") {
-            if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
-                self.supervisor.input_ff(x)
-            } else {
-                warn!("Invalid input: {}", query);
-            }
-        } else if query.starts_with("set ") {
-            let query = &query[4..];
-            if query.starts_with("IRG = ") {
-                if let Some(x) = query[6..].parse().ok() {
-                    self.supervisor.set_irg(x);
-                } else {
-                    warn!("Invalid setting: {}", query);
-                }
-            } else if query.starts_with("TEMP = ") {
-                if let Some(x) = query[7..].parse().ok() {
-                    self.supervisor.set_temp(x);
-                } else {
-                    warn!("Invalid setting: {}", query);
-                }
-            } else if query.starts_with("I1 = ") {
-                if let Some(x) = query[5..].parse().ok() {
-                    self.supervisor.set_i1(x);
-                } else {
-                    warn!("Invalid setting: {}", query);
-                }
-            } else if query.starts_with("I2 = ") {
-                if let Some(x) = query[5..].parse().ok() {
-                    self.supervisor.set_i2(x);
-                } else {
-                    warn!("Invalid setting: {}", query);
-                }
-            } else if query.starts_with("FC = ") {
-                if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
-                    self.supervisor.input_fc(x)
-                } else {
-                    warn!("Invalid input: {}", query);
-                }
-            } else if query.starts_with("FD = ") {
-                if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
-                    self.supervisor.input_fd(x)
-                } else {
-                    warn!("Invalid input: {}", query);
-                }
-            } else if query.starts_with("FE = ") {
-                if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
-                    self.supervisor.input_fe(x)
-                } else {
-                    warn!("Invalid input: {}", query);
-                }
-            } else if query.starts_with("FF = ") {
-                if let Some(x) = parse_input_reg_to_u8(&query[5..]) {
-                    self.supervisor.input_ff(x)
-                } else {
-                    warn!("Invalid input: {}", query);
-                }
-            } else if query == "J1" {
-                self.supervisor.set_j1(true);
-            } else if query == "J2" {
-                self.supervisor.set_j2(true);
-            } else if query.starts_with("UIO1") {
-                self.supervisor.set_uio1(true);
-            } else if query.starts_with("UIO2") {
-                self.supervisor.set_uio2(true);
-            } else if query.starts_with("UIO3") {
-                self.supervisor.set_uio3(true);
-            } else {
-                warn!("Invalid setting: {}", query);
-            }
-        } else if query.starts_with("unset ") {
-            let query = &query[6..];
-            if query == "J1" {
-                self.supervisor.set_j1(false);
-            } else if query == "J2" {
-                self.supervisor.set_j2(false);
-            } else if query.starts_with("UIO1") {
-                self.supervisor.set_uio1(false);
-            } else if query.starts_with("UIO2") {
-                self.supervisor.set_uio2(false);
-            } else if query.starts_with("UIO3") {
-                self.supervisor.set_uio3(false);
-            } else {
-                warn!("Invalid setting: {}", query);
-            }
-        } else if query.starts_with("show ") {
-            let query = &query[5..];
-            if query == "memory" {
-                self.supervisor.show(Part::Memory);
-            } else {
-                self.supervisor.show(Part::RegisterBlock);
-            }
-        } else if query == "quit" {
-            self.is_main_loop_running = false;
         } else {
-            warn!("Unrecognized input: {}", query);
+            warn!("Invalid input: {:?}", self.input_field.last());
         }
     }
     pub fn input_field(&self) -> &Input {
         &self.input_field
     }
-}
-
-/// Parse the given [`str`] to u8 with base 16.
-/// The input should be something like 'F8'.
-fn parse_input_reg_to_u8(input: &str) -> Option<u8> {
-    u8::from_str_radix(input, 16).ok()
 }
 
 fn init_backend() -> Result<CrosstermBackend, IOError> {
