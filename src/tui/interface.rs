@@ -19,14 +19,14 @@ use crate::helpers;
 use crate::machine::State;
 use crate::tui::Tui;
 
-pub static MINIMUM_ALLOWED_WIDTH: u16 = 76;
-pub static MINIMUM_ALLOWED_HEIGHT: u16 = 25;
-
+pub const MINIMUM_ALLOWED_WIDTH: u16 = 76;
+pub const MINIMUM_ALLOWED_HEIGHT: u16 = 25;
 const RIGHT_COLUMN_WIDTH: u16 = 35;
 const PROGRAM_AREA_HEIGHT: u16 = 7;
 const FREQ_AREA_HEIGHT: u16 = 6;
 const INPUT_AREA_HEIGHT: u16 = 3;
 const HIGHLIGHT_DURATION: Duration = Duration::from_millis(500);
+
 lazy_static! {
     static ref BLK_ERROR: Block<'static> = Block::default()
         .title("Error")
