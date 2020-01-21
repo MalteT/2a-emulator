@@ -3,19 +3,19 @@ use crossterm::KeyEvent;
 use rustyline::completion::FilenameCompleter;
 
 use log::warn;
+use nom::error::ErrorKind as NomErrorKind;
+use nom::Err as NomErr;
 use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::style::Color;
 use tui::style::Style;
 use tui::widgets::Widget;
-use nom::Err as NomErr;
-use nom::error::ErrorKind as NomErrorKind;
 
 mod parser;
 
-use parser::parse_cmd;
 use crate::helpers;
 use crate::machine::Part;
+use parser::parse_cmd;
 
 /// An Input widget
 pub struct Input {
@@ -74,9 +74,9 @@ pub enum Command<'a> {
 
 impl Input {
     /// Create an new Input widget.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Input {
-            input: vec![],
+            input: Vec::new(),
             input_index: 0,
             history: Vec::new(),
             history_index: None,
@@ -176,7 +176,7 @@ impl Input {
         self.history.last().and_then(|s| Command::parse(s).ok())
     }
     /// Get the current input.
-    pub fn current(&self) -> &Vec<char> {
+    pub const fn current(&self) -> &Vec<char> {
         &self.input
     }
     /// Switch to the next completion.
@@ -202,10 +202,6 @@ impl Input {
         }
     }
     /// Try to complete the current input.
-    ///
-    /// # Possible instructions:
-    /// - l[oad] FILE
-    /// - FX[ = ] VALUE
     fn complete(&mut self) {
         let s: String = self.input.iter().collect();
         if s.starts_with("load ") {

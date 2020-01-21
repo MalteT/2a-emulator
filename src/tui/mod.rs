@@ -24,7 +24,7 @@ use events::Events;
 use input::{Command, Input, InputRegister};
 use interface::Interface;
 
-const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(16_666);
+const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(1_000_000 / 60);
 const ONE_NANOSECOND: Duration = Duration::from_nanos(1);
 //const ONE_MICROSECOND: Duration = Duration::from_micros(1);
 const ONE_MILLISECOND: Duration = Duration::from_millis(1);
@@ -39,7 +39,6 @@ pub struct Tui {
     /// The input field at the bottom of the TUI.
     input_field: Input,
     time_since_last_draw: Instant,
-    /// Time between two clock rising edges.
     is_main_loop_running: bool,
     last_reset_press: Option<Instant>,
     last_clk_press: Option<Instant>,
@@ -102,7 +101,7 @@ impl Tui {
                 })?;
             }
             if !self.supervisor.is_auto_run_mode() {
-                thread::sleep(ONE_MILLISECOND);
+                thread::sleep(10 * ONE_MILLISECOND);
             }
             if !self.supervisor.is_at_full_capacity() {
                 thread::sleep(ONE_NANOSECOND);
@@ -112,7 +111,7 @@ impl Tui {
         Ok(())
     }
     /// Get a reference to the underlying supervisor.
-    pub fn supervisor(&self) -> &Supervisor {
+    pub const fn supervisor(&self) -> &Supervisor {
         &self.supervisor
     }
     /// Handle one single event in the queue.
@@ -187,7 +186,7 @@ impl Tui {
             warn!("Invalid input: {:?}", self.input_field.last());
         }
     }
-    pub fn input_field(&self) -> &Input {
+    pub const fn input_field(&self) -> &Input {
         &self.input_field
     }
 }

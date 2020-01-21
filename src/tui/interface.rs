@@ -327,6 +327,10 @@ impl<'a> Interface<'a> {
         area.height -= 1;
         let mut ss = SpacedStr::from("show", "Select part to display");
         ss.render(f, area);
+        area.y += 1;
+        area.height -= 1;
+        let mut ss = SpacedStr::from("quit", "Exit the program");
+        ss.render(f, area);
     }
 
     fn draw_help(&mut self, f: &mut Frame<CrosstermBackend>, area: Rect, tui: &Tui) {

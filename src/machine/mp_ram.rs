@@ -122,11 +122,11 @@ impl MicroprogramRam {
         }
     }
     /// Get the currently active word.
-    pub fn get(&self) -> &MP28BitWord {
+    pub const fn get(&self) -> &MP28BitWord {
         &self.content[self.current_word]
     }
     /// Get the current address.
-    pub fn current_addr(&self) -> u8 {
+    pub const fn current_addr(&self) -> u8 {
         self.current_word as u8
     }
     /// Select the next word according to the given parameters.

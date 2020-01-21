@@ -229,7 +229,7 @@ impl Supervisor {
         self.clk_auto_run_mode = !self.clk_auto_run_mode;
     }
     /// Get a reference to the underlying machine.
-    pub fn machine(&self) -> &Machine {
+    pub const fn machine(&self) -> &Machine {
         &self.machine
     }
     /// Continue the machine after a stop.
@@ -237,11 +237,11 @@ impl Supervisor {
         self.machine.continue_from_stop()
     }
     /// Is auto-run-mode activated?
-    pub fn is_auto_run_mode(&self) -> bool {
+    pub const fn is_auto_run_mode(&self) -> bool {
         self.clk_auto_run_mode
     }
     /// Is asm-step-mode activated?
-    pub fn is_asm_step_mode(&self) -> bool {
+    pub const fn is_asm_step_mode(&self) -> bool {
         self.clk_asm_step_mode
     }
     /// Get the frequency settings.
@@ -250,10 +250,10 @@ impl Supervisor {
     }
     /// Returns whether the measured frequency is drastically below the frequency setting.
     pub fn is_at_full_capacity(&self) -> bool {
-        self.get_measured_frequency() < self.get_frequency() * 0.9
+        self.get_measured_frequency() < self.get_frequency() * 0.5
     }
     /// Get the currently running programs path.
-    pub fn get_program_path(&self) -> &Option<PathBuf> {
+    pub const fn get_program_path(&self) -> &Option<PathBuf> {
         &self.program_path
     }
     /// Get the average measured frequency of the machine during the last x clock edges.

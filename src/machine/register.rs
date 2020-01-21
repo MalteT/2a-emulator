@@ -10,8 +10,8 @@ pub struct Register {
     pub(crate) content: [u8; 8],
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// All possible register.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegisterNumber {
     R0,
     R1,
@@ -25,7 +25,7 @@ pub enum RegisterNumber {
 
 impl Register {
     /// Create a new register block.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         let content = [0; 8];
         Register { content }
     }

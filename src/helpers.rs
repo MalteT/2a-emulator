@@ -181,7 +181,7 @@ where
     P: Into<PathBuf>,
 {
     let path: PathBuf = path.into();
-    read_asm_file(path.clone())?;
+    read_asm_file(&path)?;
     println!("Source file {:?} is valid.", path);
     Ok(())
 }
