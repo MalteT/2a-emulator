@@ -25,7 +25,7 @@ rustyline = "5.0.3"
 nom = "5.1.0"
 
 [dependencies.parser2a]
-git = "https://v4.git.tammena.rocks/2a-emulator/2a-parser.git"
+git = "https://github.com/MalteT/2a-parser"
 package = "2a-parser"
 version = "6.0.0"
 features = ["formatting"]

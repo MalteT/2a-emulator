@@ -1,18 +1,20 @@
 
 # Emulator for Minirechner 2a microcomputer
 
-This is an emulator for the Minirechner 2a, that is used during the Hardwarepraktikum at the university of Leipzig. This emulator was created for my bachelor thesis and is published under the GNU GPLv3. Please report all bugs, or no one will fix them. Just create an issue or write a message to me.
+This is an emulator for the Minirechner 2a, that is used during the Hardwarepraktikum at the university of Leipzig. This emulator was created for my bachelor thesis and is published under the GNU GPLv3. Please report all bugs, or no one will fix them. Just create an issue or message me.
 
 ![Demo Session](./static/demo.svg)
 
-**Warning**: There are still some unimplemented features, like the temperature sensor. Expect some bugs.
+**Warning**: There are still some unimplemented features, ~like the temperature sensor~. Expect some bugs.
+
+A rendered version of the following can be found [here](./Benutzerhandbuch.pdf). It was assembled for the thesis and may be slightly out of date.
 
 
 ## Installation
 
 ### Prebuild binaries
 
-Use one of the [prebuild binaries](https://v4.git.tammena.rocks/2a-emulator/2a-emulator/releases).
+Use one of the [prebuild binaries](https://github.com/MalteT/2a-emulator/releases).
 
 ### Manually install
 
@@ -25,7 +27,7 @@ $ cargo run --release --locked
 
 You can also install the binary using:
 ```console
-$ cargo install --git https://v4.git.tammena.rocks/2a-emulator/2a-emulator
+$ cargo install --git https://github.com/MalteT/2a-emulator
 ```
 See the [Cargo Manual](https://doc.rust-lang.org/cargo/commands/cargo-install.html?highlight=install#cargo-install) about where the binaries is installed to.
 
