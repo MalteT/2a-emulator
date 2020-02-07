@@ -20,7 +20,7 @@ use crate::machine::State;
 use crate::tui::Tui;
 
 pub const MINIMUM_ALLOWED_WIDTH: u16 = 76;
-pub const MINIMUM_ALLOWED_HEIGHT: u16 = 25;
+pub const MINIMUM_ALLOWED_HEIGHT: u16 = 28;
 const RIGHT_COLUMN_WIDTH: u16 = 35;
 const PROGRAM_AREA_HEIGHT: u16 = 7;
 const FREQ_AREA_HEIGHT: u16 = 6;
@@ -39,12 +39,12 @@ lazy_static! {
 ///            ┌──────────────────────────────────────┬────────────────────────┐
 ///          ^ │                                      │                        │ ^
 ///          | │ R0 ○●○○○○○○                          │   04: SOME_LABEL:      │ |
-///          | │ R1 ○○●●○○○○                          │ > 05: MV 0xFF, (R2)    │ | fixed height
-/// min.     | │ R2 ○○○○○○○○                          │   06: MV R1, (R2)      │ |
+///          | │ R1 ○○●●○○○○                          │ > 05: MV 0xFF, (R2)    │ | fixed
+/// min.     | │ R2 ○○○○○○○○                          │   06: MV R1, (R2)      │ | height
 /// height   │ | SP ○○○○●○●●                          │                        │ v
 ///          | │                                      ├────────────────────────┤
-///          | │                                      │ 777 Hz     asmfile.asm │ < fixed height
-///          | │                                      ├────────────────────────┤
+///          | │                                      │ 777 Hz     asmfile.asm │ < fixed
+///          | │                                      ├────────────────────────┤   height
 ///          | │                                      │                        │
 ///          | │                                      │ .                 step │
 ///          | │ ○○○○○○○● ○○○○○○●● ○○○○○○○○ ○○○○○○○○  │ Enter              run │
@@ -113,6 +113,7 @@ impl<'a> Interface<'a> {
     }
     /// Draw the interface using information from the given [`Tui`]
     pub fn draw<'b>(&mut self, tui: &'b mut Tui, f: &mut Frame<CrosstermBackend>) {
+        // Increment draw counter
         self.counter = self.counter.overflowing_add(1).0;
         let area = f.size();
         let area = Rect::new(area.x, area.y, area.width - 1, area.height - 1);
