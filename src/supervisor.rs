@@ -248,10 +248,6 @@ impl Supervisor {
     pub fn get_frequency(&self) -> f32 {
         1_000_000_000.0 / self.clk_period.as_nanos() as f32
     }
-    /// Returns whether the measured frequency is drastically below the frequency setting.
-    pub fn is_at_full_capacity(&self) -> bool {
-        self.get_measured_frequency() < self.get_frequency() * 0.5
-    }
     /// Get the currently running programs path.
     pub const fn get_program_path(&self) -> &Option<PathBuf> {
         &self.program_path

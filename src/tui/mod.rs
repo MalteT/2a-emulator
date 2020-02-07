@@ -24,8 +24,9 @@ use events::Events;
 use input::{Command, Input, InputRegister};
 use interface::Interface;
 
+type AbortEmulation = bool;
+
 const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(1_000_000 / 60);
-const ONE_NANOSECOND: Duration = Duration::from_nanos(1);
 //const ONE_MICROSECOND: Duration = Duration::from_micros(1);
 const ONE_MILLISECOND: Duration = Duration::from_millis(1);
 //const DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
@@ -38,8 +39,6 @@ pub struct Tui {
     events: Events,
     /// The input field at the bottom of the TUI.
     input_field: Input,
-    time_since_last_draw: Instant,
-    is_main_loop_running: bool,
     last_reset_press: Option<Instant>,
     last_clk_press: Option<Instant>,
     last_int_press: Option<Instant>,
@@ -52,8 +51,6 @@ impl Tui {
         let supervisor = Supervisor::new(conf);
         let events = Events::new();
         let input_field = Input::new();
-        let time_since_last_draw = Instant::now();
-        let is_main_loop_running = false;
         let last_reset_press = None;
         let last_clk_press = None;
         let last_int_press = None;
@@ -62,8 +59,6 @@ impl Tui {
             supervisor,
             events,
             input_field,
-            time_since_last_draw,
-            is_main_loop_running,
             last_reset_press,
             last_clk_press,
             last_int_press,
@@ -86,25 +81,27 @@ impl Tui {
         if let Some(path) = path {
             self.supervisor.load_program(path)?;
         }
-        self.is_main_loop_running = true;
-        while self.is_main_loop_running {
-            // Let the supervisor do some work
-            self.supervisor.tick();
-            // Handle event
-            self.handle_event();
+        // Prepare for main loop
+        let mut last_draw;
+        // Loop until exit is requested
+        'outer: loop {
             // Next draw of the machine
-            let now = Instant::now();
-            if now - self.time_since_last_draw >= DURATION_BETWEEN_FRAMES {
-                self.time_since_last_draw = now;
-                backend.draw(|mut f| {
-                    interface.draw(&mut self, &mut f);
-                })?;
-            }
-            if !self.supervisor.is_auto_run_mode() {
-                thread::sleep(10 * ONE_MILLISECOND);
-            }
-            if !self.supervisor.is_at_full_capacity() {
-                thread::sleep(ONE_NANOSECOND);
+            backend.draw(|mut f| {
+                interface.draw(&mut self, &mut f);
+            })?;
+            last_draw = Instant::now();
+            // Loop until the next draw is necessary
+            while last_draw.elapsed() < DURATION_BETWEEN_FRAMES {
+                // Let the supervisor do some work
+                self.supervisor.tick();
+                // Handle event
+                if self.handle_event() {
+                    // Quit
+                    break 'outer;
+                }
+                if !self.supervisor.is_auto_run_mode() {
+                    thread::sleep(10 * ONE_MILLISECOND);
+                }
             }
         }
         backend.clear()?;
@@ -115,12 +112,13 @@ impl Tui {
         &self.supervisor
     }
     /// Handle one single event in the queue.
-    fn handle_event(&mut self) {
+    /// Returns whether to abort emulation or not.
+    fn handle_event(&mut self) -> AbortEmulation {
         if let Some(event) = self.events.next_key() {
             use KeyEvent::*;
             trace!("{:?}", event);
             match event {
-                Ctrl('c') => self.is_main_loop_running = false,
+                Ctrl('c') => return true,
                 Enter => {
                     if self.input_field.is_empty() {
                         self.supervisor.next_clk();
@@ -154,9 +152,10 @@ impl Tui {
                 _ => warn!("TUI cannot handle event {:?}", event),
             }
         }
+        false
     }
     /// Handle the input field after an 'Enter'.
-    fn handle_input(&mut self) {
+    fn handle_input(&mut self) -> AbortEmulation {
         self.input_field.handle(KeyEvent::Enter);
         if let Some(cmd) = self.input_field.last_cmd() {
             trace!("Command entered: {:?}", cmd);
@@ -180,11 +179,12 @@ impl Tui {
                 SetUIO2(val) => self.supervisor.set_uio2(val),
                 SetUIO3(val) => self.supervisor.set_uio3(val),
                 Show(part) => self.supervisor.show(part),
-                Quit => self.is_main_loop_running = false,
+                Quit => return true,
             }
         } else {
             warn!("Invalid input: {:?}", self.input_field.last());
         }
+        false
     }
     pub const fn input_field(&self) -> &Input {
         &self.input_field
