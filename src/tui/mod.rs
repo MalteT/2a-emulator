@@ -1,13 +1,17 @@
 //! Everything necessary to run the Terminal User Interface.
 
-use crossterm::KeyEvent;
+use crossterm::{
+    event::{KeyCode, KeyEvent, KeyModifiers as Mod},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
 use log::error;
 use log::trace;
 use log::warn;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
-use std::io::Error as IOError;
+use std::io::{Error as IOError, Stdout, Write};
 use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -24,6 +28,7 @@ use events::Events;
 use input::{Command, Input, InputRegister};
 use interface::Interface;
 
+pub type Backend = CrosstermBackend<Stdout>;
 type AbortEmulation = bool;
 
 const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(1_000_000 / 60);
@@ -71,7 +76,14 @@ impl Tui {
         P: Into<PathBuf>,
     {
         // Initialize backend.
-        let mut backend = Terminal::new(init_backend()?)?;
+        enable_raw_mode().map_err(Error::crossterm_init)?;
+
+        let mut stdout = ::std::io::stdout();
+        execute!(stdout, EnterAlternateScreen).map_err(Error::crossterm_init)?;
+
+        let crossterm_backend: Backend = CrosstermBackend::new(stdout);
+        let mut backend = Terminal::new(crossterm_backend).map_err(Error::tui_init)?;
+
         // Initialize interface.
         let mut interface = Interface::new();
         // Clear the terminal and hide the cursor
@@ -105,6 +117,9 @@ impl Tui {
             }
         }
         backend.clear()?;
+        backend.show_cursor()?;
+        execute!(backend.backend_mut(), LeaveAlternateScreen).map_err(Error::crossterm_exit)?;
+        disable_raw_mode().map_err(Error::crossterm_exit)?;
         Ok(())
     }
     /// Get a reference to the underlying supervisor.
@@ -115,48 +130,57 @@ impl Tui {
     /// Returns whether to abort emulation or not.
     fn handle_event(&mut self) -> AbortEmulation {
         if let Some(event) = self.events.next_key() {
-            use KeyEvent::*;
+            use KeyCode::*;
             trace!("{:?}", event);
-            match event {
-                Ctrl('c') => return true,
-                Enter => {
-                    if self.input_field.is_empty() {
-                        self.supervisor.next_clk();
-                        self.last_clk_press = Some(Instant::now());
-                    } else {
-                        self.handle_input();
+            if event.modifiers == Mod::CONTROL {
+                match event.code {
+                    Char('c') => return true,
+                    Char('a') => {
+                        self.supervisor.toggle_auto_run_mode();
                     }
+                    Char('w') => {
+                        self.supervisor.toggle_asm_step_mode();
+                    }
+                    Char('e') => {
+                        self.supervisor.key_edge_int();
+                        self.last_int_press = Some(Instant::now());
+                    }
+                    Char('r') => {
+                        self.supervisor.reset();
+                        self.last_reset_press = Some(Instant::now());
+                    }
+                    Char('l') => {
+                        self.supervisor.continue_from_stop();
+                        self.last_continue_press = Some(Instant::now());
+                    }
+                    _ => warn!("TUI cannot handle event {:?}", event),
                 }
-                Ctrl('a') => {
-                    self.supervisor.toggle_auto_run_mode();
+            } else if event.modifiers == Mod::empty() {
+                match event.code {
+                    Enter => {
+                        if self.input_field.is_empty() {
+                            self.supervisor.next_clk();
+                            self.last_clk_press = Some(Instant::now());
+                        } else {
+                            self.handle_input();
+                        }
+                    }
+                    Home | End | Tab | BackTab | Backspace | Left | Right | Up | Down | Delete
+                    | Char(_) => {
+                        self.input_field.handle(event);
+                    }
+                    _ => warn!("TUI cannot handle event {:?}", event),
                 }
-                Ctrl('w') => {
-                    self.supervisor.toggle_asm_step_mode();
-                }
-                Ctrl('e') => {
-                    self.supervisor.key_edge_int();
-                    self.last_int_press = Some(Instant::now());
-                }
-                Ctrl('r') => {
-                    self.supervisor.reset();
-                    self.last_reset_press = Some(Instant::now());
-                }
-                Ctrl('l') => {
-                    self.supervisor.continue_from_stop();
-                    self.last_continue_press = Some(Instant::now());
-                }
-                Home | End | Tab | BackTab | Backspace | Left | Right | Up | Down | Delete
-                | Char(_) => {
-                    self.input_field.handle(event);
-                }
-                _ => warn!("TUI cannot handle event {:?}", event),
             }
         }
         false
     }
     /// Handle the input field after an 'Enter'.
     fn handle_input(&mut self) -> AbortEmulation {
-        self.input_field.handle(KeyEvent::Enter);
+        self.input_field.handle(KeyEvent {
+            code: KeyCode::Enter,
+            modifiers: Mod::empty(),
+        });
         if let Some(cmd) = self.input_field.last_cmd() {
             trace!("Command entered: {:?}", cmd);
             use Command::*;
@@ -189,10 +213,4 @@ impl Tui {
     pub const fn input_field(&self) -> &Input {
         &self.input_field
     }
-}
-
-fn init_backend() -> Result<CrosstermBackend, IOError> {
-    use crossterm_tui::AlternateScreen;
-    let screen = AlternateScreen::to_alternate(true)?;
-    CrosstermBackend::with_alternate_screen(screen)
 }

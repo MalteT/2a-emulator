@@ -1,23 +1,20 @@
 use lazy_static::lazy_static;
-use tui::backend::CrosstermBackend;
-use tui::buffer::Buffer;
-use tui::layout::Alignment;
-use tui::layout::Rect;
-use tui::style::Modifier;
-use tui::style::Style;
-use tui::terminal::Frame;
-use tui::widgets::Block;
-use tui::widgets::Borders;
-use tui::widgets::Paragraph;
-use tui::widgets::Text;
-use tui::widgets::Widget;
+use tui::{
+    buffer::Buffer,
+    layout::{Alignment, Rect},
+    style::{Modifier, Style},
+    terminal::Frame,
+    widgets::{Block, Borders, Paragraph, Text, Widget},
+};
 
 use std::ops::Deref;
 use std::time::{Duration, Instant};
 
-use crate::helpers;
-use crate::machine::State;
-use crate::tui::Tui;
+use crate::{
+    helpers,
+    machine::State,
+    tui::{Backend, Tui},
+};
 
 pub const MINIMUM_ALLOWED_WIDTH: u16 = 76;
 pub const MINIMUM_ALLOWED_HEIGHT: u16 = 28;
@@ -112,7 +109,7 @@ impl<'a> Interface<'a> {
         }
     }
     /// Draw the interface using information from the given [`Tui`]
-    pub fn draw<'b>(&mut self, tui: &'b mut Tui, f: &mut Frame<CrosstermBackend>) {
+    pub fn draw<'b>(&mut self, tui: &'b mut Tui, f: &mut Frame<Backend>) {
         // Increment draw counter
         self.counter = self.counter.overflowing_add(1).0;
         let area = f.size();
@@ -198,7 +195,7 @@ impl<'a> Interface<'a> {
         self.draw_help(f, self.help_display.inner(help_area), tui);
     }
 
-    fn draw_help_set(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect) {
+    fn draw_help_set(&mut self, f: &mut Frame<Backend>, mut area: Rect) {
         let items = vec![
             ("FC = x", "Input reg FC"),
             ("FD = x", "Input reg FD"),
@@ -223,7 +220,7 @@ impl<'a> Interface<'a> {
         }
     }
 
-    fn draw_help_unset(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect) {
+    fn draw_help_unset(&mut self, f: &mut Frame<Backend>, mut area: Rect) {
         let items = vec![
             ("J1", "MR2DA2 jumper 1"),
             ("J2", "MR2DA2 jumper 2"),
@@ -240,7 +237,7 @@ impl<'a> Interface<'a> {
         }
     }
 
-    fn draw_help_keys(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
+    fn draw_help_keys(&mut self, f: &mut Frame<Backend>, mut area: Rect, tui: &Tui) {
         let items = vec![("Reset", "CTRL+R")];
         let now = Instant::now();
         for (key, help) in items {
@@ -334,7 +331,7 @@ impl<'a> Interface<'a> {
         ss.render(f, area);
     }
 
-    fn draw_help(&mut self, f: &mut Frame<CrosstermBackend>, area: Rect, tui: &Tui) {
+    fn draw_help(&mut self, f: &mut Frame<Backend>, area: Rect, tui: &Tui) {
         let input_field_content: String = tui.input_field().current().iter().collect();
         // Draw information about `set` command when entered
         if input_field_content.starts_with("set") {
@@ -346,7 +343,7 @@ impl<'a> Interface<'a> {
         }
     }
 
-    fn draw_freq(&mut self, f: &mut Frame<CrosstermBackend>, mut area: Rect, tui: &Tui) {
+    fn draw_freq(&mut self, f: &mut Frame<Backend>, mut area: Rect, tui: &Tui) {
         let program_name = match tui.supervisor().get_program_path() {
             Some(program_path) => match program_path.file_name() {
                 Some(program_name_os) => program_name_os.to_str().unwrap_or(""),
@@ -385,7 +382,7 @@ impl<'a> Interface<'a> {
         state_ss.render(f, area);
     }
 
-    fn draw_program(&mut self, f: &mut Frame<CrosstermBackend>, area: Rect, tui: &Tui) {
+    fn draw_program(&mut self, f: &mut Frame<Backend>, area: Rect, tui: &Tui) {
         let context = (area.height - 1) / 2;
         let (middle_index, lines) = tui.supervisor.machine().get_current_lines(context as isize);
         let mut pd = ProgramDisplay::from(middle_index, lines);

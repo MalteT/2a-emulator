@@ -1,5 +1,5 @@
 //! Simple input field for the TUI.
-use crossterm::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use rustyline::completion::FilenameCompleter;
 
 use log::warn;
@@ -85,48 +85,48 @@ impl Input {
     }
     /// Let the Input widget handle the given event.
     pub fn handle(&mut self, event: KeyEvent) {
-        use KeyEvent::*;
-        match event {
-            Enter => {
+        use KeyCode::*;
+        match (event.modifiers, event.code) {
+            (_, Enter) => {
                 if self.input.len() > 0 {
                     self.history.push(self.input.drain(..).collect());
                 }
                 self.input_index = 0;
                 self.history_index = None;
             }
-            Tab => {
+            (_, Tab) => {
                 self.next_completion();
             }
-            BackTab => {
+            (_, BackTab) => {
                 self.previous_completion();
             }
-            Char(c) => {
+            (_, Char(c)) => {
                 self.input.insert(self.input_index, c);
                 self.input_index += 1;
             }
-            Backspace => {
+            (_, Backspace) => {
                 if self.input_index > 0 {
                     self.input_index -= 1;
                     self.input.remove(self.input_index);
                 }
             }
-            Home => {
+            (_, Home) => {
                 self.input_index = 0;
             }
-            End => {
+            (_, End) => {
                 self.input_index = self.input.len();
             }
-            Left => {
+            (_, Left) => {
                 if self.input_index > 0 {
                     self.input_index -= 1;
                 }
             }
-            Right => {
+            (_, Right) => {
                 if self.input_index < self.input.len() {
                     self.input_index += 1;
                 }
             }
-            Up => match self.history_index {
+            (_, Up) => match self.history_index {
                 Some(index) if index > 0 => {
                     self.history_index = Some(index - 1);
                     self.input = self.history[index - 1].chars().collect();
@@ -139,7 +139,7 @@ impl Input {
                 }
                 _ => {}
             },
-            Down => match self.history_index {
+            (_, Down) => match self.history_index {
                 Some(index) if index < self.history.len() - 1 => {
                     self.history_index = Some(index + 1);
                     self.input = self.history[index + 1].chars().collect();
@@ -152,14 +152,14 @@ impl Input {
                 }
                 _ => {}
             },
-            Delete => {
+            (_, Delete) => {
                 if self.input_index < self.input.len() {
                     self.input.remove(self.input_index);
                 }
             }
             _ => unreachable!("The input field should not have received a {:?}", event),
         }
-        if event != Tab && event != BackTab {
+        if event.code != Tab && event.code != BackTab {
             self.curr_completions = None;
         }
     }
@@ -308,48 +308,58 @@ impl Widget for Input {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crossterm::event::KeyModifiers as Mod;
+
+    macro_rules! key {
+        ($key:expr) => {
+            KeyEvent {
+                modifiers: Mod::empty(),
+                code: $key,
+            }
+        };
+    }
 
     #[test]
     fn is_empty() {
-        use KeyEvent::*;
+        use KeyCode::*;
         let mut i = Input::new();
         assert!(i.is_empty());
-        i.handle(Char('x'));
+        i.handle(key!(Char('x')));
         assert!(!i.is_empty());
-        i.handle(Backspace);
+        i.handle(key!(Backspace));
         assert!(i.is_empty());
     }
 
     #[test]
     fn basics() {
-        use KeyEvent::*;
+        use KeyCode::*;
         let mut i = Input::new();
         assert_eq!(i.history.len(), 0);
-        i.handle(Enter);
+        i.handle(key!(Enter));
         assert_eq!(i.history.len(), 0);
-        i.handle(Char('x'));
-        i.handle(Enter);
+        i.handle(key!(Char('x')));
+        i.handle(key!(Enter));
         assert_eq!(i.history.len(), 1);
         assert_eq!(i.last(), Some(String::from("x")));
         assert_eq!(i.input_index, 0);
         assert_eq!(i.input.len(), 0);
 
-        i.handle(Backspace);
-        i.handle(Char('a'));
-        i.handle(Char('b'));
-        i.handle(Char('c'));
+        i.handle(key!(Backspace));
+        i.handle(key!(Char('a')));
+        i.handle(key!(Char('b')));
+        i.handle(key!(Char('c')));
         assert_eq!(i.input, vec!['a', 'b', 'c']);
         assert_eq!(i.input_index, 3);
 
-        i.handle(Left);
+        i.handle(key!(Left));
         assert_eq!(i.input_index, 2);
 
-        i.handle(Backspace);
+        i.handle(key!(Backspace));
         assert_eq!(i.input, vec!['a', 'c']);
 
-        i.handle(Char('d'));
-        i.handle(Right);
-        i.handle(Char('d'));
+        i.handle(key!(Char('d')));
+        i.handle(key!(Right));
+        i.handle(key!(Char('d')));
         assert_eq!(i.input, vec!['a', 'd', 'c', 'd']);
     }
 }

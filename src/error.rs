@@ -2,6 +2,7 @@
 //!
 //! This module defines the error type used through-out the program.
 
+use crossterm::ErrorKind as CrosstermErrorKind;
 use failure::Fail;
 use parser2a::parser::ParserError;
 use pest::error::Error as PestError;
@@ -24,6 +25,12 @@ pub enum Error {
     TestFailed(String, String),
     /// Invalid CLI input.
     InvalidInput(String),
+    /// Initialization of tui failed.
+    TuiInitializationFailed(#[cause] IOError),
+    /// Crossterm backend initialization failed.
+    CrosstermInitializationFailed(#[cause] CrosstermErrorKind),
+    /// Crossterm backend exit failed.
+    CrosstermExitFailed(#[cause] CrosstermErrorKind),
 }
 
 impl From<IOError> for Error {
@@ -54,6 +61,23 @@ impl fmt::Display for Error {
             Error::TestFileParsingError(pe) => write!(f, "{}", pe),
             Error::TestFailed(n, r) => write!(f, "Test {:?} failed: {}", n, r),
             Error::InvalidInput(s) => write!(f, "{}", s),
+            Error::TuiInitializationFailed(ioe) => write!(f, "Tui init failed: {}", ioe),
+            Error::CrosstermInitializationFailed(cek) => {
+                write!(f, "Crossterm init failed: {}", cek)
+            }
+            Error::CrosstermExitFailed(cek) => write!(f, "Crossterm exit failed: {}", cek),
         }
+    }
+}
+
+impl Error {
+    pub fn crossterm_init(err: CrosstermErrorKind) -> Self {
+        Error::CrosstermInitializationFailed(err)
+    }
+    pub fn crossterm_exit(err: CrosstermErrorKind) -> Self {
+        Error::CrosstermExitFailed(err)
+    }
+    pub fn tui_init(err: IOError) -> Self {
+        Error::TuiInitializationFailed(err)
     }
 }

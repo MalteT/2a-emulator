@@ -1,6 +1,6 @@
 [package]
 name = "2a-emulator"
-version = "3.0.8"
+version = "3.0.9"
 authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
@@ -35,17 +35,14 @@ version = "~2.33.0"
 features = ["yaml", "wrap_help"]
 
 [dependencies.tui]
-version = "0.6.2"
+version = "0.8.0"
 # TODO: Use termion for linux and mac as soon as #1197 (https://github.com/rust-lang/cargo/issues/1197) is fixed
 default-features = false
 features = ["crossterm"]
 
-[dependencies.crossterm_tui]
-package = "crossterm"
-version = "^0.10"
-
 [dependencies.crossterm]
-version = "0.12.1"
+# Use tui's version
+version = "*"
 
 [features]
 # The std::fmt::Display implementation defaults to Display::to_utf8_string
