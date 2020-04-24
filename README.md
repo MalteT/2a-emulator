@@ -5,7 +5,7 @@ This is an emulator for the Minirechner 2a, that is used during the Hardwareprak
 
 ![Demo Session](./static/demo.svg)
 
-**Warning**: There are still some unimplemented features, ~like the temperature sensor~. Expect some bugs.
+**Warning**: There are still some unimplemented features. Expect some bugs.
 
 A rendered version of the following can be found [here](./Benutzerhandbuch.pdf). It was assembled for the thesis and may be slightly out of date.
 
