@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use log::warn;
+use log::{trace, warn};
 
 use std::u8;
 
@@ -108,6 +108,7 @@ impl Board {
     }
     /// Set the temperature value.
     pub fn set_temp(&mut self, value: f32) {
+        trace!("Setting temperature to {}", value);
         if value >= 0.0 && value <= 5.0 {
             self.temp = value;
         } else if value >= 0.0 {
@@ -322,6 +323,7 @@ impl Board {
                 }
             }
         }
+        trace!("Updating comparator CP1 to {}", new_value);
         self.dasr.set(DASR::COMP_DAC1, new_value);
     }
     /// Update comparator COMP2.
@@ -343,7 +345,9 @@ impl Board {
                 }
             }
         }
+        trace!("Updating comparator CP2 to {}", new_value);
         self.dasr.set(DASR::COMP_DAC2, new_value);
+        trace!("New DASR: {:0>8b}", self.dasr.bits());
     }
     /// Reset the board.
     pub fn reset(&mut self) {
