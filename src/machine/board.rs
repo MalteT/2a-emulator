@@ -356,3 +356,84 @@ impl Board {
         self.uio_dir = [false; 3];
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_dac_1() {
+        let mut board = Board::new();
+        assert_eq!(board.org1, 0x00);
+        board.set_org1(0);
+        assert_eq!(board.org1, 0x00);
+        board.set_org1(1);
+        assert_eq!(board.org1, 0x01);
+        assert_eq!(board.analog_outputs[0], 0.01);
+        board.set_org1(2);
+        assert_eq!(board.org1, 0x02);
+        assert_eq!(board.analog_outputs[0], 0.02);
+        board.set_org1(99);
+        assert_eq!(board.org1, 0x63);
+        assert_eq!(board.analog_outputs[0], 0.99);
+        board.set_org1(100);
+        assert_eq!(board.org1, 0x64);
+        assert_eq!(board.analog_outputs[0], 1.00);
+        board.set_org1(101);
+        assert_eq!(board.org1, 0x65);
+        assert_eq!(board.analog_outputs[0], 1.01);
+        board.set_org1(254);
+        assert_eq!(board.org1, 0xFE);
+        assert_eq!(board.analog_outputs[0], 2.54);
+        board.set_org1(255);
+        assert_eq!(board.org1, 0xFF);
+        assert_eq!(board.analog_outputs[0], 2.55);
+    }
+
+    #[test]
+    fn test_dac_2() {
+        let mut board = Board::new();
+        assert_eq!(board.org2, 0x00);
+        board.set_org2(0);
+        assert_eq!(board.org2, 0x00);
+        board.set_org2(1);
+        assert_eq!(board.org2, 0x01);
+        assert_eq!(board.analog_outputs[1], 0.01);
+        board.set_org2(2);
+        assert_eq!(board.org2, 0x02);
+        assert_eq!(board.analog_outputs[1], 0.02);
+        board.set_org2(99);
+        assert_eq!(board.org2, 0x63);
+        assert_eq!(board.analog_outputs[1], 0.99);
+        board.set_org2(100);
+        assert_eq!(board.org2, 0x64);
+        assert_eq!(board.analog_outputs[1], 1.00);
+        board.set_org2(101);
+        assert_eq!(board.org2, 0x65);
+        assert_eq!(board.analog_outputs[1], 1.01);
+        board.set_org2(254);
+        assert_eq!(board.org2, 0xFE);
+        assert_eq!(board.analog_outputs[1], 2.54);
+        board.set_org2(255);
+        assert_eq!(board.org2, 0xFF);
+        assert_eq!(board.analog_outputs[1], 2.55);
+    }
+
+    #[test]
+    fn test_comp_1() {
+        let mut board = Board::new();
+        assert_eq!(board.dasr.bits(), 0b0010_0000);
+        board.set_org1(0);
+        board.set_i1(0.01);
+        assert_eq!(board.dasr.bits(), 0b0010_1000);
+        board.set_org2(0);
+        board.set_i2(0.01);
+        assert_eq!(board.dasr.bits(), 0b0011_1000);
+        board.set_org1(1);
+        board.set_i1(0.01);
+        assert_eq!(board.dasr.bits(), 0b0011_0000);
+        board.set_org2(1);
+        board.set_i2(0.01);
+        assert_eq!(board.dasr.bits(), 0b0010_0000);
+    }
+}
