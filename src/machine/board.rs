@@ -75,32 +75,23 @@ pub struct DAICR: u8 {
 impl Board {
     /// Initialize a new Board.
     pub fn new() -> Self {
-        let dasr = DASR::empty();
-        let daisr = DAISR::empty();
-        let daicr = DAICR::empty();
-        let irg = 0;
-        let org1 = 0;
-        let org2 = 0;
-        let temp = 0.0;
-        let analog_inputs = [0.0; 2];
-        let analog_outputs = [0.0; 2];
-        let fan_rpm = 0;
-        let int_source = 0;
-        let uio_dir = [false; 3];
-        Board {
-            dasr,
-            daisr,
-            daicr,
-            irg,
-            temp,
-            analog_inputs,
-            analog_outputs,
-            org1,
-            org2,
-            fan_rpm,
-            int_source,
-            uio_dir,
-        }
+        let mut board = Board {
+            dasr: DASR::empty(),
+            daisr: DAISR::empty(),
+            daicr: DAICR::empty(),
+            irg: 0,
+            temp: 0.0,
+            analog_inputs: [0.0; 2],
+            analog_outputs: [0.0; 2],
+            org1: 0,
+            org2: 0,
+            fan_rpm: 0,
+            int_source: 0,
+            uio_dir: [false; 3],
+        };
+        board.set_org1(0);
+        board.set_org2(0);
+        board
     }
     /// Set the 8-bit input port.
     pub fn set_irg(&mut self, value: u8) {
@@ -158,6 +149,7 @@ impl Board {
             warn!("I1 < 0V. Setting 0V");
             self.analog_inputs[0] = 0.0;
         }
+        self.update_comp1();
     }
     /// Set analog input port I2.
     pub fn set_i2(&mut self, value: f32) {
@@ -170,6 +162,7 @@ impl Board {
             warn!("I2 < 0V. Setting 0V");
             self.analog_inputs[1] = 0.0;
         }
+        self.update_comp2();
     }
     /// Set universal input/output port UIO1.
     pub fn set_uio1(&mut self, value: bool) {
