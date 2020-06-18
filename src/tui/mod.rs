@@ -155,7 +155,7 @@ impl Tui {
                     }
                     _ => warn!("TUI cannot handle event {:?}", event),
                 }
-            } else if event.modifiers == Mod::empty() {
+            } else {
                 match event.code {
                     Enter => {
                         if self.input_field.is_empty() {
