@@ -186,9 +186,9 @@ impl Bus {
             let orig = self.int_timer.div3;
             self.int_timer.div3 = (orig & 0xFF00) + lower;
         } else if addr == 0xFD {
-            let top_bit_set = (byte & 0b1000_0000) == 1;
+            let top_bit_set = (byte & 0b1000_0000) == 0b1000_0000;
             if top_bit_set {
-                self.int_timer.enabled = byte & 0b0001_0000 == 1;
+                self.int_timer.enabled = byte & 0b0001_0000 == 0b0001_0000;
                 let div2_select = (byte & 0b0000_1100) >> 2;
                 self.int_timer.div2 = match div2_select {
                     0b00 => 1,
