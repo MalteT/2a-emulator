@@ -7,6 +7,8 @@ use tui::layout::Rect;
 use tui::style::{Color, Modifier, Style};
 use tui::widgets::Widget;
 
+use std::f32::consts::FRAC_PI_2;
+
 mod alu;
 mod board;
 mod bus;
@@ -125,10 +127,8 @@ impl Machine {
             for (line, bytes) in &bytecode.lines {
                 machine.program_lines.push((line.to_string(), bytes.len()));
             }
-            let mut address = 0;
-            for byte in bytecode.bytes() {
-                machine.bus.write(address, *byte);
-                address += 1;
+            for (address, byte) in bytecode.bytes().enumerate() {
+                machine.bus.write(address as u8, *byte);
             }
             machine.stacksize = Some(bytecode.stacksize);
         }
@@ -371,10 +371,7 @@ impl Machine {
                     + ((sig.mrgab1() as u8) << 1)
                     + sig.mrgab0() as u8
             } else {
-                0b0000_0000
-                    + ((sig.mrgab2() as u8) << 2)
-                    + ((sig.mrgab1() as u8) << 1)
-                    + sig.mrgab0() as u8
+                ((sig.mrgab2() as u8) << 2) + ((sig.mrgab1() as u8) << 1) + sig.mrgab0() as u8
             }
         } else {
             dob
@@ -541,7 +538,7 @@ impl Widget for Machine {
                 buf.set_string(area.width - 7, area.y + 5, "0x", *helpers::DIMMED);
                 buf.set_string(area.width - 5, area.y + 5, s, *helpers::YELLOW);
             }
-            if (self.bus.board.temp - 1.5707).abs() > 0.01 {
+            if (self.bus.board.temp - FRAC_PI_2).abs() > 0.01 {
                 buf.set_string(area.width - 2, area.y + 7, "TEMP", *helpers::YELLOW);
             }
 

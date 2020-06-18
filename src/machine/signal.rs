@@ -20,8 +20,8 @@ pub struct Signal {
 impl Signal {
     /// Create a new Signal struct from the current word and byte instruction.
     pub fn new(word: &MP28BitWord, inst: &Instruction) -> Signal {
-        let word = word.clone();
-        let inst = inst.clone();
+        let word = *word;
+        let inst = *inst;
         let carry_flag = None;
         let zero_flag = None;
         let negative_flag = None;
@@ -46,7 +46,7 @@ impl Signal {
         }
     }
     pub fn set_current_instruction(&mut self, inst: &Instruction) {
-        self.inst = inst.clone();
+        self.inst = *inst;
     }
     pub fn set_cf(&mut self, carry_flag: bool) {
         self.carry_flag = Some(carry_flag)

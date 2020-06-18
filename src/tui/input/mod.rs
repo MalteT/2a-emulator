@@ -88,7 +88,7 @@ impl Input {
         use KeyCode::*;
         match (event.modifiers, event.code) {
             (_, Enter) => {
-                if self.input.len() > 0 {
+                if !self.input.is_empty() {
                     self.history.push(self.input.drain(..).collect());
                 }
                 self.input_index = 0;
@@ -132,7 +132,7 @@ impl Input {
                     self.input = self.history[index - 1].chars().collect();
                     self.input_index = self.input.len();
                 }
-                None if self.history.len() > 0 => {
+                None if !self.history.is_empty() => {
                     self.history_index = Some(self.history.len() - 1);
                     self.input = self.history.last().expect("infallible").chars().collect();
                     self.input_index = self.input.len();
@@ -172,7 +172,7 @@ impl Input {
         self.history.last().cloned()
     }
     /// Get the last input as [`Command`].
-    pub fn last_cmd<'a>(&'a self) -> Option<Command<'a>> {
+    pub fn last_cmd(&self) -> Option<Command<'_>> {
         self.history.last().and_then(|s| Command::parse(s).ok())
     }
     /// Get the current input.
@@ -228,11 +228,11 @@ impl Input {
                     warn!("Error during completion: {}", e);
                 }
             }
-        } else if s.starts_with("l") {
+        } else if s.starts_with('l') {
             self.curr_completions = Some((vec!["load ".chars().collect()], 0));
-        } else if s.starts_with("s") {
+        } else if s.starts_with('s') {
             self.curr_completions = Some((vec!["set ".chars().collect()], 0));
-        } else if s.starts_with("F") && self.input_index > 1 && self.input_index <= 4 {
+        } else if s.starts_with('F') && self.input_index > 1 && self.input_index <= 4 {
             let comp = match &s[1..2] {
                 "C" => "FC = ",
                 "D" => "FD = ",
@@ -262,10 +262,10 @@ impl Widget for Input {
     fn draw(&mut self, area: Rect, buf: &mut Buffer) {
         let max_string_width = area.width as usize - 3;
         let mut string: String = self.input.iter().collect();
-        let mut start = string.len().checked_sub(max_string_width).unwrap_or(0);
+        let mut start = string.len().saturating_sub(max_string_width);
         // Move start to the left to include the cursor
         if start > 0 && start + 5 > self.input_index {
-            start = self.input_index.checked_sub(5).unwrap_or(0);
+            start = self.input_index.saturating_sub(5);
         }
         // Replace start with dots
         if start > 0 {
@@ -274,7 +274,7 @@ impl Widget for Input {
         // Replace end with dots
         if string.len() > area.width as usize - 3 {
             string.truncate(max_string_width - 3);
-            string = string + "...";
+            string += "...";
         }
         // Draw prompt
         buf.set_stringn(area.x, area.y, "> ", area.width as usize, *helpers::YELLOW);

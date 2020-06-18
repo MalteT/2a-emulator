@@ -112,7 +112,7 @@ impl Translator {
                 self.next_addr += nr;
                 let mut ret = vec![];
                 for _ in 0..nr {
-                    ret.push(Byte(0b0000_00_00));
+                    ret.push(Byte(0b0000_0000));
                 }
                 ret
             }
@@ -128,50 +128,50 @@ impl Translator {
             }
             Clr(reg) => {
                 let reg: u8 = reg_to_u8(reg);
-                vec![Byte(0b0000_01_00 + reg)]
+                vec![Byte(0b0000_0100 + reg)]
             }
-            Add(rd, rs) => from_base_and_two_regs(0b0110_00_00, rd, rs),
-            Adc(rd, rs) => from_base_and_two_regs(0b0111_00_00, rd, rs),
-            Sub(rd, rs) => from_base_and_two_regs(0b1000_00_00, rd, rs),
-            Mul(rd, rs) => from_base_and_two_regs(0b1011_00_00, rd, rs),
-            Div(rd, rs) => from_base_and_two_regs(0b1100_00_00, rd, rs),
-            Inc(reg) => from_base_and_reg(0b0100_01_00, reg),
+            Add(rd, rs) => from_base_and_two_regs(0b0110_0000, rd, rs),
+            Adc(rd, rs) => from_base_and_two_regs(0b0111_0000, rd, rs),
+            Sub(rd, rs) => from_base_and_two_regs(0b1000_0000, rd, rs),
+            Mul(rd, rs) => from_base_and_two_regs(0b1011_0000, rd, rs),
+            Div(rd, rs) => from_base_and_two_regs(0b1100_0000, rd, rs),
+            Inc(reg) => from_base_and_reg(0b0100_0100, reg),
             Dec(src) => match src {
-                Source::Register(reg) => from_base_and_reg(0b0101_00_00, reg),
+                Source::Register(reg) => from_base_and_reg(0b0101_0000, reg),
                 _ => unimplemented!("DEC [something other than R*] does not work yet"),
             },
-            Neg(reg) => from_base_and_reg(0b0011_01_00, reg),
-            And(rd, rs) => from_base_and_two_regs(0b1001_00_00, rd, rs),
-            Or(rd, rs) => from_base_and_two_regs(0b1010_00_00, rd, rs),
-            Xor(rd, rs) => from_base_and_two_regs(0b1101_00_00, rd, rs),
-            Com(reg) => from_base_and_reg(0b0011_00_00, reg),
-            Bits(dst, src) => from_bases_dst_and_src(0b1111_00_00, 0b0101_00_00, &dst, &src),
-            Bitc(dst, src) => from_bases_dst_and_src(0b1111_00_00, 0b0110_00_00, &dst, &src),
-            Tst(reg) => from_base_and_reg(0b0110_10_00, reg),
-            Cmp(dst, src) => from_bases_dst_and_src(0b1111_00_00, 0b0010_00_00, &dst, &src),
-            Bitt(dst, src) => from_bases_dst_and_src(0b1111_00_00, 0b0011_00_00, &dst, &src),
-            Lsr(reg) => from_base_and_reg(0b0011_10_00, reg),
-            Asr(reg) => from_base_and_reg(0b0011_11_00, reg),
+            Neg(reg) => from_base_and_reg(0b0011_0100, reg),
+            And(rd, rs) => from_base_and_two_regs(0b1001_0000, rd, rs),
+            Or(rd, rs) => from_base_and_two_regs(0b1010_0000, rd, rs),
+            Xor(rd, rs) => from_base_and_two_regs(0b1101_0000, rd, rs),
+            Com(reg) => from_base_and_reg(0b0011_0000, reg),
+            Bits(dst, src) => from_bases_dst_and_src(0b1111_0000, 0b0101_0000, &dst, &src),
+            Bitc(dst, src) => from_bases_dst_and_src(0b1111_0000, 0b0110_0000, &dst, &src),
+            Tst(reg) => from_base_and_reg(0b0110_1000, reg),
+            Cmp(dst, src) => from_bases_dst_and_src(0b1111_0000, 0b0010_0000, &dst, &src),
+            Bitt(dst, src) => from_bases_dst_and_src(0b1111_0000, 0b0011_0000, &dst, &src),
+            Lsr(reg) => from_base_and_reg(0b0011_1000, reg),
+            Asr(reg) => from_base_and_reg(0b0011_1100, reg),
             Lsl(reg) => {
                 let reg = reg_to_u8(reg);
-                vec![Byte(0b0110_00_00 + (reg << 2) + reg)]
+                vec![Byte(0b0110_0000 + (reg << 2) + reg)]
             }
-            Rrc(reg) => from_base_and_reg(0b0100_00_00, reg),
+            Rrc(reg) => from_base_and_reg(0b0100_0000, reg),
             Rlc(reg) => {
                 let reg = reg_to_u8(reg);
-                vec![Byte(0b0111_00_00 + (reg << 2) + reg)]
+                vec![Byte(0b0111_0000 + (reg << 2) + reg)]
             }
             Mov(dst, src) => compile_instruction_mov(dst, src),
             LdConstant(reg, c) => compile_instruction_mov(reg.into(), c.into()),
             LdMemAddress(reg, mem) => compile_instruction_mov(reg.into(), mem.into()),
             St(mem, reg) => compile_instruction_mov(mem.into(), reg.into()),
-            Push(reg) => from_base_and_reg(0b0001_00_00, reg),
-            Pop(reg) => from_base_and_reg(0b0001_01_00, reg),
-            PushF => vec![Byte(0b0001_10_00)],
-            PopF => vec![Byte(0b0001_11_00)],
-            Ldsp(src) => from_bases_and_src(0b1111_00_00, 0b0100_00_00, &src),
-            Ldfr(src) => from_bases_and_src(0b1111_00_00, 0b0100_01_00, &src),
-            Jmp(label) => vec![Byte(0b1111_10_11), Label(label), Byte(0b0001_00_11)],
+            Push(reg) => from_base_and_reg(0b0001_0000, reg),
+            Pop(reg) => from_base_and_reg(0b0001_0100, reg),
+            PushF => vec![Byte(0b0001_1000)],
+            PopF => vec![Byte(0b0001_1100)],
+            Ldsp(src) => from_bases_and_src(0b1111_0000, 0b0100_0000, &src),
+            Ldfr(src) => from_bases_and_src(0b1111_0000, 0b0100_0100, &src),
+            Jmp(label) => vec![Byte(0b1111_1011), Label(label), Byte(0b0001_0011)],
             Jcs(label) => relative_jump(0b001, label, self.next_addr),
             Jcc(label) => relative_jump(0b101, label, self.next_addr),
             Jzs(label) => relative_jump(0b010, label, self.next_addr),
@@ -179,13 +179,13 @@ impl Translator {
             Jns(label) => relative_jump(0b011, label, self.next_addr),
             Jnc(label) => relative_jump(0b111, label, self.next_addr),
             Jr(label) => relative_jump(0b000, label, self.next_addr),
-            Call(label) => vec![Byte(0b0010_10_00), Label(label)],
-            Ret => vec![Byte(0b0001_01_11)],
-            RetI => vec![Byte(0b0010_11_00)],
-            Stop => vec![Byte(0b0000_00_01)],
-            Nop => vec![Byte(0b0000_00_10)],
-            Ei => vec![Byte(0b0000_10_00)],
-            Di => vec![Byte(0b0000_11_00)],
+            Call(label) => vec![Byte(0b0010_1000), Label(label)],
+            Ret => vec![Byte(0b0001_0111)],
+            RetI => vec![Byte(0b0010_1100)],
+            Stop => vec![Byte(0b0000_0001)],
+            Nop => vec![Byte(0b0000_0010)],
+            Ei => vec![Byte(0b0000_1000)],
+            Di => vec![Byte(0b0000_1100)],
         };
         let line = Line::Instruction(inst.clone(), comment.clone());
         self.next_addr += bols.len() as u8;
@@ -227,8 +227,8 @@ impl Translator {
 /// Create the necessary [`ByteOrLabel`]s for a relative jump with the given condition.
 fn relative_jump(cond: u8, label: Label, curr_addr: u8) -> Vec<ByteOrLabel> {
     use ByteOrLabel::*;
-    debug_assert!(cond <= 0b0000_0_111);
-    let first = Byte(0b0010_0_000 + cond);
+    debug_assert!(cond <= 0b0000_0111);
+    let first = Byte(0b0010_0000 + cond);
     // Calculate relative offset of the target address.
     let second = LabelFn(
         label,
@@ -248,7 +248,7 @@ fn compile_instruction_mov(dst: Destination, src: Source) -> Vec<ByteOrLabel> {
     // Calculate first byte from register and mode
     let source_addr_mode = source_addr_mode(&src) << 2;
     let source_register = source_register(&src);
-    let first = 0b1111_00_00 + source_addr_mode + source_register;
+    let first = 0b1111_0000 + source_addr_mode + source_register;
     let mut ret = vec![Byte(first)];
     // Add another byte if we need a constant or an address
     let second = match src {
@@ -266,7 +266,7 @@ fn compile_instruction_mov(dst: Destination, src: Source) -> Vec<ByteOrLabel> {
     // Calculate first byte from register and mode
     let destination_addr_mode = destination_addr_mode(&dst) << 2;
     let destination_register = destination_register(&dst);
-    let third = 0b0001_00_00 + destination_addr_mode + destination_register;
+    let third = 0b0001_0000 + destination_addr_mode + destination_register;
     ret.push(Byte(third));
     // Add another byte if we need an address
     let fourth = match dst {
@@ -469,7 +469,7 @@ impl fmt::Display for ByteCode {
         for (line, code) in &self.lines {
             // Skip semicolon for empty lines
             if let Line::Empty(None) = line {
-                writeln!(f, "")?;
+                writeln!(f)?;
                 continue;
             }
             let line = format!("; {}", line);

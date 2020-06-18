@@ -394,8 +394,8 @@ impl<'l, 'r> SpacedStr<'l, 'r> {
     /// Create a spaced string from two strings.
     pub fn from(left: &'l str, right: &'r str) -> Self {
         SpacedStr {
-            left: left,
-            right: right,
+            left,
+            right,
             left_style: Style::default(),
             right_style: Style::default(),
         }

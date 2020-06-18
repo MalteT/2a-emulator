@@ -192,7 +192,7 @@ where
     P: Into<PathBuf>,
 {
     let content = read_to_string(path.into())?;
-    Ok(AsmParser::parse(&content).map_err(|e| Error::from(e))?)
+    Ok(AsmParser::parse(&content).map_err(Error::from)?)
 }
 
 /// Format a number using the suffixes `k`, `M`, `G` when useful.

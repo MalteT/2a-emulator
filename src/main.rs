@@ -22,8 +22,6 @@
 //!     <PROGRAM>    File to load and verify
 //! ```
 
-use pretty_env_logger;
-
 mod compiler;
 mod error;
 mod helpers;
@@ -37,11 +35,8 @@ use std::process;
 fn main() {
     pretty_env_logger::init();
 
-    match helpers::handle_user_input() {
-        Err(e) => {
-            println!("{}", e);
-            process::exit(1)
-        }
-        _ => {}
+    if let Err(e) = helpers::handle_user_input() {
+        println!("{}", e);
+        process::exit(1)
     }
 }

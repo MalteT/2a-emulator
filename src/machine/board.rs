@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use log::{trace, warn};
 
-use std::u8;
+use std::{f32::consts::FRAC_PI_2, u8};
 
 const MAX_FAN_RPM: usize = 4200;
 
@@ -122,11 +122,12 @@ impl Board {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
-            } else if !self.dasr.contains(DASR::J1) && plugged {
-                if !self.daicr.contains(DAICR::FALLING) {
-                    self.daisr.insert(DAISR::SOURCE);
-                    self.set_int_ff();
-                }
+            } else if !self.dasr.contains(DASR::J1)
+                && plugged
+                && !self.daicr.contains(DAICR::FALLING)
+            {
+                self.daisr.insert(DAISR::SOURCE);
+                self.set_int_ff();
             }
         }
         self.dasr.set(DASR::J1, plugged);
@@ -175,11 +176,12 @@ impl Board {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
-            } else if !self.dasr.contains(DASR::UIO_1) && value {
-                if !self.daicr.contains(DAICR::FALLING) {
-                    self.daisr.insert(DAISR::SOURCE);
-                    self.set_int_ff();
-                }
+            } else if !self.dasr.contains(DASR::UIO_1)
+                && value
+                && !self.daicr.contains(DAICR::FALLING)
+            {
+                self.daisr.insert(DAISR::SOURCE);
+                self.set_int_ff();
             }
         }
         self.dasr.set(DASR::UIO_1, value);
@@ -195,11 +197,12 @@ impl Board {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
-            } else if !self.dasr.contains(DASR::UIO_2) && value {
-                if !self.daicr.contains(DAICR::FALLING) {
-                    self.daisr.insert(DAISR::SOURCE);
-                    self.set_int_ff();
-                }
+            } else if !self.dasr.contains(DASR::UIO_2)
+                && value
+                && !self.daicr.contains(DAICR::FALLING)
+            {
+                self.daisr.insert(DAISR::SOURCE);
+                self.set_int_ff();
             }
         }
         self.dasr.set(DASR::UIO_2, value);
@@ -215,11 +218,12 @@ impl Board {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
-            } else if !self.dasr.contains(DASR::UIO_3) && value {
-                if !self.daicr.contains(DAICR::FALLING) {
-                    self.daisr.insert(DAISR::SOURCE);
-                    self.set_int_ff();
-                }
+            } else if !self.dasr.contains(DASR::UIO_3)
+                && value
+                && !self.daicr.contains(DAICR::FALLING)
+            {
+                self.daisr.insert(DAISR::SOURCE);
+                self.set_int_ff();
             }
         }
         self.dasr.set(DASR::UIO_3, value);
@@ -309,11 +313,12 @@ impl Board {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
-            } else if !self.dasr.contains(DASR::COMP_DAC1) && new_value {
-                if !self.daicr.contains(DAICR::FALLING) {
-                    self.daisr.insert(DAISR::SOURCE);
-                    self.set_int_ff();
-                }
+            } else if !self.dasr.contains(DASR::COMP_DAC1)
+                && new_value
+                && !self.daicr.contains(DAICR::FALLING)
+            {
+                self.daisr.insert(DAISR::SOURCE);
+                self.set_int_ff();
             }
         }
         trace!("Updating comparator CP1 to {}", new_value);
@@ -331,11 +336,12 @@ impl Board {
                     self.daisr.insert(DAISR::SOURCE);
                     self.set_int_ff();
                 }
-            } else if !self.dasr.contains(DASR::COMP_DAC2) && new_value {
-                if !self.daicr.contains(DAICR::FALLING) {
-                    self.daisr.insert(DAISR::SOURCE);
-                    self.set_int_ff();
-                }
+            } else if !self.dasr.contains(DASR::COMP_DAC2)
+                && new_value
+                && !self.daicr.contains(DAICR::FALLING)
+            {
+                self.daisr.insert(DAISR::SOURCE);
+                self.set_int_ff();
             }
         }
         trace!("Updating comparator CP2 to {}", new_value);
@@ -346,7 +352,7 @@ impl Board {
     pub fn reset(&mut self) {
         self.org1 = 0;
         self.org2 = 0;
-        self.temp = 1.5707;
+        self.temp = FRAC_PI_2;
         self.dasr = DASR::J2;
         self.daisr = DAISR::empty();
         self.daicr = DAICR::empty();

@@ -79,7 +79,7 @@ impl MicroprogramRamParser {
         let mut line_number = 0;
         let mut words = [MP28BitWord::empty(); 512];
         // Iterate over words
-        for index in 0..words.len() {
+        for new_word in words.iter_mut() {
             let line = lines.next().expect("Less than 512 lines in mpram");
             // TODO Use instructions
             for pair in line.into_inner() {
@@ -99,7 +99,7 @@ impl MicroprogramRamParser {
                     }
                     Rule::word => {
                         let word = fold_parse(pair.into_inner());
-                        words[index] = MP28BitWord::from_bits_truncate(word);
+                        *new_word = MP28BitWord::from_bits_truncate(word);
                     }
                     Rule::sep | Rule::ws => {}
                     _ => unreachable!(),

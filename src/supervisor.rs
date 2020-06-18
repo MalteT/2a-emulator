@@ -129,7 +129,7 @@ impl Supervisor {
             // Input the inputs accordingly.
             if param.inputs.contains_key(&tick) {
                 let inputs = param.inputs.get(&tick).unwrap();
-                fs.inputs.insert(tick, inputs.clone());
+                fs.inputs.insert(tick, *inputs);
                 sv.machine.input_fc(inputs.0);
                 sv.machine.input_fd(inputs.1);
                 sv.machine.input_fe(inputs.2);
@@ -361,7 +361,7 @@ impl EmulationState {
     pub fn final_outputs(&self) -> Option<(u8, u8)> {
         let mut final_outputs_vec: Vec<(_, _)> = self.outputs.iter().collect();
         final_outputs_vec.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
-        final_outputs_vec.last().map(|(_, v)| *v.clone())
+        final_outputs_vec.last().map(|(_, v)| **v)
     }
 }
 
