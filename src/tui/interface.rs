@@ -200,7 +200,7 @@ impl<'a> Interface<'a> {
             ("FC = x", "Input reg FC"),
             ("FD = x", "Input reg FD"),
             ("FE = x", "Input reg FE"),
-            ("FD = x", "Input reg FF"),
+            ("FF = x", "Input reg FF"),
             ("IRG = x", "MR2DA2 input reg"),
             ("TEMP = x.x", "MR2DA2 Temp voltage"),
             ("I1 = x.x", "MR2DA2 analog input 1"),
