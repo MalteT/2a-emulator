@@ -184,7 +184,7 @@ impl Bus {
         } else if addr == 0xFC {
             let lower = byte as usize;
             let orig = self.int_timer.div3;
-            self.int_timer.div3 = orig & 0xFF00 + lower;
+            self.int_timer.div3 = (orig & 0xFF00) + lower;
         } else if addr == 0xFD {
             let top_bit_set = (byte & 0b1000_0000) == 1;
             if top_bit_set {
@@ -206,9 +206,9 @@ impl Bus {
                     _ => unreachable!(),
                 };
             } else {
-                let upper = (byte as usize & 0b0111_1111) << 8;
+                let upper = (byte as usize & 0b0111_1111) << 7;
                 let orig = self.int_timer.div3;
-                self.int_timer.div3 = upper + orig & 0x00FF;
+                self.int_timer.div3 = upper + (orig & 0b0111_1111);
             }
         } else if addr == 0xFE {
             self.output_reg[0] = byte;

@@ -1,6 +1,6 @@
 [package]
 name = "emulator-2a"
-version = "3.0.11"
+version = "3.0.12"
 authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
