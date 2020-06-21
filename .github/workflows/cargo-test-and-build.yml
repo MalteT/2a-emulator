@@ -17,7 +17,7 @@ jobs:
         with:
           command: test
           args: --release --all-features
-  build:
+  build-linux:
     name: linux-packager
     runs-on: ubuntu-latest
     steps:
@@ -29,11 +29,50 @@ jobs:
         with:
           command: build
           args: --release
-      - run: make package-only
+      - run: mkdir binaries
+      - run: cp ./target/release/2a-emulator binaries/2a-emulator-x86_64-pc-linux-gnu
       - uses: actions/upload-artifact@v2
         with:
-          name: 2a-emulator-x86_64-pc-linux-gnu.zip
-          path: packages/*.zip
+          name: 2a-emulator-x86_64-pc-linux-gnu
+          path: binaries/2a-emulator-x86_64-pc-linux-gnu
+  build-windows:
+    name: windows-packager
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+      - run: mkdir binaries
+      - run: clang -dumpmachine
+      - run: cp ./target/release/2a-emulator.exe binaries/2a-emulator-???.exe
+      - uses: actions/upload-artifact@v2
+        with:
+          name: 2a-emulator-???.exe
+          path: binaries/2a-emulator-???.exe
+  build-macOS:
+    name: macOS-packager
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+      - run: mkdir binaries
+      - run: clang -dumpmachine
+      - run: cp ./target/release/2a-emulator binaries/2a-emulator-???
+      - uses: actions/upload-artifact@v2
+        with:
+          name: 2a-emulator-???
+          path: binaries/2a-emulator-???
 
       
     
