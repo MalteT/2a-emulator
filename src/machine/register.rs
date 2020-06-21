@@ -132,8 +132,8 @@ impl Register {
     }
     /// Update the CO flag.
     pub fn update_co(&mut self, co: bool) {
-        let co = (co as u8) << 2;
-        self.content[4] = (self.content[4] & 0b1111_1011) | co;
+        let co = (co as u8) << 0;
+        self.content[4] = (self.content[4] & 0b1111_1110) | co;
     }
     /// Update the ZO flag.
     pub fn update_zo(&mut self, zo: bool) {
@@ -142,8 +142,8 @@ impl Register {
     }
     /// Update the NO flag.
     pub fn update_no(&mut self, no: bool) {
-        let no = no as u8;
-        self.content[4] = (self.content[4] & 0b1111_1110) | no;
+        let no = (no as u8) << 2;
+        self.content[4] = (self.content[4] & 0b1111_1011) | no;
     }
     /// Get register content.
     pub fn get(&self, rn: RegisterNumber) -> u8 {

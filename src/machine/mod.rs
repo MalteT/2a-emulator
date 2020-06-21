@@ -295,6 +295,7 @@ impl Machine {
             }
         }
         if let Some((co, zo, no)) = self.pending_flag_write {
+            trace!("Updating flags: CO: {}, ZO: {}, NO: {}", co, zo, no);
             self.reg.update_co(co);
             self.reg.update_zo(zo);
             self.reg.update_no(no);
@@ -389,6 +390,7 @@ impl Machine {
         sig.set_co(co);
         sig.set_zo(zo);
         sig.set_no(no);
+        trace!("CO: {}, ZO: {}, NO: {}", co, zo, no);
         // Update registers if necessary
         if sig.mrgwe() {
             let selected_reg = Register::get_selected(&sig);
