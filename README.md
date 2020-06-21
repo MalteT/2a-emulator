@@ -1,5 +1,5 @@
 
-# Emulator for Minirechner 2a microcomputer
+# Emulator for Minirechner 2a microcomputer ![Build](https://github.com/MalteT/2a-emulator/workflows/Build/badge.svg)
 
 This is an emulator for the Minirechner 2a, that is used during the Hardwarepraktikum at the university of Leipzig. This emulator was created for my bachelor thesis and is published under the GNU GPLv3. Please report all bugs, or no one will fix them. Just create an issue or message me.
 
