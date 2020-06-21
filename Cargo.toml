@@ -42,7 +42,7 @@ features = ["crossterm"]
 
 [dependencies.crossterm]
 # Use tui's version
-version = "*"
+version = "^0.14"
 
 [features]
 # The std::fmt::Display implementation defaults to Display::to_utf8_string
