@@ -48,7 +48,6 @@ jobs:
           command: build
           args: --release
       - run: mkdir binaries
-      - run: clang -dumpmachine
       - run: cp ./target/release/2a-emulator.exe binaries/2a-emulator-x86_64-pc-windows-msvc.exe
       - uses: actions/upload-artifact@v2
         with:
@@ -67,7 +66,6 @@ jobs:
           command: build
           args: --release
       - run: mkdir binaries
-      - run: clang -dumpmachine
       - run: cp ./target/release/2a-emulator binaries/2a-emulator-x86_64-apple-darwin
       - uses: actions/upload-artifact@v2
         with:
