@@ -1,0 +1,39 @@
+name: Build
+on: [push]
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        rust: [stable, nightly]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --all-features
+  build:
+    name: linux-packager
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+      - run: make package-only
+      - uses: actions/upload-artifact@v2
+        with:
+          name: 2a-emulator-x86_64-pc-linux-gnu.zip
+          path: packages/*.zip
+
+      
+    
