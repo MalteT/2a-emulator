@@ -1,22 +1,9 @@
 RELEASE_DIR=release
 
-LINUX=x86_64-unknown-linux-gnu
-WINDOWS=x86_64-pc-windows-gnu
+CURRENT := $(shell clang -dumpmachine)
 
-all: linux windows
-
-linux:
-	cargo build --release --target ${LINUX}
-	strip target/${LINUX}/release/2a-emulator
-	mkdir -p ${RELEASE_DIR}
-	cd ${RELEASE_DIR}
-	zip -rj9 ${RELEASE_DIR}/2a-emulator-${LINUX}.zip \
-		target/${LINUX}/release/2a-emulator
-
-windows:
-	cargo build --release --target ${WINDOWS}
-	strip target/${WINDOWS}/release/2a-emulator.exe
-	mkdir -p ${RELEASE_DIR}
-	cd ${RELEASE_DIR}
-	zip -rj9 ${RELEASE_DIR}/2a-emulator-${WINDOWS}.zip \
-		target/${WINDOWS}/release/2a-emulator.exe
+current:
+	cargo build --release
+	rm -rf ./packages
+	mkdir packages
+	zip -9jr packages/2a-emulator-${CURRENT}.zip ./target/release/2a-emulator
