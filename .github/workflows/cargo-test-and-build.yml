@@ -49,11 +49,11 @@ jobs:
           args: --release
       - run: mkdir binaries
       - run: clang -dumpmachine
-      - run: cp ./target/release/2a-emulator.exe binaries/2a-emulator-???.exe
+      - run: cp ./target/release/2a-emulator.exe binaries/2a-emulator-x86_64-pc-windows-msvc.exe
       - uses: actions/upload-artifact@v2
         with:
-          name: 2a-emulator-???.exe
-          path: binaries/2a-emulator-???.exe
+          name: 2a-emulator-x86_64-pc-windows-msvc.exe
+          path: binaries/2a-emulator-x86_64-pc-windows-msvc.exe
   build-macOS:
     name: macOS-packager
     runs-on: macOS-latest
@@ -68,11 +68,11 @@ jobs:
           args: --release
       - run: mkdir binaries
       - run: clang -dumpmachine
-      - run: cp ./target/release/2a-emulator binaries/2a-emulator-???
+      - run: cp ./target/release/2a-emulator binaries/2a-emulator-x86_64-apple-darwin
       - uses: actions/upload-artifact@v2
         with:
-          name: 2a-emulator-???
-          path: binaries/2a-emulator-???
+          name: 2a-emulator-x86_64-apple-darwin
+          path: binaries/2a-emulator-x86_64-apple-darwin
 
       
     
