@@ -303,6 +303,10 @@ impl Bus {
             false
         }
     }
+    /// Get read access to the board.
+    pub fn board(&self) -> &Board {
+        &self.board
+    }
     /// Is key edge interrupt enabled?
     pub fn is_key_edge_int_enabled(&self) -> bool {
         self.micr.contains(MICR::KEY_EDGE_INTERRUPT_ENABLE)

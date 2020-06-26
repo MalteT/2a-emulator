@@ -10,15 +10,14 @@ mod instruction;
 mod mp_ram;
 mod register;
 mod signal;
-mod widget_impl;
 
 pub use alu::Alu;
+pub use board::DASR;
 pub use bus::Bus;
 pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
 pub use register::{Register, RegisterNumber};
 pub use signal::Signal;
-pub use widget_impl::Part;
 
 use crate::compiler::Translator;
 use crate::helpers::Configuration;
@@ -63,8 +62,6 @@ pub struct Machine {
     /// Stacksize, if any program is loaded.
     /// For error checking.
     stacksize: Option<Stacksize>,
-    /// The part to show in the UI
-    showing: Part,
 }
 
 impl Machine {
@@ -84,7 +81,6 @@ impl Machine {
         let clk_counter = 0;
         let draw_counter = 0;
         let stacksize = None;
-        let showing = Part::RegisterBlock;
         let state = State::Running;
         let mut machine = Machine {
             mp_ram,
@@ -102,7 +98,6 @@ impl Machine {
             clk_counter,
             draw_counter,
             stacksize,
-            showing,
         };
         // Load program if given any
         if let Some(program) = program {
@@ -219,6 +214,14 @@ impl Machine {
             self.state = State::Running;
         }
     }
+    /// Get read access to the register block.
+    pub fn registers(&self) -> &Register {
+        &self.reg
+    }
+    /// Get read access to the bus.
+    pub fn bus(&self) -> &Bus {
+        &self.bus
+    }
     /// Reset the machine.
     ///
     /// - Clear all registers.
@@ -250,10 +253,6 @@ impl Machine {
     /// Is key edge interrupt enabled?
     pub fn is_key_edge_int_enabled(&self) -> bool {
         self.bus.is_key_edge_int_enabled()
-    }
-    /// Select the element to show in the TUI.
-    pub fn show(&mut self, part: Part) {
-        self.showing = part;
     }
     /// Update the machine.
     /// This should be equivalent to a CLK signal on the real machine.

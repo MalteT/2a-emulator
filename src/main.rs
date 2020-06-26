@@ -28,6 +28,8 @@ mod helpers;
 mod machine;
 mod supervisor;
 mod testing;
+
+#[cfg(feature = "interactive-tui")]
 mod tui;
 
 use std::process;

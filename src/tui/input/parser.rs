@@ -7,7 +7,7 @@ use nom::sequence::{delimited, preceded, terminated, tuple};
 use nom::IResult;
 
 use super::{Command, InputRegister};
-use crate::machine::Part;
+use crate::tui::Part;
 
 fn ws(input: &str) -> IResult<&str, &str> {
     is_a(" \t")(input)

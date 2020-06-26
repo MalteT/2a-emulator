@@ -361,6 +361,39 @@ impl Board {
         self.int_source = 0;
         self.uio_dir = [false; 3];
     }
+    pub const fn irg(&self) -> &u8 {
+        &self.irg
+    }
+    pub const fn org1(&self) -> &u8 {
+        &self.org1
+    }
+    pub const fn org2(&self) -> &u8 {
+        &self.org2
+    }
+    pub const fn temp(&self) -> &f32 {
+        &self.temp
+    }
+    pub const fn dasr(&self) -> &DASR {
+        &self.dasr
+    }
+    pub const fn daisr(&self) -> &DAISR {
+        &self.daisr
+    }
+    pub const fn daicr(&self) -> &DAICR {
+        &self.daicr
+    }
+    pub const fn analog_inputs(&self) -> &[f32; 2] {
+        &self.analog_inputs
+    }
+    pub const fn analog_outputs(&self) -> &[f32; 2] {
+        &self.analog_outputs
+    }
+    pub const fn fan_rpm(&self) -> &usize {
+        &self.fan_rpm
+    }
+    pub const fn uio_dir(&self) -> &[bool; 3] {
+        &self.uio_dir
+    }
 }
 
 #[cfg(test)]

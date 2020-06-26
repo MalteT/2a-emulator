@@ -1,6 +1,6 @@
 [package]
 name = "emulator-2a"
-version = "3.0.15"
+version = "3.1.0"
 authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
@@ -17,12 +17,12 @@ bitflags = "1.0.0"
 pest = "2.1.0"
 pest_derive = "2.1.0"
 failure = "0.1.0"
-unicode-width = "0.1.5"
+unicode-width = { version = "0.1.5", optional = true }
 colored = "1.8.0"
 lazy_static = "1.3.0"
 rand = "0.7.0"
-rustyline = "5.0.3"
-nom = "5.1.0"
+rustyline = { version = "5.0.3", optional = true }
+nom = { version = "5.1.0", optional = true }
 
 [dependencies.parser2a]
 git = "https://github.com/MalteT/2a-parser"
@@ -39,12 +39,16 @@ version = "0.8.0"
 # TODO: Use termion for linux and mac as soon as #1197 (https://github.com/rust-lang/cargo/issues/1197) is fixed
 default-features = false
 features = ["crossterm"]
+optional = true
 
 [dependencies.crossterm]
 # Use tui's version
 version = "^0.14"
 
 [features]
+default = ["interactive-tui"]
+# Enable the interactive tui
+interactive-tui = ["tui", "rustyline", "unicode-width", "nom"]
 # The std::fmt::Display implementation defaults to Display::to_utf8_string
 # instead of Display::to_ascii_string
 utf8 = []

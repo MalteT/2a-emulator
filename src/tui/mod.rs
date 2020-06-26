@@ -20,13 +20,14 @@ pub mod display;
 pub mod events;
 pub mod input;
 pub mod interface;
+mod supervisor_wrapper;
 
 use crate::error::Error;
 use crate::helpers::Configuration;
-use crate::supervisor::Supervisor;
 use events::Events;
 use input::{Command, Input, InputRegister};
 use interface::Interface;
+pub use supervisor_wrapper::{Part, SupervisorWrapper};
 
 pub type Backend = CrosstermBackend<Stdout>;
 type AbortEmulation = bool;
@@ -39,7 +40,7 @@ const ONE_MILLISECOND: Duration = Duration::from_millis(1);
 /// The Terminal User Interface (TUI)
 pub struct Tui {
     /// The machine's supervisor.
-    supervisor: Supervisor,
+    supervisor: SupervisorWrapper,
     /// Event iterator.
     events: Events,
     /// The input field at the bottom of the TUI.
@@ -53,7 +54,7 @@ pub struct Tui {
 impl Tui {
     /// Creates a new Tui and shows it.
     pub fn new(conf: &Configuration) -> Result<Self, IOError> {
-        let supervisor = Supervisor::new(conf);
+        let supervisor = SupervisorWrapper::new(conf);
         let events = Events::new();
         let input_field = Input::new();
         let last_reset_press = None;
@@ -123,7 +124,7 @@ impl Tui {
         Ok(())
     }
     /// Get a reference to the underlying supervisor.
-    pub const fn supervisor(&self) -> &Supervisor {
+    pub const fn supervisor(&self) -> &SupervisorWrapper {
         &self.supervisor
     }
     /// Handle one single event in the queue.

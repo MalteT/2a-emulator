@@ -14,7 +14,7 @@ use tui::widgets::Widget;
 mod parser;
 
 use crate::helpers;
-use crate::machine::Part;
+use crate::tui::Part;
 use parser::parse_cmd;
 
 /// An Input widget

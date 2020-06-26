@@ -1,10 +1,6 @@
 //! Types and Functions to aid the program.
 
-use ::tui::style::Color;
-use ::tui::style::Modifier;
-use ::tui::style::Style;
 use clap::{crate_version, load_yaml, App, ArgMatches};
-use lazy_static::lazy_static;
 use log::trace;
 use parser2a::asm::Asm;
 use parser2a::parser::AsmParser;
@@ -14,15 +10,12 @@ use std::path::PathBuf;
 
 use crate::error::Error;
 use crate::testing::TestFile;
-use crate::tui;
 
-lazy_static! {
-    pub static ref DIMMED: Style = Style::default().modifier(Modifier::DIM);
-    pub static ref YELLOW: Style = Style::default().fg(Color::Yellow);
-    pub static ref RED: Style = Style::default().fg(Color::Red);
-    pub static ref LIGHTRED: Style = Style::default().fg(Color::LightRed);
-    pub static ref GREEN: Style = Style::default().fg(Color::Green);
-}
+#[cfg(feature = "interactive-tui")]
+mod constants;
+
+#[cfg(feature = "interactive-tui")]
+pub use constants::*;
 
 /// Initial configuration for the machine, given through the CLI.
 #[derive(Debug, Clone)]
@@ -150,9 +143,19 @@ pub fn handle_user_input() -> Result<(), Error> {
 
 /// Run the TUI.
 /// If a program was given, run this.
+#[cfg(feature = "interactive-tui")]
 fn run_tui<P: Into<PathBuf>>(program_path: Option<P>, conf: &Configuration) -> Result<(), Error> {
-    let tui = tui::Tui::new(conf)?;
+    use crate::tui::Tui;
+    let tui = Tui::new(conf)?;
     tui.run(program_path)?;
+    Ok(())
+}
+
+/// Dummy run_tui
+/// This just logs that the feature is not enabled.
+#[cfg(not(feature = "interactive-tui"))]
+fn run_tui<P: Into<PathBuf>>(program_path: Option<P>, conf: &Configuration) -> Result<(), Error> {
+    ::log::warn!("Compiled without the 'interactive-tui' feature!");
     Ok(())
 }
 

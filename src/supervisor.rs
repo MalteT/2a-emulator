@@ -2,9 +2,6 @@
 
 use log::trace;
 use parser2a::asm::Asm;
-use tui::buffer::Buffer;
-use tui::layout::Rect;
-use tui::widgets::Widget;
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -15,7 +12,6 @@ use crate::error::Error;
 use crate::helpers;
 use crate::helpers::Configuration;
 use crate::machine::Machine;
-use crate::machine::Part;
 use crate::machine::State;
 
 const NUMBER_OF_MEASUREMENTS: usize = 10;
@@ -307,10 +303,6 @@ impl Supervisor {
     pub fn is_program_loaded(&self) -> bool {
         self.program_path.is_some()
     }
-    /// Show the given part of the underlying machine.
-    pub fn show(&mut self, part: Part) {
-        self.machine.show(part)
-    }
 }
 
 impl FreqMeasurements {
@@ -362,11 +354,5 @@ impl EmulationState {
         let mut final_outputs_vec: Vec<(_, _)> = self.outputs.iter().collect();
         final_outputs_vec.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
         final_outputs_vec.last().map(|(_, v)| **v)
-    }
-}
-
-impl Widget for Supervisor {
-    fn draw(&mut self, area: Rect, buf: &mut Buffer) {
-        self.machine.draw(area, buf)
     }
 }
