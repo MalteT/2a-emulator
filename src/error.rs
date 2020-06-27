@@ -31,6 +31,9 @@ pub enum Error {
     CrosstermInitializationFailed(#[cause] CrosstermErrorKind),
     /// Crossterm backend exit failed.
     CrosstermExitFailed(#[cause] CrosstermErrorKind),
+    /// The emulator was compiled without the 'interactive-tui' feature.
+    #[cfg(not(feature = "interactive-tui"))]
+    CompiledWithoutInteractiveFeature,
 }
 
 impl From<IOError> for Error {
@@ -66,6 +69,15 @@ impl fmt::Display for Error {
                 write!(f, "Crossterm init failed: {}", cek)
             }
             Error::CrosstermExitFailed(cek) => write!(f, "Crossterm exit failed: {}", cek),
+            #[cfg(not(feature = "interactive-tui"))]
+            Error::CompiledWithoutInteractiveFeature => {
+                use colorize::Colored;
+                write!(
+                    f,
+                    r#"Cannot start interactive session. The 2a-emulator was compiled without the 'interactive-tui' feature. To include the feature during compilation, add: `{}`"#,
+                    "--features interactive-tui".bold().yellow()
+                )
+            }
         }
     }
 }

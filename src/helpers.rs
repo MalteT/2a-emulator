@@ -155,8 +155,7 @@ fn run_tui<P: Into<PathBuf>>(program_path: Option<P>, conf: &Configuration) -> R
 /// This just logs that the feature is not enabled.
 #[cfg(not(feature = "interactive-tui"))]
 fn run_tui<P: Into<PathBuf>>(program_path: Option<P>, conf: &Configuration) -> Result<(), Error> {
-    ::log::warn!("Compiled without the 'interactive-tui' feature!");
-    Ok(())
+    Err(Error::CompiledWithoutInteractiveFeature)
 }
 
 /// Execute a test given by it's path.

@@ -32,13 +32,15 @@ mod testing;
 #[cfg(feature = "interactive-tui")]
 mod tui;
 
-use std::process;
+use colored::Colorize;
+
+use std::{process};
 
 fn main() {
     pretty_env_logger::init();
 
     if let Err(e) = helpers::handle_user_input() {
-        println!("{}", e);
+        println!("{}: {}", "Error".red().bold(), e);
         process::exit(1)
     }
 }
