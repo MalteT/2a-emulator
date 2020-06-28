@@ -8,6 +8,7 @@ use crossterm::{
 use log::error;
 use log::trace;
 use log::warn;
+use scopeguard::defer;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
@@ -82,11 +83,16 @@ impl Tui {
     where
         P: Into<PathBuf>,
     {
+        // This tries to clean everything even if the program panics.
+        defer! {
+            disable_raw_mode().map_err(Error::crossterm_exit).ok();
+            let mut stdout = ::std::io::stdout();
+            execute!(stdout, LeaveAlternateScreen).ok();
+        }
         // Initialize backend.
-        enable_raw_mode().map_err(Error::crossterm_init)?;
-
         let mut stdout = ::std::io::stdout();
         execute!(stdout, EnterAlternateScreen).map_err(Error::crossterm_init)?;
+        enable_raw_mode().map_err(Error::crossterm_init)?;
 
         let crossterm_backend: Backend = CrosstermBackend::new(stdout);
         let mut backend = Terminal::new(crossterm_backend).map_err(Error::tui_init)?;
@@ -125,8 +131,6 @@ impl Tui {
         }
         backend.clear()?;
         backend.show_cursor()?;
-        execute!(backend.backend_mut(), LeaveAlternateScreen).map_err(Error::crossterm_exit)?;
-        disable_raw_mode().map_err(Error::crossterm_exit)?;
         Ok(())
     }
     /// Get a reference to the underlying supervisor.

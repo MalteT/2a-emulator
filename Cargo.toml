@@ -1,6 +1,6 @@
 [package]
 name = "emulator-2a"
-version = "4.0.0"
+version = "4.0.1"
 authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
 
@@ -21,6 +21,7 @@ rand = "0.7.0"
 paw = "1.0.0"
 rustyline = { version = "5.0.3", optional = true }
 nom = { version = "5.1.0", optional = true }
+scopeguard = { version = "1.1.0", optional = true }
 
 [dependencies.parser2a]
 git = "https://github.com/MalteT/2a-parser"
@@ -46,7 +47,7 @@ version = "^0.14"
 [features]
 default = ["interactive-tui"]
 # Enable the interactive tui
-interactive-tui = ["tui", "rustyline", "nom"]
+interactive-tui = ["tui", "rustyline", "nom", "scopeguard"]
 # The std::fmt::Display implementation defaults to Display::to_utf8_string
 # instead of Display::to_ascii_string
 utf8 = []
