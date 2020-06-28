@@ -3,6 +3,9 @@ name = "emulator-2a"
 version = "4.1.0"
 authors = ["Malte Tammena <malte.tammena@gmx.de>"]
 edition = "2018"
+license = "GPL-3.0"
+readme = "README.md"
+repository = "https://github.com/MalteT/2a-emulator"
 
 [[bin]]
 name = "2a-emulator"
