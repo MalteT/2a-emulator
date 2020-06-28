@@ -42,6 +42,7 @@ pub enum SubCommand {
     /// Verify the given program's syntax.
     Verify(VerifyArgs),
     /// Run an interactive session.
+    #[cfg(feature = "interactive-tui")]
     Interactive(InteractiveArgs),
 }
 

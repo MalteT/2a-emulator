@@ -57,7 +57,13 @@ fn main(args: Args) {
         Some(SubCommand::Verify(args)) => run_verification(&args),
         #[cfg(feature = "interactive-tui")]
         Some(SubCommand::Interactive(args)) => run_interactive_session(&args),
+        #[cfg(feature = "interactive-tui")]
         None => run_interactive_session(&InteractiveArgs::default()),
+        #[cfg(not(feature = "interactive-tui"))]
+        None => {
+            println!("Nothing to do..");
+            Ok(())
+        }
     };
 
     if let Err(e) = result {

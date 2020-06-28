@@ -71,7 +71,7 @@ impl fmt::Display for Error {
             Error::CrosstermExitFailed(cek) => write!(f, "Crossterm exit failed: {}", cek),
             #[cfg(not(feature = "interactive-tui"))]
             Error::CompiledWithoutInteractiveFeature => {
-                use colorize::Colored;
+                use colored::Colorize;
                 write!(
                     f,
                     r#"Cannot start interactive session. The 2a-emulator was compiled without the 'interactive-tui' feature. To include the feature during compilation, add: `{}`"#,
