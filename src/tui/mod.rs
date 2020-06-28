@@ -11,7 +11,7 @@ use log::warn;
 use tui::backend::CrosstermBackend;
 use tui::Terminal;
 
-use std::io::{Error as IOError, Stdout, Write};
+use std::io::{Stdout, Write};
 use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -22,8 +22,8 @@ pub mod input;
 pub mod interface;
 mod supervisor_wrapper;
 
+use crate::args::InteractiveArgs;
 use crate::error::Error;
-use crate::helpers::Configuration;
 use events::Events;
 use input::{Command, Input, InputRegister};
 use interface::Interface;
@@ -53,15 +53,15 @@ pub struct Tui {
 
 impl Tui {
     /// Creates a new Tui and shows it.
-    pub fn new(conf: &Configuration) -> Result<Self, IOError> {
-        let supervisor = SupervisorWrapper::new(conf);
+    pub fn new(args: &InteractiveArgs) -> Self {
+        let supervisor = SupervisorWrapper::new(&args.init);
         let events = Events::new();
         let input_field = Input::new();
         let last_reset_press = None;
         let last_clk_press = None;
         let last_int_press = None;
         let last_continue_press = None;
-        Ok(Tui {
+        Tui {
             supervisor,
             events,
             input_field,
@@ -69,7 +69,13 @@ impl Tui {
             last_clk_press,
             last_int_press,
             last_continue_press,
-        })
+        }
+    }
+    /// Create a new TUI from the given command line arguments
+    /// and start it immidiately.
+    pub fn run_with_args(args: &InteractiveArgs) -> Result<(), Error> {
+        let tui = Tui::new(args);
+        tui.run(args.program.as_ref())
     }
     /// Run the main loop using the optional asm program.
     pub fn run<P>(mut self, path: Option<P>) -> Result<(), Error>

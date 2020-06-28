@@ -33,37 +33,31 @@ See the [Cargo Manual](https://doc.rust-lang.org/cargo/commands/cargo-install.ht
 
 ## Usage
 
-Simply run `2a-emulator YOUR_PROGRAM_FILE.asm` to start the interactive session. More usage information can be found with `2a-emulator --help`:
+Simply run `2a-emulator interactive YOUR_PROGRAM_FILE.asm` to start the interactive session. More usage information can be found with `2a-emulator --help`:
 ```text
-2a-emulator 3.0.6
+emulator-2a 4.0.0
 Malte Tammena <malte.tammena@gmx.de>
-Emulator for the Minirechner 2a microcomputer
+Emulator for the Minirechner 2a microcomputer.
+
+If run without arguments an interactive session is started.
 
 USAGE:
-    2a-emulator [FLAGS] [OPTIONS] [--] [PROGRAM]
+    2a-emulator [SUBCOMMAND]
 
 FLAGS:
-    -c, --check          Validate the given source file. If the validation fails,
-                         neither tests nor the interactive
-                         session will be executed
-    -h, --help           Prints help information
-    -i, --interactive    Start an interactive session
-        --j1             Plug jumper J1 into the board
-        --no-j2          Unplug jumper J2 from the board
-    -V, --version        Prints version information
+    -h, --help
+            Prints help information
 
-OPTIONS:
-        --i1 <VOLT>         Set analog input port I1 (0.0-5.0) [default: 0.0]
-        --i2 <VOLT>         Set analog input port I2 (0.0-5.0) [default: 0.0]
-        --irg <BYTE>        Set the value for the 8-bit input port (0-255) [default: 0]
-        --temp <VOLT>       Set the value for the temperature sensor (0.0-2.55).
-    -t, --test <TEST>...    Specify a test file
-        --uio1 <VOLT>       Set universal analog input/output port UIO1 (0.0-5.0)
-        --uio2 <VOLT>       Set universal analog input/output port UIO2 (0.0-5.0)
-        --uio3 <VOLT>       Set universal analog input/output port UIO3 (0.0-5.0)
+    -V, --version
+            Prints version information
 
-ARGS:
-    <PROGRAM>    File to load and verify
+
+SUBCOMMANDS:
+    help           Prints this message or the help of the given subcommand(s)
+    interactive    Run an interactive session
+    run            Run a single emulation
+    test           Run tests against a program
+    verify         Verify the given program's syntax
 ```
 
 ## Compilation flags

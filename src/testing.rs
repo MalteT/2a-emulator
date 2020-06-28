@@ -9,9 +9,9 @@ use rand::{random, thread_rng, Rng};
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
+use crate::args::{InitialMachineConfiguration, TestArgs};
 use crate::error::Error;
 use crate::helpers;
-use crate::helpers::Configuration;
 use crate::machine::State;
 use crate::supervisor::{EmulationParameter, Supervisor};
 
@@ -79,17 +79,13 @@ impl TestFile {
         trace!("Parsed test file from path {:?}", path);
         Ok(TestFile { tests })
     }
-    pub fn execute_against<P: Into<PathBuf>>(
-        &self,
-        path: P,
-        conf: &Configuration,
-    ) -> Result<(), Error> {
+    pub fn execute_against<P: Into<PathBuf>>(&self, path: P) -> Result<(), Error> {
         let path: PathBuf = path.into();
         let asm = helpers::read_asm_file(&path)?;
         let mut res = Ok(());
         for test in &self.tests {
             trace!("Executing test {:?} for {:?}", test.name, path);
-            res = match test.execute_against(&path, asm.clone(), conf) {
+            res = match test.execute_against(&path, asm.clone()) {
                 Err(e) => {
                     eprintln!(" {} {}", "=>".bright_red(), e);
                     Err(e)
@@ -103,12 +99,7 @@ impl TestFile {
 
 impl Test {
     /// Execute the test.
-    pub fn execute_against<P: Into<PathBuf>>(
-        &self,
-        path: P,
-        asm: Asm,
-        conf: &Configuration,
-    ) -> Result<(), Error> {
+    pub fn execute_against<P: Into<PathBuf>>(&self, path: P, asm: Asm) -> Result<(), Error> {
         let path: PathBuf = path.into();
         let mut rng = thread_rng();
 
@@ -150,7 +141,8 @@ impl Test {
         ep.inputs.insert(0, initial_input);
 
         // Run the emulation
-        let final_state = Supervisor::execute_with_parameter(ep, conf);
+        let final_state =
+            Supervisor::execute_with_parameter(ep, &InitialMachineConfiguration::default());
         let final_outputs = final_state.final_outputs();
 
         // Verify
@@ -310,4 +302,18 @@ impl Input {
             Input::Random => random(),
         }
     }
+}
+
+pub fn run_test_with_args(args: &TestArgs) -> Result<(), Error> {
+    trace!(
+        "Executing tests from file {:?} against {:?}",
+        args.test,
+        args.program
+    );
+    TestFile::parse(&args.test)?.execute_against(&args.program)?;
+    println!(
+        "Tests in {:?} ran successful against {:?}!",
+        args.test, args.program
+    );
+    Ok(())
 }

@@ -19,8 +19,8 @@ pub use mp_ram::{MP28BitWord, MicroprogramRam};
 pub use register::{Register, RegisterNumber};
 pub use signal::Signal;
 
+use crate::args::InitialMachineConfiguration;
 use crate::compiler::Translator;
-use crate::helpers::Configuration;
 
 /// State of the machine.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -66,7 +66,7 @@ pub struct Machine {
 
 impl Machine {
     /// Create and run a new Minirechner 2a with an optional program.
-    pub fn new(program: Option<&Asm>, conf: &Configuration) -> Self {
+    pub fn new(program: Option<&Asm>, conf: &InitialMachineConfiguration) -> Self {
         let mp_ram = MicroprogramRam::new();
         let reg = Register::new();
         let bus = Bus::new();
@@ -112,21 +112,15 @@ impl Machine {
             machine.stacksize = Some(bytecode.stacksize);
         }
         // Apply configuration
-        machine.bus.board.set_irg(conf.irg);
+        machine.bus.board.set_irg(conf.di1);
         machine.bus.board.set_temp(conf.temp);
-        machine.bus.board.set_j1(conf.jumper[0]);
-        machine.bus.board.set_j2(conf.jumper[1]);
-        machine.bus.board.set_i1(conf.analog_inputs[0]);
-        machine.bus.board.set_i2(conf.analog_inputs[1]);
-        if let Some(val) = conf.uios[0] {
-            machine.bus.board.set_uio1(val);
-        }
-        if let Some(val) = conf.uios[1] {
-            machine.bus.board.set_uio2(val);
-        }
-        if let Some(val) = conf.uios[2] {
-            machine.bus.board.set_uio3(val);
-        }
+        machine.bus.board.set_j1(conf.j1);
+        machine.bus.board.set_j2(conf.j2);
+        machine.bus.board.set_i1(conf.ai1);
+        machine.bus.board.set_i2(conf.ai2);
+        machine.bus.board.set_uio1(conf.uio1);
+        machine.bus.board.set_uio2(conf.uio2);
+        machine.bus.board.set_uio3(conf.uio3);
         machine
     }
     /// Input `number` into input register `FC`.

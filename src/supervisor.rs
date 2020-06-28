@@ -8,9 +8,9 @@ use std::path::PathBuf;
 use std::time::Duration;
 use std::time::Instant;
 
+use crate::args::InitialMachineConfiguration;
 use crate::error::Error;
 use crate::helpers;
-use crate::helpers::Configuration;
 use crate::machine::Machine;
 use crate::machine::State;
 
@@ -34,7 +34,7 @@ pub struct Supervisor {
     /// Frequency measurement utility.
     freq_measurements: FreqMeasurements,
     /// Initial configuration for the machine.
-    conf: Configuration,
+    conf: InitialMachineConfiguration,
 }
 
 /// Helper struct for frequency measurements.
@@ -81,7 +81,7 @@ pub struct EmulationState {
 
 impl Supervisor {
     /// Initialize a new Supervisor.
-    pub fn new(conf: &Configuration) -> Self {
+    pub fn new(conf: &InitialMachineConfiguration) -> Self {
         let machine = Machine::new(None, conf);
         let clk_auto_run_mode = false;
         let clk_asm_step_mode = false;
@@ -104,7 +104,7 @@ impl Supervisor {
     /// process.
     pub fn execute_with_parameter(
         param: EmulationParameter,
-        conf: &Configuration,
+        conf: &InitialMachineConfiguration,
     ) -> EmulationState {
         // Create emulation state
         let mut fs = EmulationState::new();

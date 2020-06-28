@@ -6,7 +6,8 @@ use tui::widgets::Widget;
 use std::f32::consts::FRAC_PI_2;
 use std::ops::{Deref, DerefMut};
 
-use crate::helpers::{self, Configuration};
+use crate::args::InitialMachineConfiguration;
+use crate::helpers::{self};
 use crate::machine::DASR;
 use crate::supervisor::Supervisor;
 use crate::tui::display::Display;
@@ -29,7 +30,7 @@ pub enum Part {
 }
 
 impl SupervisorWrapper {
-    pub fn new(conf: &Configuration) -> Self {
+    pub fn new(conf: &InitialMachineConfiguration) -> Self {
         SupervisorWrapper {
             part: Part::RegisterBlock,
             supervisor: Supervisor::new(conf),
