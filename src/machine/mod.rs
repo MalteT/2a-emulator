@@ -121,6 +121,10 @@ impl Machine {
         machine.bus.board.set_uio1(conf.uio1);
         machine.bus.board.set_uio2(conf.uio2);
         machine.bus.board.set_uio3(conf.uio3);
+        machine.input_fc(conf.fc);
+        machine.input_fd(conf.fd);
+        machine.input_fe(conf.fe);
+        machine.input_ff(conf.ff);
         machine
     }
     /// Input `number` into input register `FC`.

@@ -39,11 +39,10 @@ mod testing;
 #[cfg(feature = "interactive-tui")]
 mod tui;
 
-use args::{Args, InteractiveArgs, SubCommand, TestArgs, VerifyArgs};
+use args::{Args, InteractiveArgs, SubCommand, TestArgs, VerifyArgs, RunArgs};
 use error::Error;
 
 use colored::Colorize;
-use log::error;
 
 use std::process;
 
@@ -54,7 +53,7 @@ fn main(args: Args) {
     // Match against the given subcommand and execute the part
     // of the program that is requested.
     let result: Result<(), Error> = match args.subcommand {
-        Some(SubCommand::Run { .. }) => run_runner(&args),
+        Some(SubCommand::Run(args)) => run_runner(&args),
         Some(SubCommand::Test(args)) => run_tests(&args),
         Some(SubCommand::Verify(args)) => run_verification(&args),
         #[cfg(feature = "interactive-tui")]
@@ -75,8 +74,9 @@ fn main(args: Args) {
     }
 }
 
-fn run_runner(args: &Args) -> Result<(), Error> {
-    error!("Not implemented yet");
+fn run_runner(args: &RunArgs) -> Result<(), Error> {
+    let run = runner::Runner::with_args(args)?;
+    println!("{}", run.run());
     Ok(())
 }
 

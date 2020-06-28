@@ -21,22 +21,7 @@ pub enum SubCommand {
     /// state will be printed after the emulation has run.
     ///
     /// It is sufficient to specify a program and the number of clock cycles.
-    Run {
-        #[structopt(flatten)]
-        init: InitialMachineConfiguration,
-        /// The path to the program to compile and run.
-        ///
-        /// The program will be verified before execution.
-        #[structopt(name = "PROGRAM")]
-        program: PathBuf,
-        /// The number of clock cycles to emulate.
-        ///
-        /// This is the _maximum_ number of clock cycles the program will
-        /// run for. Emulation may be aborted before the limit is reached,
-        /// i.e. if the machine halts.
-        #[structopt(name = "CYCLES")]
-        cycles: usize,
-    },
+    Run(RunArgs),
     /// Run tests against a program.
     Test(TestArgs),
     /// Verify the given program's syntax.
@@ -44,6 +29,24 @@ pub enum SubCommand {
     /// Run an interactive session.
     #[cfg(feature = "interactive-tui")]
     Interactive(InteractiveArgs),
+}
+
+#[derive(Debug, StructOpt)]
+pub struct RunArgs {
+    #[structopt(flatten)]
+    pub init: InitialMachineConfiguration,
+    /// The path to the program to compile and run.
+    ///
+    /// The program will be verified before execution.
+    #[structopt(name = "PROGRAM")]
+    pub program: PathBuf,
+    /// The number of clock cycles to emulate.
+    ///
+    /// This is the _maximum_ number of clock cycles the program will
+    /// run for. Emulation may be aborted before the limit is reached,
+    /// i.e. if the machine halts.
+    #[structopt(name = "CYCLES")]
+    pub cycles: usize,
 }
 
 #[derive(Debug, StructOpt)]
