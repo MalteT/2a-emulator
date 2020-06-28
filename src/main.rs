@@ -51,6 +51,8 @@ use std::process;
 fn main(args: Args) {
     pretty_env_logger::init();
 
+    // Match against the given subcommand and execute the part
+    // of the program that is requested.
     let result: Result<(), Error> = match args.subcommand {
         Some(SubCommand::Run { .. }) => run_runner(&args),
         Some(SubCommand::Test(args)) => run_tests(&args),
@@ -66,6 +68,7 @@ fn main(args: Args) {
         }
     };
 
+    // Exit with errorcode 1 if an error occured.
     if let Err(e) = result {
         println!("{}: {}", "Error".red().bold(), e);
         process::exit(1)
