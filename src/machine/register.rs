@@ -132,7 +132,7 @@ impl Register {
     }
     /// Update the CO flag.
     pub fn update_co(&mut self, co: bool) {
-        let co = (co as u8) << 0;
+        let co = co as u8;
         self.content[4] = (self.content[4] & 0b1111_1110) | co;
     }
     /// Update the ZO flag.
