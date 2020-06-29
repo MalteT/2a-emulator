@@ -31,6 +31,8 @@ pub enum Error {
     CrosstermInitializationFailed(#[cause] CrosstermErrorKind),
     /// Crossterm backend exit failed.
     CrosstermExitFailed(#[cause] CrosstermErrorKind),
+    /// Verification of a run failed. The first field is an explanation.
+    RunVerificationFailed(String),
     /// The emulator was compiled without the 'interactive-tui' feature.
     #[cfg(not(feature = "interactive-tui"))]
     CompiledWithoutInteractiveFeature,
@@ -69,6 +71,11 @@ impl fmt::Display for Error {
                 write!(f, "Crossterm init failed: {}", cek)
             }
             Error::CrosstermExitFailed(cek) => write!(f, "Crossterm exit failed: {}", cek),
+            Error::RunVerificationFailed(reason) => write!(
+                f,
+                "Verification failed: {:?} did not match expectations",
+                reason
+            ),
             #[cfg(not(feature = "interactive-tui"))]
             Error::CompiledWithoutInteractiveFeature => {
                 use colored::Colorize;

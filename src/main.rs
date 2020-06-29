@@ -1,5 +1,5 @@
 //! # Emulator for the Minirechner 2a microcomputer
-
+//!
 //! This is an emulator for the Minirechner 2a microcomputer. The microcomputer
 //! is used during a practical course at the university of Leipzig. This emulator
 //! was created for my bachelor thesis and is published under the GNU GPLv3. It's
@@ -88,7 +88,7 @@ mod testing;
 #[cfg(feature = "interactive-tui")]
 mod tui;
 
-use args::{Args, InteractiveArgs, SubCommand, TestArgs, VerifyArgs, RunArgs};
+use args::{Args, InteractiveArgs, RunArgs, SubCommand, TestArgs, VerifyArgs};
 use error::Error;
 
 use colored::Colorize;
@@ -111,22 +111,21 @@ fn main(args: Args) {
         None => run_interactive_session(&InteractiveArgs::default()),
         #[cfg(not(feature = "interactive-tui"))]
         None => {
-            println!("Nothing to do..");
+            eprintln!("Nothing to do..");
             Ok(())
         }
     };
 
     // Exit with errorcode 1 if an error occured.
     if let Err(e) = result {
-        println!("{}: {}", "Error".red().bold(), e);
+        eprintln!("{}: {}", "Error".red().bold(), e);
         process::exit(1)
     }
 }
 
 fn run_runner(args: &RunArgs) -> Result<(), Error> {
     let run = runner::Runner::with_args(args)?;
-    println!("{}", run.run());
-    Ok(())
+    run.run()
 }
 
 fn run_tests(args: &TestArgs) -> Result<(), Error> {
