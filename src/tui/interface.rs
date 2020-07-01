@@ -1,10 +1,39 @@
+//! The basis of the TUI user interface.
+//! ┌Minirechner 2a────────────────────────┐ASM──────────────────────────────
+//! │                                      │
+//! │ Outputs:                             │
+//! │ 00000000 00000000                    │>
+//! │       FF       FE                    │
+//! │                                      │
+//! │ Inputs:                              │INFO─────────────────────────────
+//! │ 00000000 00000000 00000000 00000000  │
+//! │       FF       FE       FD       FC  │Program:
+//! │                                      │Frequency:                7.41MHz
+//! │ Registers:                           │Measured Frequency:        0.00Hz
+//! │ R0 00000000                          │State:                    RUNNING
+//! │ R1 00000000                          │HELP─────────────────────────────
+//! │ R2 00000000                          │
+//! │ PC 00000000                          │Reset                      CTRL+R
+//! │ FR 00000000                          │Clock                       Enter
+//! │ SP 00000000                          │Edge interrupt             CTRL+E
+//! │ R6 00000000                          │Toggle autorun             CTRL+A
+//! │ R7 00000000                          │Toggle asm step            CTRL+W
+//! │                                      │Continue                   CTRL+L
+//! │                                      │
+//! │                                      │load PATH        Load asm program
+//! │                                      │set               Update settings
+//! │                                      │show       Select part to display
+//! │──────────────────────────────────────│quit             Exit the program
+//! │> █                                   │
+//! └──────────────────────────────────────┘─────────────────────────────────
+
 use lazy_static::lazy_static;
 use tui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
     style::{Modifier, Style},
     terminal::Frame,
-    widgets::{Block, Borders, Paragraph, Text, Widget},
+    widgets::{Block, Borders, Paragraph, StatefulWidget, Text, Widget},
 };
 
 use std::ops::Deref;
@@ -13,7 +42,7 @@ use std::time::{Duration, Instant};
 use crate::{
     helpers,
     machine::State,
-    tui::{Backend, Tui},
+    tui::{input::Input, Backend, SupervisorWrapper, SupervisorWrapperState, Tui},
 };
 
 pub const MINIMUM_ALLOWED_WIDTH: u16 = 76;
@@ -21,7 +50,7 @@ pub const MINIMUM_ALLOWED_HEIGHT: u16 = 28;
 const RIGHT_COLUMN_WIDTH: u16 = 35;
 const PROGRAM_AREA_HEIGHT: u16 = 7;
 const FREQ_AREA_HEIGHT: u16 = 6;
-const INPUT_AREA_HEIGHT: u16 = 3;
+const INPUT_AREA_HEIGHT: u16 = 2;
 const HIGHLIGHT_DURATION: Duration = Duration::from_millis(500);
 
 lazy_static! {
@@ -29,6 +58,45 @@ lazy_static! {
         .title("Error")
         .borders(Borders::ALL)
         .border_style(*helpers::RED);
+}
+
+#[derive(Debug, Clone, Copy)]
+struct MainView;
+
+impl StatefulWidget for MainView {
+    type State = Tui;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        // Render outside block
+        let main_block = Block::default()
+            .border_style(*helpers::DIMMED)
+            .title_style(*helpers::DIMMED)
+            .title("─┤ Minirechner 2a ├")
+            .borders(Borders::ALL);
+        main_block.render(area, buf);
+        let area_inside_block = main_block.inner(area);
+
+        // Render the input field
+        let input_area = Rect {
+            y: area_inside_block.bottom() - INPUT_AREA_HEIGHT,
+            height: INPUT_AREA_HEIGHT,
+            ..area_inside_block
+        };
+        // Draw the input block first
+        let input_block = Block::default()
+            .border_style(*helpers::DIMMED)
+            .borders(Borders::TOP);
+        input_block.render(input_area, buf);
+        // Then render the actual input field
+        let input_field_area = input_block.inner(input_area);
+        Input::new().render(input_field_area, buf, &mut state.input_field);
+        // Render the rest of the main view, registers and the shown part.
+        let main_machine_area = Rect {
+            height: area_inside_block.height - INPUT_AREA_HEIGHT,
+            ..area_inside_block
+        };
+        SupervisorWrapper::new().render(main_machine_area, buf, &mut state.supervisor);
+    }
 }
 
 /// The user interface.
@@ -55,7 +123,6 @@ lazy_static! {
 ///                        minimal width                      fixed width
 /// ```
 pub struct Interface<'a> {
-    pub outer: Block<'a>,
     pub main: Block<'a>,
     pub input: Block<'a>,
     pub program_display: Block<'a>,
@@ -83,21 +150,29 @@ struct ProgramDisplay<'a> {
 impl<'a> Interface<'a> {
     /// Initialize a new interface.
     pub fn new() -> Self {
-        let outer = Block::default()
-            .title("Minirechner 2a")
-            .borders(Borders::ALL);
         let main = Block::default().borders(Borders::ALL);
         let input = Block::default()
-            .borders(Borders::ALL)
+            .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)
             .border_style(*helpers::YELLOW);
-        let program_display = Block::default().borders(Borders::ALL);
-        let freq_display = Block::default().borders(Borders::ALL);
-        let help_display = Block::default().borders(Borders::ALL).title("HELP");
+        let program_display = Block::default()
+            .borders(Borders::TOP)
+            .border_style(*helpers::DIMMED)
+            .title_style(*helpers::DIMMED)
+            .title("─┤ Program ├");
+        let freq_display = Block::default()
+            .borders(Borders::TOP)
+            .border_style(*helpers::DIMMED)
+            .title_style(*helpers::DIMMED)
+            .title("─┤ Info    ├");
+        let help_display = Block::default()
+            .borders(Borders::TOP)
+            .border_style(*helpers::DIMMED)
+            .title_style(*helpers::DIMMED)
+            .title("─┤ Help    ├");
         let counter = 0;
         let measured_frequency = String::from("0Hz");
         let frequency = String::from("0Hz");
         Interface {
-            outer,
             main,
             input,
             program_display,
@@ -113,7 +188,7 @@ impl<'a> Interface<'a> {
         // Increment draw counter
         self.counter = self.counter.overflowing_add(1).0;
         let area = f.size();
-        let area = Rect::new(area.x, area.y, area.width - 1, area.height - 1);
+        let area = Rect::new(area.x, area.y, area.width - 1, area.height);
         // Draw a placeholder for too small windows
         if area.width < MINIMUM_ALLOWED_WIDTH {
             let test = [
@@ -123,10 +198,10 @@ impl<'a> Interface<'a> {
                 Text::styled(" decrease your font size", *helpers::YELLOW),
                 Text::raw("!"),
             ];
-            let mut paragraph = Paragraph::new(test.iter())
+            let paragraph = Paragraph::new(test.iter())
                 .alignment(Alignment::Center)
                 .block(*BLK_ERROR);
-            paragraph.render(f, area);
+            f.render_widget(paragraph, area);
             return;
         } else if area.height < MINIMUM_ALLOWED_HEIGHT {
             let test = [
@@ -136,41 +211,33 @@ impl<'a> Interface<'a> {
                 Text::styled(" decrease your font size", *helpers::YELLOW),
                 Text::raw("!"),
             ];
-            let mut paragraph = Paragraph::new(test.iter())
+            let paragraph = Paragraph::new(test.iter())
                 .alignment(Alignment::Center)
                 .block(*BLK_ERROR);
-            paragraph.render(f, area);
+            f.render_widget(paragraph, area);
             return;
         }
 
-        // Outer area
-        self.outer.render(f, area);
+        // This is the area for the main component, the [`MainView`].
+        let main_view_area = Rect {
+            width: area.width - RIGHT_COLUMN_WIDTH,
+            ..area
+        };
+        f.render_stateful_widget(MainView, main_view_area, tui);
 
-        // Machine area (main)
-        let mut main_area = self.outer.inner(area);
-        main_area.height -= INPUT_AREA_HEIGHT;
-        main_area.width -= RIGHT_COLUMN_WIDTH;
-        self.main.render(f, main_area);
-        tui.supervisor.render(f, self.main.inner(main_area));
+        // This is the area for the right column of the interface.
+        // It contains the program, info and help displays.
+        let right_column_area = Rect {
+            x: area.x + area.width - RIGHT_COLUMN_WIDTH,
+            width: RIGHT_COLUMN_WIDTH,
+            ..area
+        };
 
-        // Input area
-        let input_area = Rect::new(
-            main_area.x,
-            main_area.y + main_area.height,
-            main_area.width,
-            INPUT_AREA_HEIGHT,
-        );
-        self.input.render(f, input_area);
-        tui.input_field.render(f, self.input.inner(input_area));
-
-        // Program display area
-        let program_area = Rect::new(
-            main_area.x + main_area.width,
-            main_area.y,
-            RIGHT_COLUMN_WIDTH,
-            PROGRAM_AREA_HEIGHT,
-        );
-        self.program_display.render(f, program_area);
+        let program_area = Rect {
+            height: PROGRAM_AREA_HEIGHT,
+            ..right_column_area
+        };
+        f.render_widget(self.program_display, program_area);
         self.draw_program(f, self.program_display.inner(program_area), tui);
 
         // Frequency display area
@@ -180,18 +247,18 @@ impl<'a> Interface<'a> {
             RIGHT_COLUMN_WIDTH,
             FREQ_AREA_HEIGHT,
         );
-        self.freq_display.render(f, freq_area);
+        f.render_widget(self.freq_display, freq_area);
         self.draw_freq(f, self.freq_display.inner(freq_area), tui);
 
         // Help display area
-        let help_height = self.outer.inner(area).height - freq_area.height - program_area.height;
+        let help_height = area.height - freq_area.height - program_area.height;
         let help_area = Rect::new(
             freq_area.x,
             freq_area.y + freq_area.height,
             RIGHT_COLUMN_WIDTH,
             help_height,
         );
-        self.help_display.render(f, help_area);
+        f.render_widget(self.help_display, help_area);
         self.draw_help(f, self.help_display.inner(help_area), tui);
     }
 
@@ -213,8 +280,8 @@ impl<'a> Interface<'a> {
         ];
         // Show as much as possible
         for (input, help) in items.iter().take(area.height as usize) {
-            let mut ss = SpacedStr::from(input, help);
-            ss.render(f, area);
+            let ss = SpacedStr::from(input, help);
+            f.render_widget(ss, area);
             area.y += 1;
             area.height -= 1;
         }
@@ -230,8 +297,8 @@ impl<'a> Interface<'a> {
         ];
         // Show as much as possible
         for (input, help) in items.iter().take(area.height as usize) {
-            let mut ss = SpacedStr::from(input, help);
-            ss.render(f, area);
+            let ss = SpacedStr::from(input, help);
+            f.render_widget(ss, area);
             area.y += 1;
             area.height -= 1;
         }
@@ -247,7 +314,7 @@ impl<'a> Interface<'a> {
                     ss = ss.left_style(&helpers::YELLOW);
                 }
             }
-            ss.render(f, area);
+            f.render_widget(ss, area);
             area.y += 1;
             area.height -= 1;
         }
@@ -265,7 +332,7 @@ impl<'a> Interface<'a> {
                 .left_style(&helpers::DIMMED)
                 .right_style(&helpers::DIMMED);
         }
-        ss.render(f, area);
+        f.render_widget(ss, area);
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedStr::from("Edge interrupt", "CTRL+E");
@@ -279,21 +346,21 @@ impl<'a> Interface<'a> {
                 .left_style(&helpers::DIMMED)
                 .right_style(&helpers::DIMMED);
         }
-        ss.render(f, area);
+        f.render_widget(ss, area);
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedStr::from("Toggle autorun", "CTRL+A");
         if tui.supervisor.is_auto_run_mode() {
             ss = ss.left_style(&helpers::YELLOW);
         }
-        ss.render(f, area);
+        f.render_widget(ss, area);
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedStr::from("Toggle asm step", "CTRL+W");
         if tui.supervisor.is_asm_step_mode() {
             ss = ss.left_style(&helpers::YELLOW);
         }
-        ss.render(f, area);
+        f.render_widget(ss, area);
         area.y += 1;
         area.height -= 1;
         let mut ss = SpacedStr::from("Continue", "CTRL+L");
@@ -307,7 +374,7 @@ impl<'a> Interface<'a> {
                 .left_style(&helpers::DIMMED)
                 .right_style(&helpers::DIMMED);
         }
-        ss.render(f, area);
+        f.render_widget(ss, area);
 
         // Display commands
         area.y += 2;
@@ -316,19 +383,19 @@ impl<'a> Interface<'a> {
         if !tui.supervisor.is_program_loaded() {
             ss = ss.left_style(&helpers::YELLOW);
         }
-        ss.render(f, area);
+        f.render_widget(ss, area);
         area.y += 1;
         area.height -= 1;
-        let mut ss = SpacedStr::from("set", "Update settings");
-        ss.render(f, area);
+        let ss = SpacedStr::from("set", "Update settings");
+        f.render_widget(ss, area);
         area.y += 1;
         area.height -= 1;
-        let mut ss = SpacedStr::from("show", "Select part to display");
-        ss.render(f, area);
+        let ss = SpacedStr::from("show", "Select part to display");
+        f.render_widget(ss, area);
         area.y += 1;
         area.height -= 1;
-        let mut ss = SpacedStr::from("quit", "Exit the program");
-        ss.render(f, area);
+        let ss = SpacedStr::from("quit", "Exit the program");
+        f.render_widget(ss, area);
     }
 
     fn draw_help(&mut self, f: &mut Frame<Backend>, area: Rect, tui: &Tui) {
@@ -351,8 +418,7 @@ impl<'a> Interface<'a> {
             },
             None => "",
         };
-        let mut program_ss =
-            SpacedStr::from("Program: ", program_name).left_style(&helpers::DIMMED);
+        let program_ss = SpacedStr::from("Program: ", program_name).left_style(&helpers::DIMMED);
         // Only update the frequency every 100 frames
         if self.counter % 100 == 0 {
             let measured_freq = tui.supervisor.get_measured_frequency();
@@ -360,10 +426,10 @@ impl<'a> Interface<'a> {
             let freq = tui.supervisor.get_frequency();
             self.frequency = helpers::format_number(freq);
         }
-        let mut frequency_measured_ss =
+        let frequency_measured_ss =
             SpacedStr::from("Measured Frequency: ", &self.measured_frequency)
                 .left_style(&helpers::DIMMED);
-        let mut frequency_ss =
+        let frequency_ss =
             SpacedStr::from("Frequency: ", &self.frequency).left_style(&helpers::DIMMED);
         let mut state_ss = SpacedStr::from("State: ", "RUNNING").left_style(&helpers::DIMMED);
         if tui.supervisor.machine().state() == State::ErrorStopped {
@@ -373,20 +439,20 @@ impl<'a> Interface<'a> {
             state_ss.right = "STOPPED";
             state_ss = state_ss.right_style(&helpers::YELLOW);
         }
-        program_ss.render(f, area);
+        f.render_widget(program_ss, area);
         area.y += 1;
-        frequency_ss.render(f, area);
+        f.render_widget(frequency_ss, area);
         area.y += 1;
-        frequency_measured_ss.render(f, area);
+        f.render_widget(frequency_measured_ss, area);
         area.y += 1;
-        state_ss.render(f, area);
+        f.render_widget(state_ss, area);
     }
 
     fn draw_program(&mut self, f: &mut Frame<Backend>, area: Rect, tui: &Tui) {
         let context = (area.height - 1) / 2;
         let (middle_index, lines) = tui.supervisor.machine().get_current_lines(context as isize);
-        let mut pd = ProgramDisplay::from(middle_index, lines);
-        pd.render(f, area);
+        let pd = ProgramDisplay::from(middle_index, lines);
+        f.render_widget(pd, area);
     }
 }
 
@@ -413,7 +479,7 @@ impl<'l, 'r> SpacedStr<'l, 'r> {
 }
 
 impl Widget for SpacedStr<'_, '_> {
-    fn draw(&mut self, area: Rect, buf: &mut Buffer) {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         let total_width = area.width as usize;
         let left_len = self.left.len() as u16;
         let right_len = self.right.len() as u16;
@@ -437,7 +503,7 @@ impl<'a> ProgramDisplay<'a> {
 }
 
 impl Widget for ProgramDisplay<'_> {
-    fn draw(&mut self, mut area: Rect, buf: &mut Buffer) {
+    fn render(self, mut area: Rect, buf: &mut Buffer) {
         let middle = area.height as i16 / 2;
         let dimmed = Style::default().modifier(Modifier::DIM);
         buf.set_string(area.x, area.y + middle as u16, ">", Style::default());
@@ -449,17 +515,19 @@ impl Widget for ProgramDisplay<'_> {
         for i in 0..area.height as i16 {
             let index = self.middle_index as i16 + i - middle;
             match self.lines.get(index as usize) {
-                Some(line) => buf.set_stringn(
-                    area.x,
-                    area.y + i as u16,
-                    line,
-                    area.width as usize,
-                    if i == middle {
-                        Style::default()
-                    } else {
-                        dimmed
-                    },
-                ),
+                Some(line) => {
+                    buf.set_stringn(
+                        area.x,
+                        area.y + i as u16,
+                        line,
+                        area.width as usize,
+                        if i == middle {
+                            Style::default()
+                        } else {
+                            dimmed
+                        },
+                    );
+                }
                 _ => buf.set_string(area.x, area.y + i as u16, &empty, Style::default()),
             }
         }

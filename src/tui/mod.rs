@@ -17,6 +17,7 @@ use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
 
+mod board_info_sidebar;
 pub mod display;
 pub mod events;
 pub mod input;
@@ -25,10 +26,11 @@ mod supervisor_wrapper;
 
 use crate::args::InteractiveArgs;
 use crate::error::Error;
+pub use board_info_sidebar::BoardInfoSidebarWidget;
 use events::Events;
-use input::{Command, Input, InputRegister};
+use input::{Command, InputRegister, InputState};
 use interface::Interface;
-pub use supervisor_wrapper::{Part, SupervisorWrapper};
+pub use supervisor_wrapper::{Part, SupervisorWrapper, SupervisorWrapperState};
 
 pub type Backend = CrosstermBackend<Stdout>;
 type AbortEmulation = bool;
@@ -41,11 +43,11 @@ const ONE_MILLISECOND: Duration = Duration::from_millis(1);
 /// The Terminal User Interface (TUI)
 pub struct Tui {
     /// The machine's supervisor.
-    supervisor: SupervisorWrapper,
+    supervisor: SupervisorWrapperState,
     /// Event iterator.
     events: Events,
     /// The input field at the bottom of the TUI.
-    input_field: Input,
+    input_field: InputState,
     last_reset_press: Option<Instant>,
     last_clk_press: Option<Instant>,
     last_int_press: Option<Instant>,
@@ -55,9 +57,9 @@ pub struct Tui {
 impl Tui {
     /// Creates a new Tui and shows it.
     pub fn new(args: &InteractiveArgs) -> Self {
-        let supervisor = SupervisorWrapper::new(&args.init);
+        let supervisor = SupervisorWrapperState::new(&args.init);
         let events = Events::new();
-        let input_field = Input::new();
+        let input_field = InputState::new();
         let last_reset_press = None;
         let last_clk_press = None;
         let last_int_press = None;
@@ -121,6 +123,7 @@ impl Tui {
                 self.supervisor.tick();
                 // Handle event
                 if self.handle_event() {
+                    trace!("Quitting application");
                     // Quit
                     break 'outer;
                 }
@@ -134,7 +137,7 @@ impl Tui {
         Ok(())
     }
     /// Get a reference to the underlying supervisor.
-    pub const fn supervisor(&self) -> &SupervisorWrapper {
+    pub const fn supervisor(&self) -> &SupervisorWrapperState {
         &self.supervisor
     }
     /// Handle one single event in the queue.
@@ -145,26 +148,34 @@ impl Tui {
             trace!("{:?}", event);
             if event.modifiers == Mod::CONTROL {
                 match event.code {
-                    Char('c') => return true,
+                    Char('c') => true,
                     Char('a') => {
                         self.supervisor.toggle_auto_run_mode();
+                        false
                     }
                     Char('w') => {
                         self.supervisor.toggle_asm_step_mode();
+                        false
                     }
                     Char('e') => {
                         self.supervisor.key_edge_int();
                         self.last_int_press = Some(Instant::now());
+                        false
                     }
                     Char('r') => {
                         self.supervisor.reset();
                         self.last_reset_press = Some(Instant::now());
+                        false
                     }
                     Char('l') => {
                         self.supervisor.continue_from_stop();
                         self.last_continue_press = Some(Instant::now());
+                        false
                     }
-                    _ => warn!("TUI cannot handle event {:?}", event),
+                    _ => {
+                        warn!("TUI cannot handle event {:?}", event);
+                        false
+                    }
                 }
             } else {
                 match event.code {
@@ -172,19 +183,25 @@ impl Tui {
                         if self.input_field.is_empty() {
                             self.supervisor.next_clk();
                             self.last_clk_press = Some(Instant::now());
+                            false
                         } else {
-                            self.handle_input();
+                            self.handle_input()
                         }
                     }
                     Home | End | Tab | BackTab | Backspace | Left | Right | Up | Down | Delete
                     | Char(_) => {
                         self.input_field.handle(event);
+                        false
                     }
-                    _ => warn!("TUI cannot handle event {:?}", event),
+                    _ => {
+                        warn!("TUI cannot handle event {:?}", event);
+                        false
+                    }
                 }
             }
+        } else {
+            false
         }
-        false
     }
     /// Handle the input field after an 'Enter'.
     fn handle_input(&mut self) -> AbortEmulation {
@@ -194,34 +211,33 @@ impl Tui {
         });
         if let Some(cmd) = self.input_field.last_cmd() {
             trace!("Command entered: {:?}", cmd);
-            use Command::*;
             match cmd {
-                LoadProgram(path) => match self.supervisor.load_program(path) {
+                Command::LoadProgram(path) => match self.supervisor.load_program(path) {
                     Ok(()) => {}
                     Err(e) => error!("Failed to run program: {}", e),
                 },
-                SetInputReg(InputRegister::FC, val) => self.supervisor.input_fc(val),
-                SetInputReg(InputRegister::FD, val) => self.supervisor.input_fd(val),
-                SetInputReg(InputRegister::FE, val) => self.supervisor.input_fe(val),
-                SetInputReg(InputRegister::FF, val) => self.supervisor.input_ff(val),
-                SetIRG(val) => self.supervisor.set_irg(val),
-                SetTEMP(val) => self.supervisor.set_temp(val),
-                SetI1(val) => self.supervisor.set_i1(val),
-                SetI2(val) => self.supervisor.set_i2(val),
-                SetJ1(val) => self.supervisor.set_j1(val),
-                SetJ2(val) => self.supervisor.set_j2(val),
-                SetUIO1(val) => self.supervisor.set_uio1(val),
-                SetUIO2(val) => self.supervisor.set_uio2(val),
-                SetUIO3(val) => self.supervisor.set_uio3(val),
-                Show(part) => self.supervisor.show(part),
-                Quit => return true,
+                Command::SetInputReg(InputRegister::FC, val) => self.supervisor.input_fc(val),
+                Command::SetInputReg(InputRegister::FD, val) => self.supervisor.input_fd(val),
+                Command::SetInputReg(InputRegister::FE, val) => self.supervisor.input_fe(val),
+                Command::SetInputReg(InputRegister::FF, val) => self.supervisor.input_ff(val),
+                Command::SetIRG(val) => self.supervisor.set_irg(val),
+                Command::SetTEMP(val) => self.supervisor.set_temp(val),
+                Command::SetI1(val) => self.supervisor.set_i1(val),
+                Command::SetI2(val) => self.supervisor.set_i2(val),
+                Command::SetJ1(val) => self.supervisor.set_j1(val),
+                Command::SetJ2(val) => self.supervisor.set_j2(val),
+                Command::SetUIO1(val) => self.supervisor.set_uio1(val),
+                Command::SetUIO2(val) => self.supervisor.set_uio2(val),
+                Command::SetUIO3(val) => self.supervisor.set_uio3(val),
+                Command::Show(part) => self.supervisor.show(part),
+                Command::Quit => return true,
             }
         } else {
             warn!("Invalid input: {:?}", self.input_field.last());
         }
         false
     }
-    pub const fn input_field(&self) -> &Input {
+    pub const fn input_field(&self) -> &InputState {
         &self.input_field
     }
 }

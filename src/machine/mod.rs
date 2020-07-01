@@ -12,7 +12,7 @@ mod register;
 mod signal;
 
 pub use alu::Alu;
-pub use board::DASR;
+pub use board::{Board, DASR};
 pub use bus::Bus;
 pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};

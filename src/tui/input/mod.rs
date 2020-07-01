@@ -9,7 +9,7 @@ use tui::buffer::Buffer;
 use tui::layout::Rect;
 use tui::style::Color;
 use tui::style::Style;
-use tui::widgets::Widget;
+use tui::widgets::StatefulWidget;
 
 mod parser;
 
@@ -18,7 +18,18 @@ use crate::tui::Part;
 use parser::parse_cmd;
 
 /// An Input widget
-pub struct Input {
+pub struct Input;
+
+impl Input {
+    pub fn new() -> Self {
+        Input
+    }
+}
+
+/// State needed to draw the input widget.
+/// This also keeps track of the input history and
+/// handles completions.
+pub struct InputState {
     /// Current value of the input box.
     input: Vec<char>,
     /// Cursor position inside the input field.
@@ -72,10 +83,10 @@ pub enum Command<'a> {
     Quit,
 }
 
-impl Input {
+impl InputState {
     /// Create an new Input widget.
     pub const fn new() -> Self {
-        Input {
+        InputState {
             input: Vec::new(),
             input_index: 0,
             history: Vec::new(),
@@ -258,14 +269,15 @@ impl<'a> Command<'a> {
     }
 }
 
-impl Widget for Input {
-    fn draw(&mut self, area: Rect, buf: &mut Buffer) {
+impl StatefulWidget for Input {
+    type State = InputState;
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let max_string_width = area.width as usize - 3;
-        let mut string: String = self.input.iter().collect();
+        let mut string: String = state.input.iter().collect();
         let mut start = string.len().saturating_sub(max_string_width);
         // Move start to the left to include the cursor
-        if start > 0 && start + 5 > self.input_index {
-            start = self.input_index.saturating_sub(5);
+        if start > 0 && start + 5 > state.input_index {
+            start = state.input_index.saturating_sub(5);
         }
         // Replace start with dots
         if start > 0 {
@@ -285,7 +297,7 @@ impl Widget for Input {
                 area.y,
                 &format!("{}", c),
                 area.width as usize - 2 - i,
-                if i == self.input_index - start {
+                if i == state.input_index - start {
                     Style::default().bg(Color::Yellow)
                 } else {
                     Style::default()
@@ -293,9 +305,9 @@ impl Widget for Input {
             );
         }
         // Draw the cursor if necessary
-        if self.input_index == self.input.len() {
+        if state.input_index == state.input.len() {
             buf.set_stringn(
-                area.x + self.input_index as u16 - start as u16 + 2,
+                area.x + state.input_index as u16 - start as u16 + 2,
                 area.y,
                 "█",
                 1,
@@ -322,7 +334,7 @@ mod tests {
     #[test]
     fn is_empty() {
         use KeyCode::*;
-        let mut i = Input::new();
+        let mut i = InputState::new();
         assert!(i.is_empty());
         i.handle(key!(Char('x')));
         assert!(!i.is_empty());
@@ -333,7 +345,7 @@ mod tests {
     #[test]
     fn basics() {
         use KeyCode::*;
-        let mut i = Input::new();
+        let mut i = InputState::new();
         assert_eq!(i.history.len(), 0);
         i.handle(key!(Enter));
         assert_eq!(i.history.len(), 0);
