@@ -22,14 +22,17 @@ pub mod display;
 pub mod events;
 pub mod input;
 pub mod interface;
+mod program_help_sidebar;
 mod supervisor_wrapper;
 
 use crate::args::InteractiveArgs;
 use crate::error::Error;
+use crate::machine::State;
 pub use board_info_sidebar::BoardInfoSidebarWidget;
 use events::Events;
 use input::{Command, InputRegister, InputState};
 use interface::Interface;
+pub use program_help_sidebar::{KeybindingHelpState, ProgramHelpSidebar};
 pub use supervisor_wrapper::{Part, SupervisorWrapper, SupervisorWrapperState};
 
 pub type Backend = CrosstermBackend<Stdout>;
@@ -52,6 +55,7 @@ pub struct Tui {
     last_clk_press: Option<Instant>,
     last_int_press: Option<Instant>,
     last_continue_press: Option<Instant>,
+    keybinding_state: KeybindingHelpState,
 }
 
 impl Tui {
@@ -64,7 +68,9 @@ impl Tui {
         let last_clk_press = None;
         let last_int_press = None;
         let last_continue_press = None;
+        let keybinding_state = KeybindingHelpState::init();
         Tui {
+            keybinding_state,
             supervisor,
             events,
             input_field,
@@ -121,6 +127,8 @@ impl Tui {
             while last_draw.elapsed() < DURATION_BETWEEN_FRAMES {
                 // Let the supervisor do some work
                 self.supervisor.tick();
+                // Update interface state
+                self.maintain();
                 // Handle event
                 if self.handle_event() {
                     trace!("Quitting application");
@@ -159,17 +167,17 @@ impl Tui {
                     }
                     Char('e') => {
                         self.supervisor.key_edge_int();
-                        self.last_int_press = Some(Instant::now());
+                        self.keybinding_state.int_pressed();
                         false
                     }
                     Char('r') => {
                         self.supervisor.reset();
-                        self.last_reset_press = Some(Instant::now());
+                        self.keybinding_state.reset_pressed();
                         false
                     }
                     Char('l') => {
                         self.supervisor.continue_from_stop();
-                        self.last_continue_press = Some(Instant::now());
+                        self.keybinding_state.continue_pressed();
                         false
                     }
                     _ => {
@@ -182,7 +190,7 @@ impl Tui {
                     Enter => {
                         if self.input_field.is_empty() {
                             self.supervisor.next_clk();
-                            self.last_clk_press = Some(Instant::now());
+                            self.keybinding_state.clk_pressed();
                             false
                         } else {
                             self.handle_input()
@@ -239,5 +247,18 @@ impl Tui {
     }
     pub const fn input_field(&self) -> &InputState {
         &self.input_field
+    }
+    fn maintain(&mut self) {
+        // Update keybinding state to reflect machine state
+        let continue_possible = self.supervisor.machine().state() == State::Stopped;
+        self.keybinding_state
+            .set_continue_possible(continue_possible);
+        let edge_int_possible = self.supervisor.machine().is_key_edge_int_enabled();
+        self.keybinding_state
+            .set_edge_int_possible(edge_int_possible);
+        let asm_step_on = self.supervisor.is_asm_step_mode();
+        self.keybinding_state.set_asm_step_on(asm_step_on);
+        let autorun_on = self.supervisor.is_auto_run_mode();
+        self.keybinding_state.set_autorun_on(autorun_on);
     }
 }

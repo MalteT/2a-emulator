@@ -10,4 +10,7 @@ lazy_static! {
     pub static ref LIGHTRED: Style = Style::default().fg(Color::LightRed);
     pub static ref GREEN: Style = Style::default().fg(Color::Green);
     pub static ref BOLD: Style = Style::default().modifier(Modifier::BOLD);
+    pub static ref DIMMED_BOLD: Style = Style::default().modifier(Modifier::BOLD | Modifier::DIM);
+    pub static ref YELLOW_BOLD: Style = Style::default().fg(Color::Yellow).modifier(Modifier::BOLD);
+    pub static ref RED_BOLD: Style = Style::default().fg(Color::Red).modifier(Modifier::BOLD);
 }
