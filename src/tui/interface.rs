@@ -96,21 +96,15 @@ impl StatefulWidget for MainView {
     }
 }
 
-pub struct Interface {
-    /// For updating some things not every frame.
-    counter: usize,
-}
+pub struct Interface;
 
 impl Interface {
     /// Initialize a new interface.
     pub fn new() -> Self {
-        let counter = 0;
-        Interface { counter }
+        Interface
     }
     /// Draw the interface using information from the given [`Tui`]
     pub fn draw<'b>(&mut self, tui: &'b mut Tui, f: &mut Frame<Backend>) {
-        // Increment draw counter
-        self.counter = self.counter.overflowing_add(1).0;
         let area = f.size();
         let area = Rect::new(area.x, area.y, area.width, area.height);
         // Draw a placeholder for too small windows
