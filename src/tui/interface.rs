@@ -112,7 +112,7 @@ impl Interface {
         // Increment draw counter
         self.counter = self.counter.overflowing_add(1).0;
         let area = f.size();
-        let area = Rect::new(area.x, area.y, area.width - 1, area.height);
+        let area = Rect::new(area.x, area.y, area.width, area.height);
         // Draw a placeholder for too small windows
         if area.width < MINIMUM_ALLOWED_WIDTH {
             let test = [
