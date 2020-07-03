@@ -214,13 +214,17 @@ impl Tui {
             code: KeyCode::Enter,
             modifiers: Mod::empty(),
         });
-        if let Some(cmd) = self.input_field.last_cmd() {
+        let last_cmd = self.input_field.last_cmd();
+        if let Some(cmd) = last_cmd {
             trace!("Command entered: {:?}", cmd);
             match cmd {
-                Command::LoadProgram(path) => match self.supervisor.load_program(path) {
-                    Ok(()) => {}
-                    Err(e) => error!("Failed to run program: {}", e),
-                },
+                Command::LoadProgram(path) => {
+                    let path = path.to_owned();
+                    match self.load_program(path) {
+                        Ok(()) => {}
+                        Err(e) => error!("Failed to run program: {}", e),
+                    }
+                }
                 Command::SetInputReg(InputRegister::FC, val) => self.supervisor.input_fc(val),
                 Command::SetInputReg(InputRegister::FD, val) => self.supervisor.input_fd(val),
                 Command::SetInputReg(InputRegister::FE, val) => self.supervisor.input_fe(val),
