@@ -13,10 +13,10 @@ mod keybinding_help;
 mod program_display;
 mod program_info;
 
-use crate::{helpers, tui::Tui};
+use crate::{helpers, machine::RegisterNumber, tui::Tui};
 pub use command_help::CommandHelpWidget;
 pub use keybinding_help::{KeybindingHelpState, KeybindingHelpWidget};
-pub use program_display::ProgramDisplayWidget;
+pub use program_display::{ProgramDisplayState, ProgramDisplayWidget};
 pub use program_info::ProgramInfoWidget;
 
 pub const HEADER_HEIGHT: u16 = 1;
@@ -66,7 +66,14 @@ impl StatefulWidget for ProgramHelpSidebar {
         area.height -= info_height;
         // The rest of the area can be used for the program display
         let program_display_area = area;
-        ProgramDisplayWidget.render(program_display_area, buf);
+        ProgramDisplayWidget(
+            state
+                .supervisor()
+                .machine()
+                .registers()
+                .get(RegisterNumber::R3),
+        )
+        .render(program_display_area, buf, &mut state.program_display_state);
     }
 }
 

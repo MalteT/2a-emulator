@@ -36,11 +36,8 @@ use tui::{
     widgets::{Block, Borders, Paragraph, StatefulWidget, Text, Widget},
 };
 
-use std::ops::Deref;
-
 use crate::{
     helpers,
-    machine::State,
     tui::{input::Input, Backend, ProgramHelpSidebar, SupervisorWrapper, Tui},
 };
 
@@ -48,7 +45,6 @@ pub const MINIMUM_ALLOWED_WIDTH: u16 = 76;
 pub const MINIMUM_ALLOWED_HEIGHT: u16 = 28;
 const RIGHT_SIDEBAR_WIDTH: u16 = 35;
 const PROGRAM_AREA_HEIGHT: u16 = 7;
-const FREQ_AREA_HEIGHT: u16 = 6;
 const INPUT_AREA_HEIGHT: u16 = 2;
 
 lazy_static! {
@@ -128,16 +124,6 @@ pub struct Interface<'a> {
     pub help_display: Block<'a>,
     /// For updating some things not every frame.
     counter: usize,
-    /// Last displayed frequency.
-    measured_frequency: String,
-    frequency: String,
-}
-
-struct SpacedStr<'l, 'r> {
-    left: &'l str,
-    right: &'r str,
-    left_style: Style,
-    right_style: Style,
 }
 
 struct ProgramDisplay<'a> {
@@ -168,8 +154,6 @@ impl<'a> Interface<'a> {
             .title_style(*helpers::DIMMED)
             .title("─┤ Help    ├");
         let counter = 0;
-        let measured_frequency = String::from("0Hz");
-        let frequency = String::from("0Hz");
         Interface {
             main,
             input,
@@ -177,8 +161,6 @@ impl<'a> Interface<'a> {
             freq_display,
             help_display,
             counter,
-            measured_frequency,
-            frequency,
         }
     }
     /// Draw the interface using information from the given [`Tui`]

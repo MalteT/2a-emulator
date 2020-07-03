@@ -26,13 +26,15 @@ mod program_help_sidebar;
 mod supervisor_wrapper;
 
 use crate::args::InteractiveArgs;
+use crate::compiler::Translator;
 use crate::error::Error;
+use crate::helpers;
 use crate::machine::State;
 pub use board_info_sidebar::BoardInfoSidebarWidget;
 use events::Events;
 use input::{Command, InputRegister, InputState};
 use interface::Interface;
-pub use program_help_sidebar::{KeybindingHelpState, ProgramHelpSidebar};
+pub use program_help_sidebar::{KeybindingHelpState, ProgramDisplayState, ProgramHelpSidebar};
 pub use supervisor_wrapper::{Part, SupervisorWrapper, SupervisorWrapperState};
 
 pub type Backend = CrosstermBackend<Stdout>;
@@ -51,11 +53,10 @@ pub struct Tui {
     events: Events,
     /// The input field at the bottom of the TUI.
     input_field: InputState,
-    last_reset_press: Option<Instant>,
-    last_clk_press: Option<Instant>,
-    last_int_press: Option<Instant>,
-    last_continue_press: Option<Instant>,
+    /// State for the [`KeybindingHelpWidget`].
     keybinding_state: KeybindingHelpState,
+    /// State for the [`ProgramDisplayWidget`].
+    program_display_state: ProgramDisplayState,
 }
 
 impl Tui {
@@ -64,20 +65,14 @@ impl Tui {
         let supervisor = SupervisorWrapperState::new(&args.init);
         let events = Events::new();
         let input_field = InputState::new();
-        let last_reset_press = None;
-        let last_clk_press = None;
-        let last_int_press = None;
-        let last_continue_press = None;
         let keybinding_state = KeybindingHelpState::init();
+        let program_display_state = ProgramDisplayState::empty();
         Tui {
+            program_display_state,
             keybinding_state,
             supervisor,
             events,
             input_field,
-            last_reset_press,
-            last_clk_press,
-            last_int_press,
-            last_continue_press,
         }
     }
     /// Create a new TUI from the given command line arguments
@@ -112,7 +107,7 @@ impl Tui {
         backend.hide_cursor()?;
         // Run program if given.
         if let Some(path) = path {
-            self.supervisor.load_program(path)?;
+            self.load_program(path)?;
         }
         // Prepare for main loop
         let mut last_draw;
@@ -260,5 +255,14 @@ impl Tui {
         self.keybinding_state.set_asm_step_on(asm_step_on);
         let autorun_on = self.supervisor.is_auto_run_mode();
         self.keybinding_state.set_autorun_on(autorun_on);
+    }
+    pub fn load_program<P: Into<PathBuf>>(&mut self, path: P) -> Result<(), Error> {
+        let path = path.into();
+        let program = helpers::read_asm_file(&path)?;
+        let bytecode = Translator::compile(&program);
+        // Update the program display state
+        self.program_display_state = ProgramDisplayState::from_bytecode(&bytecode);
+        self.supervisor.load_program(&path)?;
+        Ok(())
     }
 }
