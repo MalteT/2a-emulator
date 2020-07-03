@@ -1,4 +1,3 @@
-use colored::Colorize;
 use tui::{
     buffer::Buffer,
     layout::Rect,

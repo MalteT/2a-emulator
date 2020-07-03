@@ -240,9 +240,6 @@ impl Tui {
         }
         false
     }
-    pub const fn input_field(&self) -> &InputState {
-        &self.input_field
-    }
     fn maintain(&mut self) {
         // Update keybinding state to reflect machine state
         let continue_possible = self.supervisor.machine().state() == State::Stopped;

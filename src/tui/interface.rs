@@ -31,7 +31,6 @@ use lazy_static::lazy_static;
 use tui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
-    style::{Modifier, Style},
     terminal::Frame,
     widgets::{Block, Borders, Paragraph, StatefulWidget, Text, Widget},
 };
@@ -44,7 +43,6 @@ use crate::{
 pub const MINIMUM_ALLOWED_WIDTH: u16 = 76;
 pub const MINIMUM_ALLOWED_HEIGHT: u16 = 28;
 const RIGHT_SIDEBAR_WIDTH: u16 = 35;
-const PROGRAM_AREA_HEIGHT: u16 = 7;
 const INPUT_AREA_HEIGHT: u16 = 2;
 
 lazy_static! {
@@ -93,75 +91,16 @@ impl StatefulWidget for MainView {
     }
 }
 
-/// The user interface.
-/// ```text
-///            ┌──────────────────────────────────────┬────────────────────────┐
-///          ^ │                                      │                        │ ^
-///          | │ R0 ○●○○○○○○                          │   04: SOME_LABEL:      │ |
-///          | │ R1 ○○●●○○○○                          │ > 05: MV 0xFF, (R2)    │ | fixed
-/// min.     | │ R2 ○○○○○○○○                          │   06: MV R1, (R2)      │ | height
-/// height   │ | SP ○○○○●○●●                          │                        │ v
-///          | │                                      ├────────────────────────┤
-///          | │                                      │ 777 Hz     asmfile.asm │ < fixed
-///          | │                                      ├────────────────────────┤   height
-///          | │                                      │                        │
-///          | │                                      │ .                 step │
-///          | │ ○○○○○○○● ○○○○○○●● ○○○○○○○○ ○○○○○○○○  │ Enter              run │
-///          | │  in  FF   in  FE   in  FD   in  FC   │                        │
-///          | │                                      │                        │
-///          | │ ○○○○○○○○ ○○●●●○●○                    │                        │
-///          | │  out FF   out FE                     │                        │
-///          v │                                      │                        │
-///            └──────────────────────────────────────┴────────────────────────┘
-///             <------------------------------------> <---------------------->
-///                        minimal width                      fixed width
-/// ```
-pub struct Interface<'a> {
-    pub main: Block<'a>,
-    pub input: Block<'a>,
-    pub program_display: Block<'a>,
-    pub freq_display: Block<'a>,
-    pub help_display: Block<'a>,
+pub struct Interface {
     /// For updating some things not every frame.
     counter: usize,
 }
 
-struct ProgramDisplay<'a> {
-    lines: Vec<&'a String>,
-    middle_index: usize,
-}
-
-impl<'a> Interface<'a> {
+impl Interface {
     /// Initialize a new interface.
     pub fn new() -> Self {
-        let main = Block::default().borders(Borders::ALL);
-        let input = Block::default()
-            .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)
-            .border_style(*helpers::YELLOW);
-        let program_display = Block::default()
-            .borders(Borders::TOP)
-            .border_style(*helpers::DIMMED)
-            .title_style(*helpers::DIMMED)
-            .title("─┤ Program ├");
-        let freq_display = Block::default()
-            .borders(Borders::TOP)
-            .border_style(*helpers::DIMMED)
-            .title_style(*helpers::DIMMED)
-            .title("─┤ Info    ├");
-        let help_display = Block::default()
-            .borders(Borders::TOP)
-            .border_style(*helpers::DIMMED)
-            .title_style(*helpers::DIMMED)
-            .title("─┤ Help    ├");
         let counter = 0;
-        Interface {
-            main,
-            input,
-            program_display,
-            freq_display,
-            help_display,
-            counter,
-        }
+        Interface { counter }
     }
     /// Draw the interface using information from the given [`Tui`]
     pub fn draw<'b>(&mut self, tui: &'b mut Tui, f: &mut Frame<Backend>) {
@@ -212,68 +151,5 @@ impl<'a> Interface<'a> {
             ..area
         };
         f.render_stateful_widget(ProgramHelpSidebar, help_area, tui);
-
-        // This is the area for the right column of the interface.
-        // It contains the program, info and help displays.
-        let right_column_area = Rect {
-            x: area.x + area.width - RIGHT_SIDEBAR_WIDTH,
-            width: RIGHT_SIDEBAR_WIDTH,
-            ..area
-        };
-
-        let program_area = Rect {
-            height: PROGRAM_AREA_HEIGHT,
-            ..right_column_area
-        };
-        // f.render_widget(self.program_display, program_area);
-        // self.draw_program(f, self.program_display.inner(program_area), tui);
-    }
-
-    fn draw_program(&mut self, f: &mut Frame<Backend>, area: Rect, tui: &Tui) {
-        let context = (area.height - 1) / 2;
-        let (middle_index, lines) = tui.supervisor.machine().get_current_lines(context as isize);
-        let pd = ProgramDisplay::from(middle_index, lines);
-        f.render_widget(pd, area);
-    }
-}
-
-impl<'a> ProgramDisplay<'a> {
-    fn from(middle_index: usize, lines: Vec<&'a String>) -> Self {
-        ProgramDisplay {
-            middle_index,
-            lines,
-        }
-    }
-}
-
-impl Widget for ProgramDisplay<'_> {
-    fn render(self, mut area: Rect, buf: &mut Buffer) {
-        let middle = area.height as i16 / 2;
-        let dimmed = Style::default().modifier(Modifier::DIM);
-        buf.set_string(area.x, area.y + middle as u16, ">", Style::default());
-        // Move everything two to the left to leave space for the arrow.
-        area.x += 2;
-        area.width -= 2;
-        // If machine stopped show the red sign
-        let empty = " ".repeat(area.width as usize);
-        for i in 0..area.height as i16 {
-            let index = self.middle_index as i16 + i - middle;
-            match self.lines.get(index as usize) {
-                Some(line) => {
-                    buf.set_stringn(
-                        area.x,
-                        area.y + i as u16,
-                        line,
-                        area.width as usize,
-                        if i == middle {
-                            Style::default()
-                        } else {
-                            dimmed
-                        },
-                    );
-                }
-                _ => buf.set_string(area.x, area.y + i as u16, &empty, Style::default()),
-            }
-        }
     }
 }

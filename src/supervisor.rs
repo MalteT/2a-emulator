@@ -299,10 +299,6 @@ impl Supervisor {
     pub fn set_uio3(&mut self, value: bool) {
         self.machine.bus.board.set_uio3(value);
     }
-    /// Is an asm program loaded?
-    pub fn is_program_loaded(&self) -> bool {
-        self.program_path.is_some()
-    }
 }
 
 impl FreqMeasurements {

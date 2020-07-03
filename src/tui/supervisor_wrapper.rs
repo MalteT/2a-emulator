@@ -1,13 +1,13 @@
 use tui::buffer::Buffer;
 use tui::layout::{Margin, Rect};
-use tui::style::{Color, Modifier, Style};
-use tui::widgets::{Block, Borders, StatefulWidget, Widget};
+use tui::style::{Color, Style};
+use tui::widgets::StatefulWidget;
 
 use std::ops::{Deref, DerefMut};
 
 use crate::{
     args::InitialMachineConfiguration,
-    helpers::{self},
+    helpers,
     supervisor::Supervisor,
     tui::{display::Display, BoardInfoSidebarWidget},
 };

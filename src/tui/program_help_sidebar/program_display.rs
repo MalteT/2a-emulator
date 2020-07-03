@@ -1,10 +1,5 @@
 use parser2a::asm::Line;
-use tui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::Style,
-    widgets::{Block, Borders, StatefulWidget, Widget},
-};
+use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget};
 
 use std::ops::Range;
 
