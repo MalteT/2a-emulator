@@ -112,10 +112,16 @@ impl Widget for SpacedStr<'_, '_> {
         let left_len = self.left.len() as u16;
         let right_len = self.right.len() as u16;
         // Always display as much of the left part as possible.
-        buf.set_stringn(area.x, area.y, self.left, total_width, self.left_style);
+        buf.set_stringn(
+            area.left(),
+            area.top(),
+            self.left,
+            total_width,
+            self.left_style,
+        );
         // Display the right part, if possible
-        if left_len + right_len < area.width {
-            let right_start = area.x + area.width.saturating_sub(right_len);
+        if left_len + right_len <= area.width {
+            let right_start = area.right().saturating_sub(right_len).saturating_sub(1);
             buf.set_string(right_start, area.y, self.right, self.right_style);
         }
     }
