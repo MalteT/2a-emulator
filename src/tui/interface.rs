@@ -1,31 +1,36 @@
 //! The basis of the TUI user interface.
-//! ┌Minirechner 2a────────────────────────┐ASM──────────────────────────────
-//! │                                      │
-//! │ Outputs:                             │
-//! │ 00000000 00000000                    │>
-//! │       FF       FE                    │
-//! │                                      │
-//! │ Inputs:                              │INFO─────────────────────────────
-//! │ 00000000 00000000 00000000 00000000  │
-//! │       FF       FE       FD       FC  │Program:
-//! │                                      │Frequency:                7.41MHz
-//! │ Registers:                           │Measured Frequency:        0.00Hz
-//! │ R0 00000000                          │State:                    RUNNING
-//! │ R1 00000000                          │HELP─────────────────────────────
-//! │ R2 00000000                          │
-//! │ PC 00000000                          │Reset                      CTRL+R
-//! │ FR 00000000                          │Clock                       Enter
-//! │ SP 00000000                          │Edge interrupt             CTRL+E
-//! │ R6 00000000                          │Toggle autorun             CTRL+A
-//! │ R7 00000000                          │Toggle asm step            CTRL+W
-//! │                                      │Continue                   CTRL+L
-//! │                                      │
-//! │                                      │load PATH        Load asm program
-//! │                                      │set               Update settings
-//! │                                      │show       Select part to display
-//! │──────────────────────────────────────│quit             Exit the program
-//! │> █                                   │
-//! └──────────────────────────────────────┘─────────────────────────────────
+//! ```text
+//! ┌─┤ Minirechner 2a ├────────────────────┐━╸Info╺━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//! │                                       │Program:         12-halt-on-int.asm
+//! │ Outputs:                              │Frequency:                  7.41MHz
+//! │ 00000000 00000000                     │Measured Frequency:          0.00Hz
+//! │       FF       FE                     │State:                      Running
+//! │                                       │━╸Program╺━━━━━━━━━━━━━━━━━━━━━━━━━
+//! │ Inputs:                               │     .ORG 0                    ; Pr
+//! │ 00000000 00000000 00000000 00000000   │>    JR MAIN                   ; Sp
+//! │       FF       FE       FD       FC   │     JR INTERRUPT              ; Di
+//! │                                       │ MAIN:
+//! │ Registers:                            │     EI                        ; Er
+//! │ R0 00000000                           │     BITS (0xF9), 0x01         ; Se
+//! │ R1 00000000                           │     LDSP 0xEF                 ; De
+//! │ R2 00000000                           │ LOOP:                         ; En
+//! │ PC 00000000                           │     JR LOOP
+//! │ FR 00000000                           │ INTERRUPT:
+//! │ SP 00000000                           │━╸Keybindings╺━━━━━━━━━━━━━━━━━━━━━
+//! │ R6 00000000                           │Clock                         Enter
+//! │ R7 00000000                           │Toggle autorun               CTRL+A
+//! │                                       │Toggle asm step              CTRL+W
+//! │                                       │Reset                        CTRL+R
+//! │                                       │Edge interrupt               CTRL+E
+//! │                                       │Continue                     CTRL+L
+//! │                                       │━╸Commands╺━━━━━━━━━━━━━━━━━━━━━━━━
+//! │                                       │load PATH          Load asm program
+//! │                                   ... │set …             Change a settings
+//! │                                       │unset …        Unset a bool setting
+//! │───────────────────────────────────────│show …       Select part to display
+//! │> █                                    │quit               Exit the program
+//! └───────────────────────────────────────┘───────────────────────────────────
+//! ```
 
 use lazy_static::lazy_static;
 use tui::{

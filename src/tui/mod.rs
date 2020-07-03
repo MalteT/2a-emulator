@@ -53,9 +53,11 @@ pub struct Tui {
     events: Events,
     /// The input field at the bottom of the TUI.
     input_field: InputState,
-    /// State for the [`KeybindingHelpWidget`].
+    /// State for the
+    /// [`KeybindingHelpWidget`](program_help_sidebar::KeybindingHelpWidget).
     keybinding_state: KeybindingHelpState,
-    /// State for the [`ProgramDisplayWidget`].
+    /// State for the
+    /// [`ProgramDisplayWidget`](program_help_sidebar::KeybindingHelpWidget).
     program_display_state: ProgramDisplayState,
 }
 
