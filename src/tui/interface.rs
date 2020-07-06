@@ -42,7 +42,7 @@ use tui::{
 
 use crate::{
     helpers,
-    tui::{input::Input, Backend, ProgramHelpSidebar, SupervisorWrapper, Tui},
+    tui::{input::InputWidget, Backend, ProgramHelpSidebar, SupervisorWrapper, Tui},
 };
 
 pub const MINIMUM_ALLOWED_WIDTH: u16 = 76;
@@ -86,7 +86,7 @@ impl StatefulWidget for MainView {
         input_block.render(input_area, buf);
         // Then render the actual input field
         let input_field_area = input_block.inner(input_area);
-        Input::new().render(input_field_area, buf, &mut state.input_field);
+        InputWidget.render(input_field_area, buf, &mut state.input_field);
         // Render the rest of the main view, registers and the shown part.
         let main_machine_area = Rect {
             height: area_inside_block.height - INPUT_AREA_HEIGHT,

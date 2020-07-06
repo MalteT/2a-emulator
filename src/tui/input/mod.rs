@@ -3,26 +3,20 @@ use crossterm::event::{KeyCode, KeyEvent};
 use rustyline::completion::FilenameCompleter;
 
 use log::warn;
-use nom::error::ErrorKind as NomErrorKind;
-use nom::Err as NomErr;
-use tui::buffer::Buffer;
-use tui::layout::Rect;
-use tui::style::Color;
-use tui::style::Style;
-use tui::widgets::StatefulWidget;
+use nom::{error::ErrorKind as NomErrorKind, Err as NomErr};
+use tui::{buffer::Buffer, layout::Rect, style::Color, style::Style, widgets::StatefulWidget};
 
 mod parser;
 
-use crate::helpers;
-use crate::tui::Part;
+use crate::{helpers, tui::Part};
 use parser::parse_cmd;
 
-/// An Input widget
-pub struct Input;
+/// An Input field widget.
+pub struct InputWidget;
 
-impl Input {
+impl InputWidget {
     pub fn new() -> Self {
-        Input
+        InputWidget
     }
 }
 
@@ -269,7 +263,7 @@ impl<'a> Command<'a> {
     }
 }
 
-impl StatefulWidget for Input {
+impl StatefulWidget for InputWidget {
     type State = InputState;
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let max_string_width = area.width as usize - 3;
