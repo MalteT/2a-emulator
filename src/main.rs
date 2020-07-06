@@ -35,7 +35,7 @@
 //! [Cargo](https://github.com/rust-lang/cargo) (which should
 //! have already been installed by rustup):
 //! ```console
-//! $ cargo run --release --locked
+//! $ cargo run --release
 //! ```
 //!
 //! You may also install the binary using:
