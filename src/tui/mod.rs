@@ -101,8 +101,6 @@ impl Tui {
         enable_raw_mode().map_err(Error::crossterm_init)?;
         let crossterm_backend: Backend = CrosstermBackend::new(stdout);
         let mut backend = Terminal::new(crossterm_backend).map_err(Error::tui_init)?;
-        // Initialize interface.
-        let mut interface = Interface::new();
         // Clear the terminal and hide the cursor
         backend.clear()?;
         backend.hide_cursor()?;
@@ -116,7 +114,8 @@ impl Tui {
         'outer: loop {
             // Next draw of the machine
             backend.draw(|mut f| {
-                interface.draw(&mut self, &mut f);
+                let area = f.size();
+                f.render_stateful_widget(Interface, area, &mut self);
             })?;
             last_draw = Instant::now();
             // Loop until the next draw is necessary

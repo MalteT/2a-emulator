@@ -98,57 +98,57 @@ impl StatefulWidget for MainView {
 
 pub struct Interface;
 
-impl Interface {
-    /// Initialize a new interface.
-    pub fn new() -> Self {
-        Interface
-    }
-    /// Draw the interface using information from the given [`Tui`]
-    pub fn draw<'b>(&mut self, tui: &'b mut Tui, f: &mut Frame<Backend>) {
-        let area = f.size();
-        let area = Rect::new(area.x, area.y, area.width, area.height);
-        // Draw a placeholder for too small windows
+impl StatefulWidget for Interface {
+    type State = Tui;
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         if area.width < MINIMUM_ALLOWED_WIDTH {
-            let test = [
-                Text::raw("Terminal width too small!\n Please"),
-                Text::styled(" resize your terminal", *helpers::YELLOW),
-                Text::raw(" or"),
-                Text::styled(" decrease your font size", *helpers::YELLOW),
-                Text::raw("!"),
-            ];
-            let paragraph = Paragraph::new(test.iter())
-                .alignment(Alignment::Center)
-                .block(*BLK_ERROR);
-            f.render_widget(paragraph, area);
-            return;
+            ErrorWidget(ERROR_WIDTH_TOO_SMALL).render(area, buf)
         } else if area.height < MINIMUM_ALLOWED_HEIGHT {
-            let test = [
-                Text::raw("Terminal height too small!\n Please"),
-                Text::styled(" resize your terminal", *helpers::YELLOW),
-                Text::raw(" or"),
-                Text::styled(" decrease your font size", *helpers::YELLOW),
-                Text::raw("!"),
-            ];
-            let paragraph = Paragraph::new(test.iter())
-                .alignment(Alignment::Center)
-                .block(*BLK_ERROR);
-            f.render_widget(paragraph, area);
-            return;
+            ErrorWidget(ERROR_HEIGHT_TOO_SMALL).render(area, buf)
+        } else {
+            // This is the area for the main component, the [`MainView`].
+            let main_view_area = Rect {
+                width: area.width - RIGHT_SIDEBAR_WIDTH,
+                ..area
+            };
+            MainView.render(main_view_area, buf, state);
+            // This is the area for the sidebar on the right, the [`ProgramHelpSidebar`].
+            let help_area = Rect {
+                x: area.right() - RIGHT_SIDEBAR_WIDTH,
+                width: RIGHT_SIDEBAR_WIDTH,
+                ..area
+            };
+            ProgramHelpSidebar.render(help_area, buf, state);
         }
-
-        // This is the area for the main component, the [`MainView`].
-        let main_view_area = Rect {
-            width: area.width - RIGHT_SIDEBAR_WIDTH,
-            ..area
-        };
-        f.render_stateful_widget(MainView, main_view_area, tui);
-
-        // This is the area for the sidebar on the right, the [`ProgramHelpSidebar`].
-        let help_area = Rect {
-            x: area.right() - RIGHT_SIDEBAR_WIDTH,
-            width: RIGHT_SIDEBAR_WIDTH,
-            ..area
-        };
-        f.render_stateful_widget(ProgramHelpSidebar, help_area, tui);
     }
+}
+
+/// Displays a rect with information about the error.
+pub struct ErrorWidget<'a, 'b>(pub &'a [TextSlice<'b>]);
+
+impl Widget for ErrorWidget<'_, '_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let text: Vec<_> = self
+            .0
+            .iter()
+            .map(|text| match text {
+                TextSlice::Raw(text) => Text::raw(*text),
+                TextSlice::Colored(text, color) => {
+                    Text::styled(*text, Style::default().fg(*color).modifier(Modifier::BOLD))
+                }
+            })
+            .collect();
+        Paragraph::new(text.iter())
+            .alignment(Alignment::Center)
+            .block(*BLK_ERROR)
+            .render(area, buf)
+    }
+}
+
+/// An enum represanting a str that may have some color attached.
+pub enum TextSlice<'a> {
+    /// Unstyled text.
+    Raw(&'a str),
+    /// Text with associated color.
+    Colored(&'a str, Color),
 }
