@@ -56,6 +56,7 @@ impl SupervisorWrapperState {
         self.part = part;
     }
     /// Show the memory.
+    #[deprecated]
     fn show_part_memory(&mut self, area: Rect, buf: &mut Buffer, x: u16, y: u16) {
         buf.set_string(x, y + 8, "Memory:", *helpers::DIMMED);
         if area.width < MINIMUM_ALLOWED_WIDTH_FOR_MEMORY_DISPLAY {
@@ -87,6 +88,7 @@ impl SupervisorWrapperState {
         }
     }
     /// Show the register block.
+    #[deprecated]
     fn show_part_register_block(&mut self, _area: Rect, buf: &mut Buffer, x: u16, y: u16) {
         // Register block
         buf.set_string(x, y + 8, "Registers:", *helpers::DIMMED);
@@ -277,6 +279,7 @@ impl StatefulWidget for SupervisorWrapper {
 }
 
 /// Display `1`s in yellow and `0`s in gray.
+#[deprecated]
 fn display_u8_str(buf: &mut Buffer, x: u16, y: u16, s: String) {
     let mut v = 0;
     s.chars().for_each(|c| {
