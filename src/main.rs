@@ -4,18 +4,20 @@
 //! is used during a practical course at the university of Leipzig. This emulator
 //! was created for my bachelor thesis and is published under the GNU GPLv3. It's
 //! main purpose is to aid students in creating correct solutions for the
-//! assignments that are part of the course. it was meant to solve the issue of not
+//! assignments that are part of the course. It was meant to solve the issue of not
 //! having the real hardware at hand while coming up with solutions for the given
-//! problems. This FOSS should run on most major plattforms and
+//! problems. This FOSS should run on most major platforms and
 //! is versatile enough to test solutions.
 //!
-//! **Please report all bugs! Just create an issue or message me!**
+//! **Please report all bugs! Just create an issue on
+//! [Github](https://github.com/MalteT/2a-emulator) or message me!**
 //!
 //! - [Installation](#installation)
 //!   - [Prebuild binaries](#prebuild-binaries)
 //!   - [The `cargo` way](#the-cargo-way)
 //! - [Usage](#usage)
 //!   - [`interactive` mode](#interactive-mode)
+//!     - [Commands](#commands)
 //!   - [`run`ning programs](#running-programs)
 //!   - [`verify`ing programs](#verifying-programs)
 //!   - [`test`ing programs](#testing-programs)
@@ -83,6 +85,54 @@
 //! interface with helpful annotations*](https://raw.githubusercontent.com/MalteT/2a-emulator/master/static/interactive-tui-annotated.svg)
 //!
 //! **See `2a-emulator interactive --help` for a full list of options.**
+//!
+//! #### Commands
+//!
+//! Most commands are self-explanatory and the included command completion should
+//! serve as an inline documentation. For those seeking a more explicit explanation,
+//! here is a list with commands that the input field will understand:
+//!
+//! - `load`*`PATH`* will load the program given by `PATH`. The file is opened and
+//!   the syntax verified. It will then be compiled to byte code and loaded into the
+//!   main memory.
+//! - `set`*`VAL`* will update an internal variable. Boolean variables can be changed
+//!   with `set BOOL_VAR`. Non-boolean variables need a more explicit syntax of
+//!   `set NON_BOOL_VAR = VALUE`.
+//!
+//!   The following **boolean** variables are understood by the set/unset command:
+//!
+//!   - `J1`/`J2` sets the state of Jumper 1 or Jumper 2 respectively. Setting them
+//!     means connecting the jumper, while unsetting removes the connection.
+//!   - `UIO1`/`UIO2`/`UIO3` refer to universal I/O pins 1/2/3. Their values can
+//!     be read from inside a program. Setting them does not set the direction of the
+//!     pin. That'll have to be done by a program.
+//!
+//!   The following **non-boolean** variables are understood by the set command:
+//!
+//!   - `FC`/`FD`/`FE`/`FF =`*`byte`* changes the value of the corresponding input
+//!     register to the given 8-bit value. `byte` will be interpreted as decimal if
+//!     it is not prefixed with either `0x` or `0b` which will result in a hexadecimal
+//!     or binary interpretation.
+//!   - `IRG =`*`byte`* refers to updating the value of the 8-bit input register
+//!     that is located on the extension board MR2DA2.
+//!   - `TEMP =`*`voltage`* changes the voltage of the temperature sensor. The voltage
+//!     is clamped between `0.0` and `5.0` Volts and emulates the possible voltage levels
+//!     that would be delivered by the temperature sensor on the real
+//!     MR2DA2 extension board.
+//!   - `I1`/`I2 =`*`voltage`* updates the voltage at the analog input pin on the
+//!     MR2DA2 extension board. `voltage` is clamped between `0.0` and `5.0` Volts.
+//!
+//! - `unset`*`VAL`* will set a boolean variable to `false`. See `set` for a list of
+//!   boolean variables.
+//! - `show`*`PART`* selects a part to be displayed beneath the main I/O registers.
+//!   Selectable parts are:
+//!
+//!   - `register`, the default part which is the register block containing the eight
+//!     registers.
+//!   - `memory`, the main memory which has a size of `0xF0` bytes and can be accessed
+//!     from addresses `0x00` to `0xEF`.
+//!
+//! - `quit` which lives up to it's name.
 //!
 //! ### `run`ning programs
 //!
