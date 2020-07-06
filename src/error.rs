@@ -2,7 +2,6 @@
 //!
 //! This module defines the error type used through-out the program.
 
-use crossterm::ErrorKind as CrosstermErrorKind;
 use failure::Fail;
 use parser2a::parser::ParserError;
 use pest::error::Error as PestError;
@@ -23,17 +22,17 @@ pub enum Error {
     TestFileParsingError(#[cause] PestError<TestRule>),
     /// Thrown when a test failes.
     TestFailed(String, String),
-    /// Invalid CLI input.
-    InvalidInput(String),
     /// Initialization of tui failed.
+    #[cfg(feature = "interactive-tui")]
     TuiInitializationFailed(#[cause] IOError),
     /// Crossterm backend initialization failed.
-    CrosstermInitializationFailed(#[cause] CrosstermErrorKind),
+    #[cfg(feature = "interactive-tui")]
+    CrosstermInitializationFailed(#[cause] crossterm::ErrorKind),
     /// Crossterm backend exit failed.
-    CrosstermExitFailed(#[cause] CrosstermErrorKind),
-    /// The emulator was compiled without the 'interactive-tui' feature.
-    #[cfg(not(feature = "interactive-tui"))]
-    CompiledWithoutInteractiveFeature,
+    #[cfg(feature = "interactive-tui")]
+    CrosstermExitFailed(#[cause] crossterm::ErrorKind),
+    /// Verification of a run failed. The first field is an explanation.
+    RunVerificationFailed(String),
 }
 
 impl From<IOError> for Error {
@@ -63,32 +62,33 @@ impl fmt::Display for Error {
             }
             Error::TestFileParsingError(pe) => write!(f, "{}", pe),
             Error::TestFailed(n, r) => write!(f, "Test {:?} failed: {}", n, r),
-            Error::InvalidInput(s) => write!(f, "{}", s),
+            #[cfg(feature = "interactive-tui")]
             Error::TuiInitializationFailed(ioe) => write!(f, "Tui init failed: {}", ioe),
+            #[cfg(feature = "interactive-tui")]
             Error::CrosstermInitializationFailed(cek) => {
                 write!(f, "Crossterm init failed: {}", cek)
             }
+            #[cfg(feature = "interactive-tui")]
             Error::CrosstermExitFailed(cek) => write!(f, "Crossterm exit failed: {}", cek),
-            #[cfg(not(feature = "interactive-tui"))]
-            Error::CompiledWithoutInteractiveFeature => {
-                use colored::Colorize;
-                write!(
-                    f,
-                    r#"Cannot start interactive session. The 2a-emulator was compiled without the 'interactive-tui' feature. To include the feature during compilation, add: `{}`"#,
-                    "--features interactive-tui".bold().yellow()
-                )
-            }
+            Error::RunVerificationFailed(reason) => write!(
+                f,
+                "Verification failed: {:?} did not match expectations",
+                reason
+            ),
         }
     }
 }
 
 impl Error {
-    pub fn crossterm_init(err: CrosstermErrorKind) -> Self {
+    #[cfg(feature = "interactive-tui")]
+    pub fn crossterm_init(err: crossterm::ErrorKind) -> Self {
         Error::CrosstermInitializationFailed(err)
     }
-    pub fn crossterm_exit(err: CrosstermErrorKind) -> Self {
+    #[cfg(feature = "interactive-tui")]
+    pub fn crossterm_exit(err: crossterm::ErrorKind) -> Self {
         Error::CrosstermExitFailed(err)
     }
+    #[cfg(feature = "interactive-tui")]
     pub fn tui_init(err: IOError) -> Self {
         Error::TuiInitializationFailed(err)
     }

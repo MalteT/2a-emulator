@@ -2,6 +2,8 @@ use structopt::StructOpt;
 
 use std::{num::ParseIntError, path::PathBuf};
 
+use crate::machine::State;
+
 #[derive(Debug, StructOpt)]
 #[structopt(author = "Malte Tammena <malte.tammena@gmx.de>")]
 /// Emulator for the Minirechner 2a microcomputer.
@@ -47,6 +49,49 @@ pub struct RunArgs {
     /// i.e. if the machine halts.
     #[structopt(name = "CYCLES")]
     pub cycles: usize,
+    #[structopt(subcommand)]
+    pub verify: Option<RunVerifySubcommand>,
+}
+
+#[derive(Debug, StructOpt)]
+pub enum RunVerifySubcommand {
+    /// Verify the machine state after emulation has finished.
+    ///
+    /// This does nothing if no expectations are given.
+    /// Specify any number of expectations using the flags listed below.
+    ///
+    /// If any discrepance between the given expectations and the emulation
+    /// results is found an error code of 1 is returned.
+    Verify(RunVerifyArgs),
+}
+
+#[derive(Debug, StructOpt)]
+pub struct RunVerifyArgs {
+    /// The expected machine state after emulation.
+    ///
+    /// `stopped` expects the machine to have halted naturally because
+    /// the machine executed a STOP instruction.
+    ///
+    /// `error` expects the machine to have halted because an error occured.
+    /// This error can have different origins, i.e. a stack overflow or the
+    /// execution of the 0x00 instruction. The most common causes of an error stop
+    /// are a missing stackpointer initialisation or a missing program/missing jump
+    /// at the end of the program.
+    ///
+    /// `running` expects the machine to not have halted for any reason. Of course
+    /// halting and then continueing execution is valid aswell.
+    #[structopt(long, value_name = "STATE",
+                parse(from_str = parse_state),
+                possible_values = &["stopped", "error", "running"])]
+    pub state: Option<State>,
+    /// Expected output in register FE after emulation.
+    #[structopt(long, value_name = "BYTE",
+                parse(try_from_str = parse_u8_auto_radix))]
+    pub fe: Option<u8>,
+    /// Expected output in register FF after emulation.
+    #[structopt(long, value_name = "BYTE",
+                parse(try_from_str = parse_u8_auto_radix))]
+    pub ff: Option<u8>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -173,5 +218,14 @@ fn parse_u8_auto_radix(num: &str) -> Result<u8, ParseIntError> {
         u8::from_str_radix(&num[2..], 16)
     } else {
         u8::from_str_radix(num, 10)
+    }
+}
+
+fn parse_state(state: &str) -> State {
+    match state.to_lowercase().as_str() {
+        "stopped" => State::Stopped,
+        "error" => State::ErrorStopped,
+        "running" => State::Running,
+        _ => unreachable!(),
     }
 }

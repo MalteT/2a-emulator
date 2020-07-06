@@ -132,7 +132,7 @@ impl Register {
     }
     /// Update the CO flag.
     pub fn update_co(&mut self, co: bool) {
-        let co = (co as u8) << 0;
+        let co = co as u8;
         self.content[4] = (self.content[4] & 0b1111_1110) | co;
     }
     /// Update the ZO flag.
@@ -167,6 +167,10 @@ impl Register {
             warn!("Stackpointer got invalid!")
         }
         valid
+    }
+    /// Get the content of all registers.
+    pub fn content(&self) -> &[u8; 8] {
+        &self.content
     }
 }
 

@@ -316,6 +316,12 @@ impl Bus {
     pub fn is_timer_edge_int_enabled(&self) -> bool {
         self.micr.contains(MICR::TIMER_EDGE_INTERRUPT_ENABLE)
     }
+    /// Get the contents of the main memory.
+    ///
+    /// The main memory ranges from 0x00 - 0xEF.
+    pub fn memory(&self) -> &[u8; 0xF0] {
+        &self.ram
+    }
     /// Did anything trigger an interrupt in the UART?
     fn has_uart_interrupt(&self) -> bool {
         if self.ucr.contains(UCR::INT_ON_RX_READY) {

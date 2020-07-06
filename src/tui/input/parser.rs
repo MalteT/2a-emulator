@@ -1,10 +1,13 @@
-use nom::branch::alt;
-use nom::bytes::complete::{is_a, tag, tag_no_case};
-use nom::character::complete::{digit1, hex_digit1};
-use nom::combinator::{complete, map, map_res, opt, rest, value};
-use nom::number::complete::float;
-use nom::sequence::{delimited, preceded, terminated, tuple};
-use nom::IResult;
+//! [nom](https://crates.io/crates/nom)-based parser for [`Command`]s.
+use nom::{
+    branch::alt,
+    bytes::complete::{is_a, tag, tag_no_case},
+    character::complete::{digit1, hex_digit1},
+    combinator::{complete, map, map_res, opt, rest, value},
+    number::complete::float,
+    sequence::{delimited, preceded, terminated, tuple},
+    IResult,
+};
 
 use super::{Command, InputRegister};
 use crate::tui::Part;

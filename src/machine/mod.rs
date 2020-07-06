@@ -12,7 +12,7 @@ mod register;
 mod signal;
 
 pub use alu::Alu;
-pub use board::DASR;
+pub use board::{Board, DASR};
 pub use bus::Bus;
 pub use instruction::Instruction;
 pub use mp_ram::{MP28BitWord, MicroprogramRam};
@@ -150,46 +150,6 @@ impl Machine {
     /// Content of output register `FF`.
     pub fn output_ff(&self) -> u8 {
         self.bus.output_ff()
-    }
-    /// Get the currently executed lines of the program.
-    ///
-    /// # Arguments
-    /// - `context` The amount of lines before and after the currently executed line.
-    ///
-    /// # Returns
-    /// - A tuple with a list of [`String`]s of asm lines and the index of the one
-    /// currently executed by the machine.
-    pub fn get_current_lines(&self, context: isize) -> (usize, Vec<&String>) {
-        // If no program is loaded, no lines are available, prevent errors
-        if self.program_lines.is_empty() {
-            return (0, vec![]);
-        }
-        let current_byte_index = self.reg.get(RegisterNumber::R3) as isize;
-        // Find current line
-        let mut counter = current_byte_index;
-        let mut index: isize = 0;
-        while counter >= 0 && index < self.program_lines.len() as isize {
-            counter -= self.program_lines[index as usize].1 as isize;
-            if counter >= 0 {
-                index += 1;
-            }
-        }
-        let mut middle = context;
-        // Find left border
-        let left = if index - context >= 0 {
-            (index - context) as usize
-        } else {
-            middle += index - context;
-            0
-        };
-        // Find right border
-        let right = if index + context < self.program_lines.len() as isize {
-            (index + context) as usize
-        } else {
-            self.program_lines.len() - 1
-        };
-        let ret: Vec<_> = self.program_lines.iter().map(|(x, _)| x).collect();
-        (middle as usize, ret[left..=right].into())
     }
     /// Next clock rising edge.
     pub fn clk(&mut self) {
