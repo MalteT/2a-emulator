@@ -45,7 +45,6 @@ const J2_OFFSET: u16 = 17;
 ///     ╼━╾ J1
 ///     ╼━╾ J2
 /// ```
-/// ```
 pub struct BoardInfoSidebarWidget;
 
 impl StatefulWidget for BoardInfoSidebarWidget {
