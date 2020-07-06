@@ -22,6 +22,29 @@ const INPUT_REGISTER_WIDGET_WIDTH: u16 = 4 * BYTE_WIDTH + 3 * ONE_SPACE;
 const INPUT_REGISTER_WIDGET_HEIGHT: u16 = 3;
 const BOARD_INFO_SIDEBAR_WIDGET_WIDTH: u16 = 20;
 
+/// Widget for drawing the machine.
+///
+/// # Example
+///
+/// ```text
+/// Outputs:
+/// 00001011 00000000
+///       FF       FE
+///
+/// Inputs:
+/// 00000000 00000000 00001010 00000001
+///       FF       FE       FD       FC
+///
+/// Registers:
+/// R0 00000001
+/// R1 00001010
+/// R2 00000000
+/// PC 00000101
+/// FR 00000000
+/// SP 00000000
+/// R6 00000001
+/// R7 11111100
+/// ```
 pub struct SupervisorWrapper;
 
 impl SupervisorWrapper {
@@ -30,7 +53,9 @@ impl SupervisorWrapper {
     }
 }
 
+/// State necessary to draw the [`SupervisorWrapper`] widget.
 pub struct SupervisorWrapperState {
+    /// The internal supervisor that contains the machine.
     pub supervisor: Supervisor,
     /// The part currently displayed by the TUI.
     pub part: Part,
@@ -38,6 +63,10 @@ pub struct SupervisorWrapperState {
     pub draw_counter: usize,
 }
 
+/// Displayable parts.
+///
+/// These parts have a widget implementation and can be rendered by the TUI.
+/// Selecting these parts can be done using the `show ...` command interactively.
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Part {
     RegisterBlock,
@@ -45,6 +74,11 @@ pub enum Part {
 }
 
 impl SupervisorWrapperState {
+    /// Create a new SupervisorWrapperState.
+    ///
+    /// The given [`InitialMachineConfiguration`] is used to configure the underlying
+    /// [`Machine`](crate::machine::Machine). Initially the additional displayed part
+    /// is the [`Part::RegisterBlock`].
     pub fn new(conf: &InitialMachineConfiguration) -> Self {
         SupervisorWrapperState {
             part: Part::RegisterBlock,
@@ -52,6 +86,7 @@ impl SupervisorWrapperState {
             draw_counter: 0,
         }
     }
+    /// Select another part for display.
     pub fn show(&mut self, part: Part) {
         self.part = part;
     }
@@ -116,6 +151,7 @@ impl SupervisorWrapperState {
 }
 
 impl SupervisorWrapper {
+    /// Renders the [`OutputRegisterWidget`] correctly.
     fn render_output_registers(
         &self,
         area: Rect,
@@ -134,6 +170,7 @@ impl SupervisorWrapper {
         // Draw!
         OutputRegisterWidget.render(inner_area, buf, &mut (out_fe, out_ff));
     }
+    /// Renders the [`InputRegisterWidget`] corretly.
     fn render_input_registers(
         &self,
         area: Rect,
@@ -155,6 +192,7 @@ impl SupervisorWrapper {
         // Draw!
         InputRegisterWidget.render(inner_area, buf, &mut (in_fc, in_fd, in_fe, in_ff));
     }
+    /// Renders the [`BoardInfoSidebarWidget`] correctly.
     fn render_board_info_sidebar(
         &self,
         area: Rect,

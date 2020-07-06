@@ -21,6 +21,31 @@ const UIO3_OFFSET: u16 = 14;
 const J1_OFFSET: u16 = 16;
 const J2_OFFSET: u16 = 17;
 
+/// Renders additional information about the MR2DA2 extension board.
+///
+/// # Example
+///
+/// ```text
+///   16 RPM +
+///
+///  0x0A  IRG
+///  0x01 ORG1
+///  0x02 ORG2
+///
+/// 3.20V TEMP
+/// 1.00V  AI1
+/// 5.00V  AI2
+/// 0.01V  AO1
+/// 0.02V  AO2
+///
+///   » 1 UIO1
+///   » 1 UIO2
+///   » 1 UIO3
+///
+///     ╼━╾ J1
+///     ╼━╾ J2
+/// ```
+/// ```
 pub struct BoardInfoSidebarWidget;
 
 impl StatefulWidget for BoardInfoSidebarWidget {
@@ -38,6 +63,13 @@ impl StatefulWidget for BoardInfoSidebarWidget {
     }
 }
 
+/// Render the current fan speed in rpm.
+///
+/// # Example
+///
+/// ```text
+/// 16 RPM +
+/// ```
 pub fn render_fan_rpm(area: Rect, buf: &mut Buffer, state: &mut SupervisorWrapperState) {
     // Display fan speed in rpm
     if *state.machine().bus.board().fan_rpm() != 0 {
@@ -59,6 +91,15 @@ pub fn render_fan_rpm(area: Rect, buf: &mut Buffer, state: &mut SupervisorWrappe
     }
 }
 
+/// Render the digital I/O pin's states.
+///
+/// # Example
+///
+/// ```text
+/// 0x0A  IRG
+/// 0x01 ORG1
+/// 0x02 ORG2
+/// ```
 pub fn render_digital_io(area: Rect, buf: &mut Buffer, board: &Board) {
     if *board.irg() != 0 {
         let s = format!("{:>02X}  IRG", board.irg());
@@ -92,6 +133,17 @@ pub fn render_digital_io(area: Rect, buf: &mut Buffer, board: &Board) {
     }
 }
 
+/// Render the analog I/O pin's states.
+///
+/// # Example
+///
+/// ```text
+/// 3.20V TEMP
+/// 1.00V  AI1
+/// 5.00V  AI2
+/// 0.01V  AO1
+/// 0.02V  AO2
+/// ```
 pub fn render_analog_io(area: Rect, buf: &mut Buffer, board: &Board) {
     if *board.temp() != 0.0 {
         let s = format!("{:.2}V TEMP", board.temp());
@@ -115,6 +167,14 @@ pub fn render_analog_io(area: Rect, buf: &mut Buffer, board: &Board) {
     }
 }
 
+/// Render the states of the Universal I/O pins.
+///
+/// # Example
+/// ```text
+/// » 1 UIO1
+/// » 1 UIO2
+/// » 1 UIO3
+/// ```
 pub fn render_uios(area: Rect, buf: &mut Buffer, board: &Board) {
     let uio1 = board.dasr().contains(DASR::UIO_1);
     let uio2 = board.dasr().contains(DASR::UIO_2);
@@ -142,6 +202,14 @@ pub fn render_uios(area: Rect, buf: &mut Buffer, board: &Board) {
     }
 }
 
+/// Render the states of the jumpers.
+///
+/// # Example
+///
+/// ```text
+/// ╼━╾ J1
+/// ╼━╾ J2
+/// ```
 pub fn render_jumper(area: Rect, buf: &mut Buffer, board: &Board) {
     if board.dasr().contains(DASR::J1) {
         buf.set_string(

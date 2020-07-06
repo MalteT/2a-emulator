@@ -41,17 +41,18 @@ pub type Backend = CrosstermBackend<Stdout>;
 type AbortEmulation = bool;
 
 const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(1_000_000 / 60);
-//const ONE_MICROSECOND: Duration = Duration::from_micros(1);
 const ONE_MILLISECOND: Duration = Duration::from_millis(1);
-//const DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
 
 /// The Terminal User Interface (TUI)
 pub struct Tui {
-    /// The machine's supervisor.
+    /// State for the [`SupervisorWrapper`].
+    /// It contains the [`Supervisor`](crate::supervisor::Supervisor)
+    /// which contains the actual [`Machine`](crate::machine::Machine).
     supervisor: SupervisorWrapperState,
     /// Event iterator.
     events: Events,
-    /// The input field at the bottom of the TUI.
+    /// State for the input field at the bottom of the TUI.
+    /// This is needed to draw the [`Input`](crate::tui::input::Input) widget.
     input_field: InputState,
     /// State for the
     /// [`KeybindingHelpWidget`](program_help_sidebar::KeybindingHelpWidget).
@@ -98,10 +99,8 @@ impl Tui {
         let mut stdout = ::std::io::stdout();
         execute!(stdout, EnterAlternateScreen).map_err(Error::crossterm_init)?;
         enable_raw_mode().map_err(Error::crossterm_init)?;
-
         let crossterm_backend: Backend = CrosstermBackend::new(stdout);
         let mut backend = Terminal::new(crossterm_backend).map_err(Error::tui_init)?;
-
         // Initialize interface.
         let mut interface = Interface::new();
         // Clear the terminal and hide the cursor
