@@ -290,13 +290,18 @@ fn display_u8_str(buf: &mut Buffer, x: u16, y: u16, s: String) {
     });
 }
 
+/// Render the given `byte` at the given `x`/`y` position.
+///
+/// The [`Display`] trait is used to convert the `byte` to a String.
+/// If the `byte` is zero, it will be rendered with the default [`Style`].
+/// If not it will be rendered in bold.
 fn render_byte(buf: &mut Buffer, x: u16, y: u16, byte: u8) {
     let style = if byte == 0 {
         Style::default()
     } else {
         *helpers::BOLD
     };
-    let string = format!("{:>08b}", byte);
+    let string = byte.display();
     buf.set_string(x, y, string, style)
 }
 

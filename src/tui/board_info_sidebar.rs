@@ -121,24 +121,24 @@ pub fn render_uios(area: Rect, buf: &mut Buffer, board: &Board) {
     let uio3 = board.dasr().contains(DASR::UIO_3);
     if board.uio_dir()[0] && uio1 {
         let s = format!("« {} UIO1", uio1 as u8);
-        buf.set_string(area.right() - 9, area.y + UIO1_OFFSET, s, Style::default());
+        buf.set_string(area.right() - 8, area.y + UIO1_OFFSET, s, Style::default());
     } else if uio1 {
         let s = format!("» {} UIO1", uio1 as u8);
-        buf.set_string(area.right() - 9, area.y + UIO1_OFFSET, s, Style::default());
+        buf.set_string(area.right() - 8, area.y + UIO1_OFFSET, s, Style::default());
     }
     if board.uio_dir()[1] && uio2 {
         let s = format!("« {} UIO2", uio2 as u8);
-        buf.set_string(area.right() - 9, area.y + UIO2_OFFSET, s, Style::default());
+        buf.set_string(area.right() - 8, area.y + UIO2_OFFSET, s, Style::default());
     } else if uio2 {
         let s = format!("» {} UIO2", uio2 as u8);
-        buf.set_string(area.right() - 9, area.y + UIO2_OFFSET, s, Style::default());
+        buf.set_string(area.right() - 8, area.y + UIO2_OFFSET, s, Style::default());
     }
     if board.uio_dir()[2] && uio3 {
         let s = format!("« {} UIO3", uio3 as u8);
-        buf.set_string(area.right() - 9, area.y + UIO3_OFFSET, s, Style::default());
+        buf.set_string(area.right() - 8, area.y + UIO3_OFFSET, s, Style::default());
     } else if uio3 {
         let s = format!("» {} UIO3", uio3 as u8);
-        buf.set_string(area.right() - 9, area.y + UIO3_OFFSET, s, Style::default());
+        buf.set_string(area.right() - 8, area.y + UIO3_OFFSET, s, Style::default());
     }
 }
 
