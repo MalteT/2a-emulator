@@ -14,12 +14,6 @@ use parser::parse_cmd;
 /// An Input field widget.
 pub struct InputWidget;
 
-impl InputWidget {
-    pub fn new() -> Self {
-        InputWidget
-    }
-}
-
 /// State needed to draw the input widget.
 /// This also keeps track of the input history and
 /// handles completions.

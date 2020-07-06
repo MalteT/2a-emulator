@@ -168,6 +168,10 @@ impl Register {
         }
         valid
     }
+    /// Get the content of all registers.
+    pub fn content(&self) -> &[u8; 8] {
+        &self.content
+    }
 }
 
 impl From<RegisterNumber> for usize {

@@ -23,6 +23,7 @@ pub mod events;
 pub mod input;
 pub mod interface;
 mod program_help_sidebar;
+pub mod show_widgets;
 mod supervisor_wrapper;
 
 use crate::args::InteractiveArgs;

@@ -1,7 +1,9 @@
-use tui::buffer::Buffer;
-use tui::layout::{Margin, Rect};
-use tui::style::{Color, Style};
-use tui::widgets::StatefulWidget;
+use tui::{
+    buffer::Buffer,
+    layout::{Margin, Rect},
+    style::Style,
+    widgets::{StatefulWidget, Widget},
+};
 
 use std::ops::{Deref, DerefMut};
 
@@ -9,11 +11,13 @@ use crate::{
     args::InitialMachineConfiguration,
     helpers,
     supervisor::Supervisor,
-    tui::{display::Display, BoardInfoSidebarWidget},
+    tui::{
+        display::Display,
+        show_widgets::{MemoryWidget, RegisterBlockWidget},
+        BoardInfoSidebarWidget,
+    },
 };
 
-const MINIMUM_ALLOWED_WIDTH_FOR_MEMORY_DISPLAY: u16 = 51;
-const MINIMUM_ALLOWED_HEIGHT_FOR_MEMORY_DISPLAY: u16 = 27;
 const ONE_SPACE: u16 = 1;
 const BYTE_WIDTH: u16 = 8;
 const OUTPUT_REGISTER_WIDGET_WIDTH: u16 = 2 * BYTE_WIDTH + ONE_SPACE;
@@ -21,6 +25,8 @@ const OUTPUT_REGISTER_WIDGET_HEIGHT: u16 = 3;
 const INPUT_REGISTER_WIDGET_WIDTH: u16 = 4 * BYTE_WIDTH + 3 * ONE_SPACE;
 const INPUT_REGISTER_WIDGET_HEIGHT: u16 = 3;
 const BOARD_INFO_SIDEBAR_WIDGET_WIDTH: u16 = 20;
+const SHOW_PART_START_Y_OFFSET: u16 =
+    INPUT_REGISTER_WIDGET_HEIGHT + OUTPUT_REGISTER_WIDGET_HEIGHT + 2 * ONE_SPACE;
 
 /// Widget for drawing the machine.
 ///
@@ -89,64 +95,6 @@ impl SupervisorWrapperState {
     /// Select another part for display.
     pub fn show(&mut self, part: Part) {
         self.part = part;
-    }
-    /// Show the memory.
-    #[deprecated]
-    fn show_part_memory(&mut self, area: Rect, buf: &mut Buffer, x: u16, y: u16) {
-        buf.set_string(x, y + 8, "Memory:", *helpers::DIMMED);
-        if area.width < MINIMUM_ALLOWED_WIDTH_FOR_MEMORY_DISPLAY {
-            buf.set_string(x, y + 10, "Display width too small!", *helpers::LIGHTRED);
-        } else if area.height < MINIMUM_ALLOWED_HEIGHT_FOR_MEMORY_DISPLAY {
-            buf.set_string(x, y + 10, "Display height too small!", *helpers::LIGHTRED);
-        } else {
-            for i in 0..=0xFB {
-                let data = self.machine().bus.read(i);
-                let color = if data == 0 {
-                    Default::default()
-                } else {
-                    *helpers::YELLOW
-                };
-                let data = format!("{:>02X}", data);
-                let x_pos = x + 2 + (i as u16 % 0x10) * 3;
-                let y_pos = y + 10 + i as u16 / 0x10;
-                let width = if area.width > x { area.width - x } else { 0 };
-                buf.set_stringn(x_pos, y_pos, &data, width as usize, color);
-                if i <= 0xF {
-                    let nr = format!("{:>2X}", i);
-                    buf.set_stringn(x_pos, y_pos - 1, &nr, width as usize, *helpers::DIMMED);
-                }
-                if i % 0x10 == 0 {
-                    let nr = format!("{:>2X}", i / 0x10);
-                    buf.set_stringn(x_pos - 3, y_pos, &nr, width as usize, *helpers::DIMMED);
-                }
-            }
-        }
-    }
-    /// Show the register block.
-    #[deprecated]
-    fn show_part_register_block(&mut self, _area: Rect, buf: &mut Buffer, x: u16, y: u16) {
-        // Register block
-        buf.set_string(x, y + 8, "Registers:", *helpers::DIMMED);
-        for (index, content) in self.machine().registers().content.iter().enumerate() {
-            let reg = match index {
-                3 => "PC".to_owned(),
-                4 => "FR".to_owned(),
-                5 => "SP".to_owned(),
-                i => format!("R{}", i),
-            };
-            if index <= 3 {
-                buf.set_string(x, y + 9 + index as u16, reg, Style::default());
-                display_u8_str(buf, x + 3, y + 9 + index as u16, content.display());
-            } else {
-                buf.set_string(x, y + 9 + index as u16, reg, *helpers::DIMMED);
-                buf.set_string(
-                    x + 3,
-                    y + 9 + index as u16,
-                    content.display(),
-                    *helpers::DIMMED,
-                );
-            };
-        }
     }
 }
 
@@ -305,30 +253,30 @@ impl StatefulWidget for SupervisorWrapper {
         self.render_output_registers(area, buf, state);
         self.render_input_registers(area, buf, state);
         self.render_board_info_sidebar(area, buf, state);
+        // Calculate remaining space
+        let show_top = area.top() + SHOW_PART_START_Y_OFFSET;
+        let show_area = Rect {
+            y: show_top,
+            height: area.bottom().saturating_sub(show_top),
+            width: area.width.saturating_sub(BOARD_INFO_SIDEBAR_WIDGET_WIDTH),
+            ..area
+        };
+        // Render the additional part
 
         match state.part {
-            Part::Memory => state.show_part_memory(area, buf, area.x, area.y),
-            Part::RegisterBlock => state.show_part_register_block(area, buf, area.x, area.y),
+            Part::Memory => {
+                let memory = state.supervisor.machine().bus().memory();
+                MemoryWidget(memory).render(show_area, buf)
+            }
+            Part::RegisterBlock => {
+                let registers = state.supervisor.machine().registers();
+                RegisterBlockWidget(registers).render(show_area, buf)
+            }
         }
 
         // Update draw_counter
         state.draw_counter = state.draw_counter.overflowing_add(1).0;
     }
-}
-
-/// Display `1`s in yellow and `0`s in gray.
-#[deprecated]
-fn display_u8_str(buf: &mut Buffer, x: u16, y: u16, s: String) {
-    let mut v = 0;
-    s.chars().for_each(|c| {
-        let style = match c {
-            '1' | '●' => Style::default().fg(Color::Yellow),
-            '0' | '○' => Style::default().fg(Color::Gray),
-            _ => Style::default(),
-        };
-        buf.set_string(x + v, y, c.to_string(), style);
-        v += 1;
-    });
 }
 
 /// Render the given `byte` at the given `x`/`y` position.

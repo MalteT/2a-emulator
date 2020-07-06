@@ -49,7 +49,7 @@ impl StatefulWidget for ProgramDisplayWidget {
         // upwards by subtracting the diff from the `current_top_line_idx`.
         if last_displayed_line_idx < last_context_line_idx {
             let diff = last_context_line_idx - last_displayed_line_idx;
-            state.current_top_line_idx = state.current_top_line_idx + diff;
+            state.current_top_line_idx += diff;
         }
         state.current_top_line_idx = state
             .current_top_line_idx
