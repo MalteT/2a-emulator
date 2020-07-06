@@ -73,69 +73,14 @@
 //!
 //! When starting the `2a-emulator` without any parameters or by using `2a-emulator
 //! interactive` the interactive terminal user interface (TUI) is started.
-//! ```text
-//! ┌─┤ Minirechner 2a ├────────────────────┐━╸Info╺━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//! │                                       │Program:
-//! │ Outputs:                              │Frequency:                  7.41MHz
-//! │ 00000000 00000000                     │Measured Frequency:          0.00Hz
-//! │       FF       FE                     │State:                      Running
-//! │                                       │━╸Program╺━━━━━━━━━━━━━━━━━━━━━━━━━
-//! │ Inputs:                               │
-//! │ 00000000 00000000 00000000 00000000   │
-//! │       FF       FE       FD       FC   │
-//! │                                       │
-//! │ Registers:                            │
-//! │ R0 00000000                           │
-//! │ R1 00000000                           │
-//! │ R2 00000000                           │
-//! │ PC 00000000                           │━╸Keybindings╺━━━━━━━━━━━━━━━━━━━━━
-//! │ FR 00000000                           │Clock                         Enter
-//! │ SP 00000000                           │Toggle autorun               CTRL+A
-//! │ R6 00000000                           │Toggle asm step              CTRL+W
-//! │ R7 00000000                           │Reset                        CTRL+R
-//! │                                       │Edge interrupt               CTRL+E
-//! │                                       │Continue                     CTRL+L
-//! │                                       │━╸Commands╺━━━━━━━━━━━━━━━━━━━━━━━━
-//! │                                       │load PATH          Load asm program
-//! │                                   ... │set …             Change a settings
-//! │                                       │unset …        Unset a bool setting
-//! │───────────────────────────────────────│show …       Select part to display
-//! │> █                                    │quit               Exit the program
-//! └───────────────────────────────────────┘───────────────────────────────────
-//! ```
+//!
+//! ![*An image showing the interactive
+//! interface*](https://raw.githubusercontent.com/MalteT/2a-emulator/master/static/interactive-tui.svg)
 //!
 //! Let's annotate the interface to make sure that we're all on the same page.
 //!
-//! ```text
-//! ┌─┤ Minirechner 2a ├────────────────────┐━╸Info╺━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//! │                                       │
-//! │ Outputs:                              │ General information about the
-//! │ 00000000 00000000  <-In- and Output   │ running program/machine.
-//! │       FF       FE    registers        │
-//! │                      |                │━╸Program╺━━━━━━━━━━━━━━━━━━━━━━━━━
-//! │ Inputs:              V                │
-//! │ 00000000 00000000 00000000 00000000   │ If you've loaded a program, the
-//! │       FF       FE       FD       FC   │ assembler will appear here. A
-//! │                                       │ marker shows what's currently
-//! │ Registers:                            │ being executed, to visualize
-//! │ R0 00000000                           │ the control flow.
-//! │ R1 00000000                           │
-//! │ R2 00000000                           │
-//! │ PC 00000000                           │━╸Keybindings╺━━━━━━━━━━━━━━━━━━━━━
-//! │ FR 00000000                           │
-//! │ SP 00000000                           │ This is a list of keybindings.
-//! │ R6 00000000                           │ Gray means, hitting that has
-//! │ R7 00000000                           │ no effect.
-//! │                                       │
-//! │   ^                                   │
-//! │   |                                   │━╸Commands╺━━━━━━━━━━━━━━━━━━━━━━━━
-//! │   Register block containing           │
-//! │   eight registers                 ... │ This is a list of possible
-//! │                                       │ completions for the input field.
-//! │───────────────────────────────────────│
-//! │> This is the input field              │
-//! └───────────────────────────────────────┘───────────────────────────────────
-//! ```
+//! ![*An image showing the interactive
+//! interface with helpful annotations*](https://raw.githubusercontent.com/MalteT/2a-emulator/master/static/interactive-tui-annotated.svg)
 //!
 //! **See `2a-emulator interactive --help` for a full list of options.**
 //!
