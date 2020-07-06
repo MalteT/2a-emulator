@@ -1,3 +1,4 @@
+//! Everything needed for the right side of the TUI.
 use tui::{
     buffer::Buffer,
     layout::Rect,
@@ -21,6 +22,41 @@ pub use program_info::ProgramInfoWidget;
 
 pub const HEADER_HEIGHT: u16 = 1;
 
+/// Widget for displaying additional usage information.
+///
+/// # Example
+///
+/// ```text
+/// ━╸Info╺━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/// Program:     11-simple-addition.asm
+/// Frequency:                  7.41MHz
+/// Measured Frequency:          0.00Hz
+/// State:                      Running
+/// ━╸Program╺━━━━━━━━━━━━━━━━━━━━━━━━━
+/// >    CLR R0
+///      CLR R1
+///  LOOP:
+///      LD R0, (0xFC)
+///      LD R1, (0xFD)
+///      ADD R0, R1
+///      ST (0xFF), R0
+///      JR LOOP
+///
+/// ━╸Keybindings╺━━━━━━━━━━━━━━━━━━━━━
+/// Clock                         Enter
+/// Toggle autorun               CTRL+A
+/// Toggle asm step              CTRL+W
+/// Reset                        CTRL+R
+/// Edge interrupt               CTRL+E
+/// Continue                     CTRL+L
+/// ━╸Commands╺━━━━━━━━━━━━━━━━━━━━━━━━
+/// load PATH          Load asm program
+/// set …             Change a settings
+/// unset …        Unset a bool setting
+/// show …       Select part to display
+/// quit               Exit the program
+/// ───────────────────────────────────
+/// ```
 pub struct ProgramHelpSidebar;
 
 impl StatefulWidget for ProgramHelpSidebar {
@@ -77,6 +113,12 @@ impl StatefulWidget for ProgramHelpSidebar {
     }
 }
 
+/// A widget for displaying a two-part string.
+///
+/// The parts are seperated by whitespaces to maximize the
+/// distance between the two and fill the available area.
+///
+/// Both parts can be styled differently.
 struct SpacedStr<'l, 'r> {
     left: &'l str,
     right: &'r str,
@@ -135,6 +177,14 @@ impl Widget for SpacedStr<'_, '_> {
     }
 }
 
+/// Create a header.
+///
+/// # Example
+///
+/// ```
+/// let header = make_header("Main", 10);
+/// assert_eq!(header, String::from("━╸Main╺━━━");
+/// ```
 fn make_header(title: &str, width: u16) -> String {
     let mut ret = String::from("━╸");
     ret += title;

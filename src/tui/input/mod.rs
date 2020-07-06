@@ -1,4 +1,4 @@
-//! Simple input field for the TUI.
+//! Everything related to the input field of the TUI.
 use crossterm::event::{KeyCode, KeyEvent};
 use rustyline::completion::FilenameCompleter;
 
@@ -173,10 +173,14 @@ impl InputState {
         self.input.len() == 0
     }
     /// Get the last input from the history.
+    ///
+    /// This excludes the current input of the input field.
     pub fn last(&self) -> Option<String> {
         self.history.last().cloned()
     }
     /// Get the last input as [`Command`].
+    ///
+    /// This excludes the current input of the input field.
     pub fn last_cmd(&self) -> Option<Command<'_>> {
         self.history.last().and_then(|s| Command::parse(s).ok())
     }
@@ -258,6 +262,7 @@ impl InputState {
 }
 
 impl<'a> Command<'a> {
+    /// Try to parse a string into a Command.
     pub fn parse(input: &'a str) -> Result<Self, NomErr<(&str, NomErrorKind)>> {
         parse_cmd(input).map(|(_, out)| out)
     }

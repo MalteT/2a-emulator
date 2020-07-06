@@ -1,3 +1,4 @@
+//! Everythin related to drawing the [`ProgramDisplayWidget`].
 use parser2a::asm::Line;
 use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget};
 
@@ -10,6 +11,20 @@ const MAX_LINES_OF_CONTEXT: usize = 3;
 
 /// This Widget can render the current program.
 /// The first argument is the PC (program counter) value.
+///
+/// # Example
+///
+/// ```text
+/// ━╸Program╺━━━━━━━━━━━━━━━━━━━━━━━━━
+///      CLR R0
+///      CLR R1
+///  LOOP:
+///      LD R0, (0xFC)
+///      LD R1, (0xFD)
+///      ADD R0, R1
+/// >    ST (0xFF), R0
+///      JR LOOP
+/// ```
 pub struct ProgramDisplayWidget(pub u8);
 
 impl StatefulWidget for ProgramDisplayWidget {
@@ -73,18 +88,24 @@ impl StatefulWidget for ProgramDisplayWidget {
     }
 }
 
+/// State needed to display the [`ProgramDisplayWidget`].
 pub struct ProgramDisplayState {
+    /// The lines of the program with corresponding ranges of
+    /// program counter values.
     pub lines: Vec<(Range<u8>, String)>,
+    /// The index of the topmost line currently displayed.
     pub current_top_line_idx: usize,
 }
 
 impl ProgramDisplayState {
+    /// Create an empty default state.
     pub fn empty() -> Self {
         ProgramDisplayState {
             lines: vec![],
             current_top_line_idx: 0,
         }
     }
+    /// Create the state from reading [`ByteCode`] input.
     pub fn from_bytecode(bytecode: &ByteCode) -> Self {
         let mut byte_counter: u8 = 0;
         let lines = bytecode
@@ -104,6 +125,10 @@ impl ProgramDisplayState {
             current_top_line_idx: 0,
         }
     }
+    /// Get the program line that is contained at `addr` in memory.
+    ///
+    /// The returned index refers to the program line that is
+    /// executed if `addr` refers to the value of the program counter.
     fn index_for_address(&self, addr: u8) -> Option<usize> {
         self.lines
             .iter()

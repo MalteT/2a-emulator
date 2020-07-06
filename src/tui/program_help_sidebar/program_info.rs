@@ -1,3 +1,4 @@
+//! Everything related to drawing the [`ProgramInfoWidget`].
 use tui::{buffer::Buffer, layout::Rect, widgets::Widget};
 
 use std::{borrow::Cow, path::PathBuf};
@@ -11,6 +12,18 @@ const INFO_FREQ: (&str, &str) = ("Frequency:", "");
 const INFO_FREQ_MEASURED: (&str, &str) = ("Measured Frequency:", "");
 const INFO_STATE: (&str, &str) = ("State:", "");
 
+/// Widget for additional information about the
+/// current execution.
+///
+/// # Example
+///
+/// ```text
+/// ━╸Info╺━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/// Program:     11-simple-addition.asm
+/// Frequency:                  7.41MHz
+/// Measured Frequency:          0.00Hz
+/// State:                      Running
+/// ```
 pub struct ProgramInfoWidget<'a> {
     program: &'a Option<PathBuf>,
     freq: f32,
@@ -19,6 +32,7 @@ pub struct ProgramInfoWidget<'a> {
 }
 
 impl<'a> ProgramInfoWidget<'a> {
+    /// Read all necessary information from the given [`Tui`].
     pub fn from(tui: &'a Tui) -> Self {
         let program = tui.supervisor.get_program_path();
         let freq = tui.supervisor.get_frequency();
@@ -31,6 +45,7 @@ impl<'a> ProgramInfoWidget<'a> {
             state,
         }
     }
+    /// Get the height necessary for drawing this widget.
     pub fn calculate_height() -> u16 {
         WIDGET_HEIGHT
     }

@@ -1,3 +1,5 @@
+//! Everything related to drawing info about the MR2DA2.
+//! See [`BoardInfoSidebarWidget`] for a render example.
 use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget};
 
 use crate::{

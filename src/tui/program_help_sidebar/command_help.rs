@@ -1,3 +1,4 @@
+//! Everything related to drawing the [`CommandHelpWidget`].
 use tui::{buffer::Buffer, layout::Rect, widgets::Widget};
 
 use super::{SpacedStr, HEADER_HEIGHT};
@@ -38,6 +39,18 @@ const COMMAND_HELP_SHOW: &[(&str, &str)] = &[
 ];
 const COMMAND_HELP_LOAD: &[(&str, &str)] = &[("PATH", "Path to the program")];
 
+/// Help widget that shows input completions.
+///
+/// # Example
+///
+/// ```text
+/// ━╸Commands╺━━━━━━━━━━━━━━━━━━━━━━━━
+/// load PATH         Load asm program
+/// set …            Change a settings
+/// unset …       Unset a bool setting
+/// show …      Select part to display
+/// quit              Exit the program
+/// ```
 pub struct CommandHelpWidget<'a>(pub &'a str);
 
 impl<'a> CommandHelpWidget<'a> {

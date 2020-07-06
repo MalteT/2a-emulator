@@ -52,7 +52,7 @@ pub struct Tui {
     /// Event iterator.
     events: Events,
     /// State for the input field at the bottom of the TUI.
-    /// This is needed to draw the [`Input`](crate::tui::input::Input) widget.
+    /// This is needed to draw the [`InputWidget`](crate::tui::input::InputWidget).
     input_field: InputState,
     /// State for the
     /// [`KeybindingHelpWidget`](program_help_sidebar::KeybindingHelpWidget).

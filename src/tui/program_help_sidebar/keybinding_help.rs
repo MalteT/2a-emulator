@@ -1,3 +1,4 @@
+//! Everything related to drawing the [`KeybindingHelpWidget`].
 use tui::{
     buffer::Buffer,
     layout::Rect,
@@ -18,9 +19,23 @@ const BIND_RESET: (&str, &str) = ("Reset", "CTRL+R");
 const BIND_EDGE_INT: (&str, &str) = ("Edge interrupt", "CTRL+E");
 const BIND_CONTINUE: (&str, &str) = ("Continue", "CTRL+L");
 
+/// Help Widget containing key binding information.
+///
+/// # Example
+///
+/// ```text
+/// ━╸Keybindings╺━━━━━━━━━━━━━━━━━━━━━
+/// Clock                         Enter
+/// Toggle autorun               CTRL+A
+/// Toggle asm step              CTRL+W
+/// Reset                        CTRL+R
+/// Edge interrupt               CTRL+E
+/// Continue                     CTRL+L
+/// ```
 pub struct KeybindingHelpWidget;
 
 impl KeybindingHelpWidget {
+    /// Get the height needed for this widget.
     pub fn calculate_height() -> u16 {
         // One line for each binding + one for the header
         WIDGET_HEIGHT
@@ -105,6 +120,12 @@ impl StatefulWidget for KeybindingHelpWidget {
     }
 }
 
+/// Information needed for drawing the [`KeybindingHelpWidget`].
+///
+/// - `last_*` fields refer to the last time the corresponding key
+/// has been pressed.
+/// - is_* fields refer to additional toggles that influence the
+/// render process.
 pub struct KeybindingHelpState {
     last_clk_press: Option<Instant>,
     last_reset_press: Option<Instant>,
@@ -117,6 +138,7 @@ pub struct KeybindingHelpState {
 }
 
 impl KeybindingHelpState {
+    /// Initialize the state with default values.
     pub const fn init() -> Self {
         KeybindingHelpState {
             last_clk_press: None,
@@ -155,6 +177,8 @@ impl KeybindingHelpState {
     }
 }
 
+/// Calculate if the key has been pressed recently.
+/// If `instant` is None this will return false.
 fn is_within_highlight_dur(instant: &mut Option<Instant>) -> bool {
     match *instant {
         Some(instant) if instant.elapsed() <= HIGHLIGHT_DURATION => true,
