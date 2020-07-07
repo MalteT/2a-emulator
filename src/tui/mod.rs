@@ -1,21 +1,19 @@
 //! Everything necessary to run the Terminal User Interface.
-
 use crossterm::{
     event::{KeyCode, KeyEvent, KeyModifiers as Mod},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use log::error;
-use log::trace;
-use log::warn;
+use log::{trace, warn};
 use scopeguard::defer;
-use tui::backend::CrosstermBackend;
-use tui::Terminal;
+use tui::{backend::CrosstermBackend, Terminal};
 
-use std::io::{Stdout, Write};
-use std::path::PathBuf;
-use std::thread;
-use std::time::{Duration, Instant};
+use std::{
+    io::{Stdout, Write},
+    path::PathBuf,
+    thread,
+    time::{Duration, Instant},
+};
 
 mod board_info_sidebar;
 pub mod display;
@@ -26,11 +24,7 @@ mod program_help_sidebar;
 pub mod show_widgets;
 mod supervisor_wrapper;
 
-use crate::args::InteractiveArgs;
-use crate::compiler::Translator;
-use crate::error::Error;
-use crate::helpers;
-use crate::machine::State;
+use crate::{args::InteractiveArgs, compiler::Translator, error::Error, helpers, machine::State};
 pub use board_info_sidebar::BoardInfoSidebarWidget;
 use events::Events;
 use input::{Command, InputRegister, InputState};
@@ -221,7 +215,7 @@ impl Tui {
                     let path = path.to_owned();
                     match self.load_program(path) {
                         Ok(()) => {}
-                        Err(e) => error!("Failed to run program: {}", e),
+                        Err(e) => warn!("Failed to run program: {}", e),
                     }
                 }
                 Command::SetInputReg(InputRegister::FC, val) => self.supervisor.input_fc(val),
