@@ -113,7 +113,7 @@ impl MicroprogramRamParser {
 impl MicroprogramRam {
     /// Create a new MicroprogramRam with the default content.
     pub fn new() -> Self {
-        let unparsed_content = include_str!("../../static/mr-mpram");
+        let unparsed_content = include_str!("../../../../static/mr-mpram");
         let content = MicroprogramRamParser::parse_ram(unparsed_content);
         let current_word = 0;
         MicroprogramRam {

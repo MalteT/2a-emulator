@@ -7,9 +7,13 @@ license = "GPL-3.0"
 readme = "README.md"
 repository = "https://github.com/MalteT/2a-emulator"
 
+[lib]
+name = "2a_emulator_lib"
+path = "src/lib/mod.rs"
+
 [[bin]]
 name = "2a-emulator"
-path = "src/main.rs"
+path = "src/bin/2a-emulator/mod.rs"
 
 [dependencies]
 log = "0.4.0"
