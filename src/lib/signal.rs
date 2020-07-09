@@ -1,36 +1,46 @@
 use enum_primitive::FromPrimitive;
 
-use crate::machine::Instruction;
+use crate::Instruction;
 use crate::{AluSelect, Flags, Word};
 
 /// The collection of all relevant internal signals with
 /// simplified methods that all return [`bool`]s to easily
 /// work with the current internal state.
-pub struct Signal<'w, 'i> {
-    word: &'w Word,
-    instruction: &'i Instruction,
+pub struct Signal {
+    word: Word,
+    instruction: Instruction,
     flags: Flags,
     carry_out: bool,
     zero_out: bool,
     negative_out: bool,
 }
 
-impl<'w, 'i> Signal<'w, 'i> {
+impl Signal {
     /// Create a new Signal struct from the current word and byte instruction.
-    pub const fn new() -> Signal<'static, 'static> {
+    pub const fn new() -> Signal {
         Signal {
-            word: &Word::empty(),
-            instruction: &Instruction::empty(),
+            word: Word::empty(),
+            instruction: Instruction::empty(),
             flags: Flags::empty(),
             carry_out: false,
             zero_out: false,
             negative_out: false,
         }
     }
-    pub const fn set_instruction<'i1>(self, instruction: &'i1 Instruction) -> Signal<'w, 'i1> {
+    pub const fn set_instruction(self, instruction: Instruction) -> Signal {
         Signal {
             word: self.word,
             instruction,
+            flags: self.flags,
+            carry_out: self.carry_out,
+            zero_out: self.zero_out,
+            negative_out: self.negative_out,
+        }
+    }
+    pub const fn set_word(self, word: Word) -> Signal {
+        Signal {
+            word,
+            instruction: self.instruction,
             flags: self.flags,
             carry_out: self.carry_out,
             zero_out: self.zero_out,

@@ -4,7 +4,7 @@ use log::warn;
 
 use std::fmt;
 
-use crate::machine::board::Board;
+use crate::Board;
 
 /// The bus used in the Minirechner 2a.
 ///

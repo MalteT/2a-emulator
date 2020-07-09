@@ -4,7 +4,7 @@ use parser2a::asm::Stacksize;
 
 use std::ops::{Index, IndexMut};
 
-use crate::machine::Signal;
+use crate::Signal;
 
 /// The register block.
 /// Containing `R0` through `R7`
@@ -402,13 +402,13 @@ impl Register {
     pub fn write_flags(&mut self, signal: &Signal) {
         // Persistent IEF
         let mut value = (self.interrupt_enable_flag() as u8) << 3;
-        if signal.co() {
+        if signal.carry_out() {
             value |= 0b0000_0001;
         }
-        if signal.zo() {
+        if signal.zero_out() {
             value |= 0b0000_0010;
         }
-        if signal.no() {
+        if signal.negative_out() {
             value |= 0b0000_0100;
         }
         self.content[4] = value;
@@ -464,7 +464,7 @@ impl IndexMut<RegisterNumber> for Register {
 
 #[cfg(test)]
 mod tests {
-    use crate::machine::{Instruction, MP28BitWord, Register, Signal};
+    use crate::{Instruction, Word, Register, Signal};
 
     #[test]
     fn test_register_block_basics() {
@@ -473,37 +473,37 @@ mod tests {
     }
     #[test]
     fn test_register_block_writing() {
-        use crate::machine::Instruction as I;
-        use crate::machine::MP28BitWord as W;
+        use crate::Instruction as I;
+        use crate::Word as W;
 
         let mut reg = Register::new();
         // All inputs empty => IN A => R0
         let inst = Instruction::empty();
-        let word = MP28BitWord::empty();
-        let signal = Signal::new(&word, &inst);
+        let word = Word::empty();
+        let signal = Signal::new().set_word(word).set_instruction(inst);
         reg.write(&signal, 0xAB);
         assert_eq!(reg.content[0], 0xAB);
         // MRGWS | MRGAB2 | MRGAB1 => IN B => R5
         let word = W::MRGWS | W::MRGAB2 | W::MRGAB1;
-        let signal = Signal::new(&word, &inst);
+        let signal = Signal::new().set_word(word).set_instruction(inst);
         reg.write(&signal, 0xAC);
         assert_eq!(reg.content[6], 0xAC);
         // MRGWS | MRGAB3 | OP10 => IN B => R1
         let word = W::MRGWS | W::MRGAB3;
         let inst = I::OP10;
-        let signal = Signal::new(&word, &inst);
+        let signal = Signal::new().set_word(word).set_instruction(inst);
         reg.write(&signal, 0xFF);
         assert_eq!(reg.content[1], 0xFF);
         // MRGAA2 | MRGAA1 | MRGAA0 => IN A => R7
         let word = W::MRGAA2 | W::MRGAA1 | W::MRGAA0;
         let inst = I::empty();
-        let signal = Signal::new(&word, &inst);
+        let signal = Signal::new().set_word(word).set_instruction(inst);
         reg.write(&signal, 0xCD);
         assert_eq!(reg.content[7], 0xCD);
         // MRGAA3 | OP01 | OP00 => IN A => R3
         let word = W::MRGAA3;
         let inst = I::OP01 | I::OP00;
-        let signal = Signal::new(&word, &inst);
+        let signal = Signal::new().set_word(word).set_instruction(inst);
         reg.write(&signal, 0x03);
         assert_eq!(reg.content[3], 0x03);
     }
@@ -511,40 +511,36 @@ mod tests {
     fn test_register_block_flags() {
         let mut reg = Register::new();
         let inst = Instruction::empty();
-        let word = MP28BitWord::empty();
-        let mut signal = Signal::new(&word, &inst);
+        let word = Word::empty();
+        let mut signal = Signal::new().set_word(word).set_instruction(inst);
         // All flags off by default
-        assert_eq!(reg.cf(), false);
-        assert_eq!(reg.zf(), false);
-        assert_eq!(reg.nf(), false);
+        assert_eq!(reg.carry_flag(), false);
+        assert_eq!(reg.zero_flag(), false);
+        assert_eq!(reg.negative_flag(), false);
         // Update flags #1
-        signal.set_co(false);
-        signal.set_zo(true);
-        signal.set_no(false);
+        signal = signal.set_carry_out(false).set_zero_out(true).set_negative_out(false);
         reg.write_flags(&signal);
-        assert_eq!(reg.cf(), false);
-        assert_eq!(reg.zf(), true);
-        assert_eq!(reg.nf(), false);
-        assert_eq!(reg.ief(), false);
+        assert_eq!(reg.carry_flag(), false);
+        assert_eq!(reg.zero_flag(), true);
+        assert_eq!(reg.negative_flag(), false);
+        assert_eq!(reg.interrupt_enable_flag(), false);
         // Update flags #2
-        reg.set_ief();
-        assert_eq!(reg.cf(), false);
-        assert_eq!(reg.zf(), true);
-        assert_eq!(reg.nf(), false);
-        assert_eq!(reg.ief(), true);
+        reg.set_interrupt_enable_flag(true);
+        assert_eq!(reg.carry_flag(), false);
+        assert_eq!(reg.zero_flag(), true);
+        assert_eq!(reg.negative_flag(), false);
+        assert_eq!(reg.interrupt_enable_flag(), true);
         // Update flags #3
-        signal.set_co(true);
-        signal.set_zo(true);
-        signal.set_no(false);
+        signal = signal.set_carry_out(true).set_zero_out(true).set_negative_out(false);
         reg.write_flags(&signal);
-        assert_eq!(reg.cf(), true);
-        assert_eq!(reg.zf(), true);
-        assert_eq!(reg.nf(), false);
-        assert_eq!(reg.ief(), true);
+        assert_eq!(reg.carry_flag(), true);
+        assert_eq!(reg.zero_flag(), true);
+        assert_eq!(reg.negative_flag(), false);
+        assert_eq!(reg.interrupt_enable_flag(), true);
     }
     #[test]
     fn test_register_block_output_a() {
-        use crate::machine::MP28BitWord as W;
+        use crate::Word as W;
 
         let reg = Register {
             content: [0xF0, 0xF1, 0xF2, 0xF3, 0x12, 0x32, 0x56, 0x00],
@@ -552,17 +548,17 @@ mod tests {
         // MRGAA3 => R0
         let inst = Instruction::empty();
         let word = W::MRGAA3;
-        let signal = Signal::new(&word, &inst);
+        let signal = Signal::new().set_word(word).set_instruction(inst);
         assert_eq!(reg.doa(&signal), 0xF0);
         // MRGAA2 | MRGAA0 => R5
         let inst = Instruction::empty();
         let word = W::MRGAA2 | W::MRGAA0;
-        let signal = Signal::new(&word, &inst);
+        let signal = Signal::new().set_word(word).set_instruction(inst);
         assert_eq!(reg.doa(&signal), 0x32);
     }
     #[test]
     fn test_register_block_output_b() {
-        use crate::machine::MP28BitWord as W;
+        use crate::Word as W;
 
         let reg = Register {
             content: [0xF0, 0xF1, 0xF2, 0xF3, 0x12, 0x32, 0x56, 0x00],
@@ -570,12 +566,12 @@ mod tests {
         // MRGAA3 (ignored) => R0
         let inst = Instruction::empty();
         let word = W::MRGAA3;
-        let signal = Signal::new(&word, &inst);
+        let signal = Signal::new().set_word(word).set_instruction(inst);
         assert_eq!(reg.dob(&signal), 0xF0);
         // MRGAB1 | MRGAB0 => R3
         let inst = Instruction::empty();
         let word = W::MRGAB1 | W::MRGAB0;
-        let signal = Signal::new(&word, &inst);
+        let signal = Signal::new().set_word(word).set_instruction(inst);
         assert_eq!(reg.dob(&signal), 0xF3);
     }
 }

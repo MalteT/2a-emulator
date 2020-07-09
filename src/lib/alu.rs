@@ -1,5 +1,5 @@
 /// The arithmetic logical unit! Stateless.
-use enum_primitive::{enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty};
+use enum_primitive::{FromPrimitive, enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty};
 
 enum_from_primitive! {
     /// A list containing all functions understood by the alu.
@@ -45,7 +45,7 @@ enum_from_primitive! {
 /// # Example
 ///
 /// ```
-/// # use crate::AluInput;
+/// # use emulator_2a_lib::AluInput;
 /// let input = AluInput::new(103, 20, true);
 ///
 /// assert_eq!(input.input_a(), 103);
@@ -175,6 +175,10 @@ impl AluOutput {
             negative_out: out & 0b1000_0000 != 0,
         }
     }
+    /// Calculate the output from the default input, i.e. all zeros.
+    pub fn from_default_input() -> Self {
+        AluOutput::from_input(&AluInput::default(), &AluSelect::default())
+    }
     /// Get the main output of the last operation.
     pub const fn output(&self) -> u8 {
         self.output
@@ -192,5 +196,21 @@ impl AluOutput {
     /// bit of the output is set.
     pub const fn negative_out(&self) -> bool {
         self.negative_out
+    }
+}
+
+impl Default for AluInput {
+    fn default() -> Self {
+        AluInput {
+            input_a: 0,
+            input_b: 0,
+            carry_in: false,
+        }
+    }
+}
+
+impl Default for AluSelect {
+    fn default() -> Self {
+        AluSelect::from_u8(0).expect("infallible")
     }
 }

@@ -3,21 +3,18 @@
 use log::trace;
 use parser2a::asm::Stacksize;
 
-mod alu;
-mod board;
-mod bus;
-mod instruction;
-mod mp_ram;
-mod register;
-mod signal;
+use crate::{AluInput, AluOutput};
+use crate::Bus;
+use crate::Instruction;
+use crate::{Word, MicroprogramRam};
+use crate::{Register, RegisterNumber};
+use crate::Signal;
 
-pub use alu::Alu;
-pub use board::{Board, DASR, DAISR, DAICR};
-pub use bus::Bus;
-pub use instruction::Instruction;
-pub use mp_ram::{MP28BitWord, MicroprogramRam};
-pub use register::{Register, RegisterNumber};
-pub use signal::Signal;
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Edge;
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Level;
 
 /// State of the machine.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -32,7 +29,7 @@ pub enum State {
 
 #[derive(Debug)]
 pub struct Machine {
-    mp_ram: MicroprogramRam,
+    microprogram_ram: MicroprogramRam,
     /// The register block.
     reg: Register,
     /// The currently executed instruction byte.
@@ -59,12 +56,18 @@ pub struct Machine {
     /// Stacksize, if any program is loaded.
     /// For error checking.
     stacksize: Option<Stacksize>,
+    /// Latest output of the ALU
+    alu_out: AluOutput,
+    /// Pending edge interrupt input
+    pending_edge_interrupt: Option<Edge>,
+    /// Pending level interrupt input
+    pending_level_interrupt: Option<Level>,
 }
 
 impl Machine {
     /// Create and run a new Minirechner 2a with an optional program.
     pub fn new() -> Self {
-        let mp_ram = MicroprogramRam::new();
+        let microprogram_ram = MicroprogramRam::new();
         let reg = Register::new();
         let bus = Bus::new();
         let current_instruction = Instruction::reset();
@@ -79,8 +82,12 @@ impl Machine {
         let draw_counter = 0;
         let stacksize = None;
         let state = State::Running;
-        let machine = Machine {
-            mp_ram,
+        let alu_out = AluOutput::from_default_input();
+        let pending_edge_interrupt = None;
+        let pending_level_interrupt = None;
+        Machine {
+            microprogram_ram,
+            alu_out,
             reg,
             bus,
             current_instruction,
@@ -95,8 +102,9 @@ impl Machine {
             clk_counter,
             draw_counter,
             stacksize,
-        };
-        machine
+            pending_edge_interrupt,
+            pending_level_interrupt,
+        }
     }
     /// Input `number` into input register `FC`.
     pub fn input_fc(&mut self, number: u8) {
@@ -168,7 +176,7 @@ impl Machine {
         self.current_instruction = Instruction::reset();
         self.edge_int = false;
         self.level_int = false;
-        self.mp_ram.reset();
+        self.microprogram_ram.reset();
         self.waiting_for_memory = false;
         self.state = State::Running;
     }
@@ -208,18 +216,19 @@ impl Machine {
         }
         if let Some((co, zo, no)) = self.pending_flag_write {
             trace!("Updating flags: CO: {}, ZO: {}, NO: {}", co, zo, no);
-            self.reg.update_co(co);
-            self.reg.update_zo(zo);
-            self.reg.update_no(no);
+            self.reg.set_carry_flag(co);
+            self.reg.set_zero_flag(zo);
+            self.reg.set_negative_flag(no);
         }
         // ------------------------------------------------------------
         // Use microprogram word from last iteration
         // ------------------------------------------------------------
-        let mp_ram_out = self.mp_ram.get();
+        let mp_ram_out = self.microprogram_ram.get_word();
         // Safe MAC3 for later
-        self.instruction_done = mp_ram_out.contains(MP28BitWord::MAC3);
-        let mut sig = Signal::new(&mp_ram_out, &self.current_instruction);
-        trace!("Address: {:>08b} ({0})", self.mp_ram.current_addr());
+        self.instruction_done = mp_ram_out.contains(Word::MAC3);
+        let mut sig = Signal::new();
+        sig = sig.set_instruction(self.current_instruction).set_word(*mp_ram_out);
+        trace!("Address: {:>08b} ({0})", self.microprogram_ram.get_address());
         trace!("Word: {:?}", mp_ram_out);
         // ------------------------------------------------------------
         // Add some interrupts, if necessary
@@ -229,15 +238,12 @@ impl Machine {
         // ------------------------------------------------------------
         // Add inputs to sig
         // ------------------------------------------------------------
-        sig.set_edge_int(self.edge_int);
-        sig.set_level_int(self.level_int);
+        //sig.set_edge_int(self.edge_int);
+        //sig.set_level_int(self.level_int);
         // ------------------------------------------------------------
         // Get outputs of register block
         // ------------------------------------------------------------
-        sig.set_cf(self.reg.cf());
-        sig.set_zf(self.reg.zf());
-        sig.set_nf(self.reg.nf());
-        sig.set_ief(self.reg.ief());
+        sig = sig.set_flags(self.reg.flags());
         let doa = self.reg.doa(&sig);
         let dob = self.reg.dob(&sig);
         trace!("DOA: {:>02X}", doa);
@@ -261,7 +267,7 @@ impl Machine {
             // Reset the instruction register
             trace!("Resetting instruction register");
             self.current_instruction = Instruction::reset();
-            sig.set_current_instruction(&self.current_instruction);
+            sig = sig.set_instruction(self.current_instruction.clone());
         } else if sig.mac0() && sig.mac2() {
             // Selecting next instruction
             self.current_instruction = Instruction::from_bits_truncate(bus_content);
@@ -270,7 +276,7 @@ impl Machine {
             } else if bus_content == 0x01 {
                 self.state = State::Stopped;
             }
-            sig.set_current_instruction(&self.current_instruction);
+            sig = sig.set_instruction(self.current_instruction);
             trace!("Instruction: {:?}", self.current_instruction);
         }
         // ------------------------------------------------------------
@@ -289,19 +295,17 @@ impl Machine {
         } else {
             dob
         };
-        let alu_fn = (sig.malus3(), sig.malus2(), sig.malus1(), sig.malus0()).into();
-        trace!("ALU fn: {:?}", alu_fn);
-        let memdo = Alu::output(sig.cf(), alu_in_a, alu_in_b, alu_fn);
-        let co = Alu::co(sig.cf(), alu_in_a, alu_in_b, alu_fn);
-        let zo = Alu::zo(sig.cf(), alu_in_a, alu_in_b, alu_fn);
-        let no = Alu::no(sig.cf(), alu_in_a, alu_in_b, alu_fn);
+        let alu_in = AluInput::new(alu_in_a, alu_in_b, sig.carry_out());
+        self.alu_out = AluOutput::from_input(&alu_in, &sig.alu_select());
+        let memdo = self.alu_out.output();
+        let co = self.alu_out.carry_out();
+        let zo = self.alu_out.zero_out();
+        let no = self.alu_out.negative_out();
         trace!("MEMDO: 0x{:>02X}", memdo);
         // ------------------------------------------------------------
         // Add ALU outputs to signals
         // ------------------------------------------------------------
-        sig.set_co(co);
-        sig.set_zo(zo);
-        sig.set_no(no);
+        sig = sig.set_carry_out(co).set_zero_out(zo).set_negative_out(no);
         trace!("CO: {}, ZO: {}, NO: {}", co, zo, no);
         // Update registers if necessary
         if sig.mrgwe() {
@@ -310,7 +314,7 @@ impl Machine {
             trace!("New pending register write");
         }
         if sig.mchflg() {
-            self.pending_flag_write = Some((sig.co(), sig.zo(), sig.no()));
+            self.pending_flag_write = Some((sig.carry_out(), sig.zero_out(), sig.negative_out()));
             trace!("New pending flag write");
         }
         // ------------------------------------------------------------
@@ -333,8 +337,8 @@ impl Machine {
         // ------------------------------------------------------------
         // Select next microprogram word
         // ------------------------------------------------------------
-        let next_mp_ram_addr = MicroprogramRam::get_addr(&sig);
+        let next_mp_ram_addr = MicroprogramRam::get_addr(&sig, self.edge_int, self.level_int);
         trace!("Next MP_RAM address: {}", next_mp_ram_addr);
-        self.mp_ram.select(next_mp_ram_addr);
+        self.microprogram_ram.set_address(next_mp_ram_addr);
     }
 }
