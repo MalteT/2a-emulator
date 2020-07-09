@@ -376,9 +376,11 @@ impl Board {
     pub const fn dasr(&self) -> &DASR {
         &self.dasr
     }
+    #[allow(dead_code)]
     pub const fn daisr(&self) -> &DAISR {
         &self.daisr
     }
+    #[allow(dead_code)]
     pub const fn daicr(&self) -> &DAICR {
         &self.daicr
     }

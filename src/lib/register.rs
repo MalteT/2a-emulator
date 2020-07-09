@@ -10,7 +10,7 @@ use crate::machine::Signal;
 /// Containing `R0` through `R7`
 ///
 /// # Example
-/// 
+///
 /// ```
 /// # use emulator_2a_lib::{Register, RegisterNumber};
 /// let mut reg = Register::new();
@@ -69,7 +69,7 @@ impl Register {
     /// ```
     /// # use emulator_2a_lib::{Register, RegisterNumber};
     /// let reg = Register::new();
-    /// 
+    ///
     /// assert_eq!(*reg.get(RegisterNumber::R2), 0);
     /// ```
     pub const fn new() -> Self {
@@ -85,7 +85,7 @@ impl Register {
     /// let mut reg = Register::new();
     /// reg.set_zero_flag(true);
     /// reg.set(RegisterNumber::R7, 123);
-    /// 
+    ///
     /// let content = reg.content();
     /// assert_eq!(content, &[
     ///     0, 0, 0, 0, 2, 0, 0, 123
@@ -103,7 +103,7 @@ impl Register {
     /// let mut reg = Register::new();
     /// reg.set_interrupt_enable_flag(true);
     /// reg.set_negative_flag(true);
-    /// 
+    ///
     /// let flags = reg.flags();
     /// assert!(flags.contains(Flags::INTERRUPT_ENABLE_FLAG));
     /// assert!(flags.contains(Flags::NEGATIVE_FLAG));
@@ -286,7 +286,7 @@ impl Register {
     /// [`RegisterNumber`].
     ///
     /// # Example
-    /// 
+    ///
     /// ```
     /// # use emulator_2a_lib::{Register, RegisterNumber};
     /// let mut reg = Register::new();
@@ -338,10 +338,6 @@ impl Register {
     pub fn reset(&mut self) {
         self.content = [0; 8];
     }
-
-
-
-
 
     /// Get current data output A of the register.
     #[deprecated]
@@ -456,13 +452,13 @@ impl From<RegisterNumber> for usize {
 impl Index<RegisterNumber> for Register {
     type Output = u8;
     fn index(&self, idx: RegisterNumber) -> &Self::Output {
-        self.get(idx.into())
+        self.get(idx)
     }
 }
 
 impl IndexMut<RegisterNumber> for Register {
     fn index_mut(&mut self, idx: RegisterNumber) -> &mut Self::Output {
-        self.get_mut(idx.into())
+        self.get_mut(idx)
     }
 }
 
