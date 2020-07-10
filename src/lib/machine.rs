@@ -4,8 +4,8 @@ use log::trace;
 use parser2a::asm::Stacksize;
 
 use crate::{
-    AluInput, AluOutput, Bus, InstructionRegister, MicroprogramRam, Register, RegisterNumber,
-    Signal, Word,
+    AluInput, AluOutput, Bus, Instruction, InstructionRegister, MicroprogramRam, Register,
+    RegisterNumber, Signal, Word,
 };
 
 /// A marker for an Interrupt.
@@ -61,7 +61,13 @@ pub struct Machine {
 }
 
 impl Machine {
-    /// Create and run a new Minirechner 2a with an optional program.
+    /// Create a new machine in the default state.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use emulator_2a_lib::Machine;
+    /// let mut machine = Machine::new();
     pub const fn new() -> Self {
         let microprogram_ram = MicroprogramRam::new();
         let register = Register::new();
@@ -92,36 +98,64 @@ impl Machine {
             pending_level_interrupt,
         }
     }
-    /// Next clock rising edge.
-    pub fn clk(&mut self) {
-        // Execute the update
-        self.update()
-    }
-    /// Is the current instruction done executing?
-    pub fn is_instruction_done(&self) -> bool {
-        self.is_instruction_done
-    }
-    /// State of the machine.
-    pub fn state(&self) -> State {
-        self.state
-    }
-    /// Continue the machine after a stop.
-    pub fn continue_from_stop(&mut self) {
-        if self.state == State::Stopped {
-            self.state = State::Running;
-        }
-    }
-    /// Get read access to the register block.
-    pub fn registers(&self) -> &Register {
+
+    /// Get a reference to the contained register block.
+    pub const fn registers(&self) -> &Register {
         &self.register
     }
-    /// Get a reference to the underlying bus.
-    pub fn bus(&self) -> &Bus {
+
+    /// Get a reference to the connected bus.
+    pub const fn bus(&self) -> &Bus {
         &self.bus
     }
+
+    /// State of the machine.
+    pub const fn state(&self) -> State {
+        self.state
+    }
+
+    /// Get a reference to the currently executed opcode instruction.
+    pub const fn word(&self) -> &Instruction {
+        self.instruction_register.get()
+    }
+
+    /// Get the maximum allowed stacksize, if set.
+    pub const fn stacksize(&self) -> Option<Stacksize> {
+        self.stacksize
+    }
+
+    /// Set the maximum allowed stacksize
+    pub fn set_stacksize(&mut self, stacksize: Stacksize) {
+        self.stacksize = Some(stacksize)
+    }
+
+    /// Trigger a key edge interrupt.
+    pub fn trigger_key_edge_interrupt(&mut self) {
+        if self.bus.is_key_edge_int_enabled() {
+            self.pending_edge_interrupt = Some(Interrupt);
+        }
+    }
+
+    /// Trigger the `CONTINUE` key.
+    ///
+    /// This will move the state from [`State::Stopped`] -> [`State::Running`].
+    pub fn trigger_key_continue(&mut self) {
+        if self.state == State::Stopped {
+            self.state = State::Running
+        }
+    }
+
     /// Get mutable access to the underlying bus.
     pub fn bus_mut(&mut self) -> &mut Bus {
         &mut self.bus
+    }
+
+    /// Is the current instruction done executing?
+    ///
+    /// This will return `true`, iff the [`Word`] that was executed during the last
+    /// clock cycle, completed the opcode [`Instruction`].
+    pub const fn is_instruction_done(&self) -> bool {
+        self.is_instruction_done
     }
     /// Reset the machine.
     ///
@@ -148,13 +182,8 @@ impl Machine {
             self.pending_edge_interrupt = Some(Interrupt);
         }
     }
-    /// Is key edge interrupt enabled?
-    pub fn is_key_edge_int_enabled(&self) -> bool {
-        self.bus.is_key_edge_int_enabled()
-    }
-    /// Update the machine.
-    /// This should be equivalent to a CLK signal on the real machine.
-    fn update(&mut self) {
+    /// Emulate a rising CLK edge.
+    pub fn trigger_clock_edge(&mut self) {
         if self.state != State::Running {
             return;
         } else if let Some(MemoryAccess) = self.pending_memory_access.take() {
