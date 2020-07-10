@@ -1,5 +1,7 @@
 /// The arithmetic logical unit! Stateless.
-use enum_primitive::{FromPrimitive, enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty};
+use enum_primitive::{
+    enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty, FromPrimitive,
+};
 
 enum_from_primitive! {
     /// A list containing all functions understood by the alu.
@@ -176,8 +178,14 @@ impl AluOutput {
         }
     }
     /// Calculate the output from the default input, i.e. all zeros.
-    pub fn from_default_input() -> Self {
-        AluOutput::from_input(&AluInput::default(), &AluSelect::default())
+    /// XXX: Delete if const trait impls are possible
+    pub const fn default() -> Self {
+        AluOutput {
+            carry_out: false,
+            zero_out: false,
+            negative_out: false,
+            output: 0,
+        }
     }
     /// Get the main output of the last operation.
     pub const fn output(&self) -> u8 {

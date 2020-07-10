@@ -464,7 +464,7 @@ impl IndexMut<RegisterNumber> for Register {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Instruction, Word, Register, Signal};
+    use crate::{Instruction, Register, Signal, Word};
 
     #[test]
     fn test_register_block_basics() {
@@ -518,7 +518,10 @@ mod tests {
         assert_eq!(reg.zero_flag(), false);
         assert_eq!(reg.negative_flag(), false);
         // Update flags #1
-        signal = signal.set_carry_out(false).set_zero_out(true).set_negative_out(false);
+        signal = signal
+            .set_carry_out(false)
+            .set_zero_out(true)
+            .set_negative_out(false);
         reg.write_flags(&signal);
         assert_eq!(reg.carry_flag(), false);
         assert_eq!(reg.zero_flag(), true);
@@ -531,7 +534,10 @@ mod tests {
         assert_eq!(reg.negative_flag(), false);
         assert_eq!(reg.interrupt_enable_flag(), true);
         // Update flags #3
-        signal = signal.set_carry_out(true).set_zero_out(true).set_negative_out(false);
+        signal = signal
+            .set_carry_out(true)
+            .set_zero_out(true)
+            .set_negative_out(false);
         reg.write_flags(&signal);
         assert_eq!(reg.carry_flag(), true);
         assert_eq!(reg.zero_flag(), true);

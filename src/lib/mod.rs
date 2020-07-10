@@ -3,20 +3,24 @@
 //mod compiler;
 //mod error;
 //mod helpers;
-mod machine;
 mod alu;
+mod board;
+mod bus;
+mod instruction;
+mod interface;
+mod machine;
 mod microprogram_ram;
 mod register;
 mod signal;
-mod board;
-mod instruction;
-mod bus;
 
 pub use alu::{AluInput, AluOutput, AluSelect};
+pub use board::{Board, DAICR, DAISR, DASR};
+pub use bus::Bus;
+pub use instruction::{Instruction, InstructionRegister};
+pub use interface::MachineInterface;
+pub use machine::{Machine, State};
 pub use microprogram_ram::{MicroprogramRam, Word};
 pub use register::{Flags, Register, RegisterNumber};
 pub use signal::Signal;
-pub use board::{Board, DAISR, DAICR, DASR};
-pub use bus::Bus;
-pub use instruction::Instruction;
-pub use machine::{State, Machine};
+
+pub(crate) use machine::Interrupt;

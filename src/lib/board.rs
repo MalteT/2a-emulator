@@ -74,8 +74,8 @@ pub struct DAICR: u8 {
 
 impl Board {
     /// Initialize a new Board.
-    pub fn new() -> Self {
-        let mut board = Board {
+    pub const fn new() -> Self {
+        Board {
             dasr: DASR::empty(),
             daisr: DAISR::empty(),
             daicr: DAICR::empty(),
@@ -88,10 +88,9 @@ impl Board {
             fan_rpm: 0,
             int_source: 0,
             uio_dir: [false; 3],
-        };
-        board.set_org1(0);
-        board.set_org2(0);
-        board
+        }
+        // board.set_org1(0);
+        // board.set_org2(0);
     }
     /// Set the 8-bit input port.
     pub fn set_irg(&mut self, value: u8) {
@@ -461,7 +460,7 @@ mod test {
     #[test]
     fn test_comp_1() {
         let mut board = Board::new();
-        assert_eq!(board.dasr.bits(), 0b0010_0000);
+        assert_eq!(board.dasr.bits(), 0b0000_0000);
         board.set_org1(0);
         board.set_i1(0.01);
         assert_eq!(board.dasr.bits(), 0b0010_1000);

@@ -1,5 +1,54 @@
 use bitflags::bitflags;
 
+/// The instruction register.
+///
+/// It stores the currently executed [`Instruction`].
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct InstructionRegister {
+    content: Instruction,
+}
+
+impl InstructionRegister {
+    /// Create a new register.
+    ///
+    /// **Note**: The default instruction is not actually just zeros, but contains
+    /// [`Instruction::OP01`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use emulator_2a_lib::{InstructionRegister, Instruction};
+    /// let ir = InstructionRegister::new();
+    ///
+    /// assert_eq!(*ir.get(), Instruction::OP01);
+    /// ```
+    pub const fn new() -> Self {
+        InstructionRegister {
+            content: Instruction::reset(),
+        }
+    }
+    /// Get a reference to the content of this register.
+    pub const fn get(&self) -> &Instruction {
+        &self.content
+    }
+    /// Get the raw 8-bit value that is contained in the register.
+    pub const fn get_raw(&self) -> u8 {
+        self.content.bits()
+    }
+    /// Update the content of the register with the supplied [`Instruction`].
+    pub fn set(&mut self, instruction: Instruction) {
+        self.content = instruction;
+    }
+    /// Update the content of the register with the supplied raw [`Instruction`].
+    pub fn set_raw(&mut self, instruction: u8) {
+        self.content = Instruction::from_bits_truncate(instruction);
+    }
+    /// Reset the register to the default state. See [`Instruction::reset`].
+    pub fn reset(&mut self) {
+        self.content = Instruction::reset();
+    }
+}
+
 bitflags! {
     /// A single byte handled by the instruction register.
     pub struct Instruction: u8 {

@@ -1,10 +1,11 @@
+/// Everything related to the bus.
 use bitflags::bitflags;
 use log::trace;
 use log::warn;
 
 use std::fmt;
 
-use crate::Board;
+use crate::{Board, Interrupt};
 
 /// The bus used in the Minirechner 2a.
 ///
@@ -102,7 +103,7 @@ bitflags! {
 impl Bus {
     /// Create a new Bus.
     /// The ram is empty.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         let ram = [0; 0xF0];
         let input_reg = [0; 4];
         let output_reg = [0; 2];
@@ -279,29 +280,36 @@ impl Bus {
     pub fn output_ff(&self) -> u8 {
         self.output_reg[1]
     }
-    /// Did anything on the bus trigger a level interrupt?
-    pub fn has_level_int(&mut self) -> bool {
-        if self.micr.contains(MICR::UART_LEVEL_INTERRUPT_ENABLE) {
-            self.has_uart_interrupt()
-        } else if self.micr.contains(MICR::BUS_LEVEL_INTERRUPT_ENABLE) {
-            self.fetch_mr2da2_interrupt()
-        } else {
-            false
-        }
+    /// Is anything on the bus triggering a level interrupt?
+    ///
+    /// TODO: Implement
+    pub fn get_level_interrupt(&mut self) -> Option<Interrupt> {
+        warn!("Not implemented");
+        None
+        //if self.micr.contains(MICR::UART_LEVEL_INTERRUPT_ENABLE) {
+        //    None
+        //} else if self.micr.contains(MICR::BUS_LEVEL_INTERRUPT_ENABLE) {
+        //    None
+        //} else {
+        //    None
+        //}
     }
     /// Did anything on the bus trigger an edge interrupt?
     ///
     /// # Note:
     /// Level intterupts can also be triggered by the timer and by key!
     /// These are not checked here.
-    pub fn fetch_edge_int(&mut self) -> bool {
-        if self.micr.contains(MICR::UART_EDGE_INTERRUPT_ENABLE) {
-            self.has_uart_interrupt()
-        } else if self.micr.contains(MICR::BUS_EDGE_INTERRUPT_ENABLE) {
-            self.fetch_mr2da2_interrupt()
-        } else {
-            false
-        }
+    /// TODO: Implement
+    pub fn take_edge_interrupt(&mut self) -> Option<Interrupt> {
+        warn!("Not implemented");
+        None
+        //if self.micr.contains(MICR::UART_EDGE_INTERRUPT_ENABLE) {
+        //    None
+        //} else if self.micr.contains(MICR::BUS_EDGE_INTERRUPT_ENABLE) {
+        //    None
+        //} else {
+        //    None
+        //}
     }
     /// Get read access to the board.
     pub fn board(&self) -> &Board {
@@ -348,7 +356,7 @@ impl Bus {
 
 impl InterruptTimer {
     /// Create a new, disabled interrupt timer.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         InterruptTimer {
             enabled: false,
             div1: 0,
