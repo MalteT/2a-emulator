@@ -1,12 +1,15 @@
 //! The actual emulated machine.
 
-use log::trace;
+use log::{trace, warn};
 use parser2a::asm::Stacksize;
+
+mod signals;
 
 use crate::{
     AluInput, AluOutput, Bus, Instruction, InstructionRegister, MicroprogramRam, Register,
-    RegisterNumber, Signal, Word,
+    RegisterNumber, Word,
 };
+pub use signals::Signals;
 
 /// A marker for an Interrupt.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -59,6 +62,10 @@ pub struct Machine {
     /// Did the last word finish the assembly instruction?
     is_instruction_done: bool,
 }
+
+#[derive(Debug)]
+#[must_use]
+struct MachineAfterRegWrite<'a>(&'a mut Machine);
 
 impl Machine {
     /// Create a new machine in the default state.
@@ -150,6 +157,11 @@ impl Machine {
         &mut self.bus
     }
 
+    /// Get a reference to the underlying [`Signals`] of the machine.
+    pub fn signals<'a>(&'a self) -> Signals<'a> {
+        Signals::from(self)
+    }
+
     /// Is the current instruction done executing?
     ///
     /// This will return `true`, iff the [`Word`] that was executed during the last
@@ -175,13 +187,7 @@ impl Machine {
         self.pending_memory_access = None;
         self.state = State::Running;
     }
-    /// Input a key edge interrupt.
-    pub fn key_edge_int(&mut self) {
-        trace!("Received key edge interrupt");
-        if self.bus.is_key_edge_int_enabled() {
-            self.pending_edge_interrupt = Some(Interrupt);
-        }
-    }
+
     /// Emulate a rising CLK edge.
     pub fn trigger_clock_edge(&mut self) {
         if self.state != State::Running {
@@ -189,34 +195,13 @@ impl Machine {
         } else if let Some(MemoryAccess) = self.pending_memory_access.take() {
             return;
         }
-        // ------------------------------------------------------------
-        // Update register block with values from last iteration
-        // ------------------------------------------------------------
-        if let Some(register) = self.pending_register_write.take() {
-            self.register.set(register, self.alu_output.output());
-            // Check stackpointer
-            if let Some(stacksize) = self.stacksize {
-                if !self.register.is_stackpointer_valid(stacksize) {
-                    self.state = State::ErrorStopped;
-                }
-            }
-        }
-        if let Some(FlagWrite) = self.pending_flag_write.take() {
-            self.register.set_carry_flag(self.alu_output.carry_out());
-            self.register.set_zero_flag(self.alu_output.zero_out());
-            self.register
-                .set_negative_flag(self.alu_output.negative_out());
-        }
+        self.apply_pending_register_writes();
         // ------------------------------------------------------------
         // Use microprogram word from last iteration
         // ------------------------------------------------------------
         let mp_ram_out = self.microprogram_ram.get_word();
         // Safe MAC3 for later
         self.is_instruction_done = mp_ram_out.contains(Word::MAC3);
-        let mut sig = Signal::new();
-        sig = sig
-            .set_instruction(*self.instruction_register.get())
-            .set_word(*mp_ram_out);
         trace!(
             "Address: {:>08b} ({0})",
             self.microprogram_ram.get_address()
@@ -241,19 +226,20 @@ impl Machine {
         // ------------------------------------------------------------
         // Get outputs of register block
         // ------------------------------------------------------------
-        sig = sig.set_flags(self.register.flags());
-        let doa = self.register.doa(&sig);
-        let dob = self.register.dob(&sig);
-        trace!("DOA: {:>02X}", doa);
-        trace!("DOB: {:>02X}", dob);
+        let selected_reg_a = self.signals().selected_register_a();
+        let selected_reg_b = self.signals().selected_register_b();
+        let register_out_a = self.register.get(selected_reg_a);
+        let register_out_b = self.register.get(selected_reg_b);
+        trace!("DOA: {:>02X}", register_out_a);
+        trace!("DOB: {:>02X}", register_out_a);
         // ------------------------------------------------------------
         // Read value from bus at selected address
         // ------------------------------------------------------------
         let mut bus_content = 0;
-        if sig.busen() {
-            bus_content = self.bus.read(doa);
+        if self.signals().busen() {
+            bus_content = self.bus.read(*register_out_a);
             trace!("MEMDI: 0x{:>02X}", bus_content);
-            if doa <= 0xEF {
+            if *register_out_a <= 0xEF {
                 trace!("Generating wait signal");
                 self.pending_memory_access = Some(MemoryAccess);
             }
@@ -261,12 +247,11 @@ impl Machine {
         // ------------------------------------------------------------
         // Update current instruction from bus
         // ------------------------------------------------------------
-        if sig.mac1() && sig.mac2() {
+        if self.signals().mac1() && self.signals().mac2() {
             // Reset the instruction register
             trace!("Resetting instruction register");
             self.instruction_register.reset();
-            sig = sig.set_instruction(*self.instruction_register.get());
-        } else if sig.mac0() && sig.mac2() {
+        } else if self.signals().mac0() && self.signals().mac2() {
             // Selecting next instruction
             if bus_content == 0x00 {
                 self.state = State::ErrorStopped;
@@ -274,54 +259,48 @@ impl Machine {
                 self.state = State::Stopped;
             }
             self.instruction_register.set_raw(bus_content);
-            sig = sig.set_instruction(*self.instruction_register.get());
         }
         // ------------------------------------------------------------
         // Calculate the ALU output
         // ------------------------------------------------------------
-        let alu_in_a = if sig.maluia() { bus_content } else { doa };
-        let alu_in_b = if sig.maluib() {
-            if sig.mrgab3() {
-                0b1111_1000
-                    + ((sig.mrgab2() as u8) << 2)
-                    + ((sig.mrgab1() as u8) << 1)
-                    + sig.mrgab0() as u8
-            } else {
-                ((sig.mrgab2() as u8) << 2) + ((sig.mrgab1() as u8) << 1) + sig.mrgab0() as u8
-            }
+        let alu_input_a = if self.signals().maluia() {
+            bus_content
         } else {
-            dob
+            *register_out_a
         };
-        let alu_in = AluInput::new(alu_in_a, alu_in_b, sig.carry_out());
-        self.alu_output = AluOutput::from_input(&alu_in, &sig.alu_select());
+        let alu_input_b = if self.signals().maluib() {
+            self.signals().alu_input_b_constant()
+        } else {
+            *register_out_b
+        };
+        let alu_input = AluInput::new(alu_input_a, alu_input_b, self.signals().carry_out());
+        self.alu_output = AluOutput::from_input(&alu_input, &self.signals().alu_select());
         let memdo = self.alu_output.output();
-        let co = self.alu_output.carry_out();
-        let zo = self.alu_output.zero_out();
-        let no = self.alu_output.negative_out();
         trace!("MEMDO: 0x{:>02X}", memdo);
         // ------------------------------------------------------------
         // Add ALU outputs to signals
         // ------------------------------------------------------------
-        sig = sig.set_carry_out(co).set_zero_out(zo).set_negative_out(no);
-        trace!("CO: {}, ZO: {}, NO: {}", co, zo, no);
         // Update registers if necessary
-        if sig.mrgwe() {
-            let selected_register = Register::get_selected(&sig);
-            self.pending_register_write = Some(selected_register);
+        if self.signals().mrgwe() {
             trace!("New pending register write");
+            let selected_register = self.signals().selected_register_for_writing();
+            self.pending_register_write = Some(selected_register);
         }
-        if sig.mchflg() {
+        if self.signals().mchflg() {
             self.pending_flag_write = Some(FlagWrite);
             trace!("New pending flag write");
         }
         // ------------------------------------------------------------
         // Update bus
-        // TODO: wait
         // ------------------------------------------------------------
-        if sig.buswr() {
-            trace!("Writing 0x{:>02X} to bus address 0x{:>02X}", memdo, doa);
-            self.bus.write(doa, memdo);
-            if doa <= 0xEF {
+        if self.signals().buswr() {
+            trace!(
+                "Writing 0x{:>02X} to bus address 0x{:>02X}",
+                memdo,
+                register_out_a
+            );
+            self.bus.write(*register_out_a, memdo);
+            if *register_out_a <= 0xEF {
                 trace!("Generating wait signal");
                 self.pending_memory_access = Some(MemoryAccess);
             }
@@ -329,17 +308,57 @@ impl Machine {
         // ------------------------------------------------------------
         // Select next microprogram word
         // ------------------------------------------------------------
-        let next_mp_ram_addr = MicroprogramRam::get_addr(
-            &sig,
-            self.pending_edge_interrupt.is_some(),
-            self.pending_level_interrupt.is_some(),
-        );
+        let next_mp_ram_addr = self.signals().next_microprogram_address();
         trace!("Next MP_RAM address: {}", next_mp_ram_addr);
         self.microprogram_ram.set_address(next_mp_ram_addr);
         // Clearing edge interrupt if used
-        if self.pending_edge_interrupt.is_some() && sig.na0() && sig.mac0() && sig.mac1() {
+        if self.signals().interrupt_logic_3() {
             trace!("Clearing edge interrupt");
             self.pending_edge_interrupt = None;
         }
     }
+    /// Check the stackpointer.
+    pub fn is_stackpointer_valid(&self) -> bool {
+        let sp = *self.register.get(RegisterNumber::R4);
+        if sp >= 0xF0 {
+            return false;
+        }
+        if let Some(stacksize) = self.stacksize {
+            match stacksize {
+                Stacksize::_16 => sp <= 0xD0 || sp >= 0xDF,
+                Stacksize::_32 => sp <= 0xC0 || sp >= 0xCF,
+                Stacksize::_48 => sp <= 0xB0 || sp >= 0xBF,
+                Stacksize::_64 => sp <= 0xA0 || sp >= 0xAF,
+                Stacksize::NotSet => true,
+            }
+        } else {
+            true
+        }
+    }
+    /// Writes values to the register that were created during the
+    /// last cycle. This writes to the selected register if necessary
+    /// and saves the flags, if requested.
+    ///
+    /// XXX: What should happen when the selected register is the flag register?
+    fn apply_pending_register_writes(&mut self) -> MachineAfterRegWrite {
+        if let Some(register) = self.pending_register_write.take() {
+            self.register.set(register, self.alu_output.output());
+            // Check stackpointer
+            if !self.is_stackpointer_valid() {
+                warn!("Stackpointer became invalid");
+                self.state = State::ErrorStopped;
+            }
+        }
+        if let Some(FlagWrite) = self.pending_flag_write.take() {
+            self.register.set_carry_flag(self.alu_output.carry_out());
+            self.register.set_zero_flag(self.alu_output.zero_out());
+            self.register
+                .set_negative_flag(self.alu_output.negative_out());
+        }
+        MachineAfterRegWrite(self)
+    }
+}
+
+impl<'a> MachineAfterRegWrite<'a> {
+
 }

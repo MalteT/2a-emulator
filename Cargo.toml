@@ -54,6 +54,9 @@ optional = true
 # Use tui's version
 version = "^0.17"
 
+[dev-dependencies]
+proptest = "0.10.0"
+
 [features]
 default = ["interactive-tui"]
 # Enable the interactive tui

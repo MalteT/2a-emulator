@@ -3,7 +3,7 @@ use bitflags::bitflags;
 
 use std::ops::Index;
 
-use crate::Signal;
+use crate::Signals;
 
 /// The microprogram ram.
 ///
@@ -124,9 +124,9 @@ impl MicroprogramRam {
         self.current_index = 0;
     }
 
-    /// Calculate the next address from the given Signal.
+    /// Calculate the next address from the given Signals.
     #[deprecated]
-    pub fn get_addr(sig: &Signal, edge_int: bool, level_int: bool) -> usize {
+    pub fn get_addr(sig: &Signals, edge_int: bool, level_int: bool) -> usize {
         let a8 = sig.a8();
         let a7 = sig.a7();
         let a6 = sig.a6();

@@ -1,10 +1,9 @@
 use bitflags::bitflags;
-use log::warn;
-use parser2a::asm::Stacksize;
+use enum_primitive::{enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty};
 
 use std::ops::{Index, IndexMut};
 
-use crate::Signal;
+use crate::Signals;
 
 /// The register block.
 /// Containing `R0` through `R7`
@@ -34,19 +33,21 @@ pub struct Register {
     content: [u8; 8],
 }
 
-/// All possible register.
-///
-/// This is only useful to index [`Register`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RegisterNumber {
-    R0,
-    R1,
-    R2,
-    R3,
-    R4,
-    R5,
-    R6,
-    R7,
+enum_from_primitive! {
+    /// All possible register.
+    ///
+    /// This is only useful to index [`Register`].
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum RegisterNumber {
+        R0 = 0,
+        R1,
+        R2,
+        R3,
+        R4,
+        R5,
+        R6,
+        R7,
+    }
 }
 
 bitflags! {
@@ -341,7 +342,7 @@ impl Register {
 
     /// Get current data output A of the register.
     #[deprecated]
-    pub fn doa(&self, signal: &Signal) -> u8 {
+    pub fn doa(&self, signal: &Signals) -> u8 {
         let (a2, a1, a0) = if signal.mrgaa3() {
             (false, signal.op01(), signal.op00())
         } else {
@@ -352,7 +353,7 @@ impl Register {
     }
     /// Get current data output B of the register.
     #[deprecated]
-    pub fn dob(&self, signal: &Signal) -> u8 {
+    pub fn dob(&self, signal: &Signals) -> u8 {
         let (b2, b1, b0) = if signal.mrgab3() {
             (false, signal.op11(), signal.op10())
         } else {
@@ -361,9 +362,9 @@ impl Register {
         let addr = ((b2 as usize) << 2) + ((b1 as usize) << 1) + (b0 as usize);
         self.content[addr]
     }
-    /// Derive the selected register from the given [`Signal`]s.
+    /// Derive the selected register from the given [`Signals`]s.
     #[deprecated]
-    pub fn get_selected(signal: &Signal) -> RegisterNumber {
+    pub fn get_selected(signal: &Signals) -> RegisterNumber {
         let (a2, a1, a0) = if signal.mrgws() {
             // Write to address selected by b
             if signal.mrgab3() {
@@ -389,48 +390,6 @@ impl Register {
             (true, true, false) => RegisterNumber::R6,
             (true, true, true) => RegisterNumber::R7,
         }
-    }
-    /// Write a new value into the register.
-    /// The register number will be derived from the given signals
-    #[deprecated]
-    pub fn write(&mut self, signal: &Signal, value: u8) {
-        let selected: usize = Register::get_selected(signal).into();
-        self.content[selected] = value;
-    }
-    /// Update flags in R4.
-    #[deprecated]
-    pub fn write_flags(&mut self, signal: &Signal) {
-        // Persistent IEF
-        let mut value = (self.interrupt_enable_flag() as u8) << 3;
-        if signal.carry_out() {
-            value |= 0b0000_0001;
-        }
-        if signal.zero_out() {
-            value |= 0b0000_0010;
-        }
-        if signal.negative_out() {
-            value |= 0b0000_0100;
-        }
-        self.content[4] = value;
-    }
-    /// Check the stackpointer.
-    #[deprecated]
-    pub fn is_stackpointer_valid(&self, ss: Stacksize) -> bool {
-        let sp = self.content[5];
-        if sp >= 0xF0 {
-            return false;
-        }
-        let valid = match ss {
-            Stacksize::_16 => sp <= 0xD0 || sp >= 0xDF,
-            Stacksize::_32 => sp <= 0xC0 || sp >= 0xCF,
-            Stacksize::_48 => sp <= 0xB0 || sp >= 0xBF,
-            Stacksize::_64 => sp <= 0xA0 || sp >= 0xAF,
-            Stacksize::NotSet => true,
-        };
-        if !valid {
-            warn!("Stackpointer got invalid!")
-        }
-        valid
     }
 }
 
@@ -462,122 +421,41 @@ impl IndexMut<RegisterNumber> for Register {
     }
 }
 
+impl RegisterNumber {
+    #[cfg(test)]
+    fn strategy() -> impl proptest::strategy::Strategy<Value = RegisterNumber> {
+        use proptest::prelude::*;
+        prop_oneof![
+            Just(RegisterNumber::R0),
+            Just(RegisterNumber::R1),
+            Just(RegisterNumber::R2),
+            Just(RegisterNumber::R3),
+            Just(RegisterNumber::R4),
+            Just(RegisterNumber::R5),
+            Just(RegisterNumber::R6),
+            Just(RegisterNumber::R7),
+        ]
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{Instruction, Register, Signal, Word};
+    use proptest::prelude::*;
+
+    use crate::{Instruction, Register, RegisterNumber, Signals, Word};
+
+    proptest! {
+        #[test]
+        fn write_to_register_should_persist(number in RegisterNumber::strategy(), val in 0..255_u8) {
+            let mut register = Register::new();
+            register.set(number, val);
+            assert_eq!(*register.get(number), val);
+        }
+    }
 
     #[test]
     fn test_register_block_basics() {
         let reg = Register::new();
         assert_eq!(reg.content, [0; 8]);
-    }
-    #[test]
-    fn test_register_block_writing() {
-        use crate::Instruction as I;
-        use crate::Word as W;
-
-        let mut reg = Register::new();
-        // All inputs empty => IN A => R0
-        let inst = Instruction::empty();
-        let word = Word::empty();
-        let signal = Signal::new().set_word(word).set_instruction(inst);
-        reg.write(&signal, 0xAB);
-        assert_eq!(reg.content[0], 0xAB);
-        // MRGWS | MRGAB2 | MRGAB1 => IN B => R5
-        let word = W::MRGWS | W::MRGAB2 | W::MRGAB1;
-        let signal = Signal::new().set_word(word).set_instruction(inst);
-        reg.write(&signal, 0xAC);
-        assert_eq!(reg.content[6], 0xAC);
-        // MRGWS | MRGAB3 | OP10 => IN B => R1
-        let word = W::MRGWS | W::MRGAB3;
-        let inst = I::OP10;
-        let signal = Signal::new().set_word(word).set_instruction(inst);
-        reg.write(&signal, 0xFF);
-        assert_eq!(reg.content[1], 0xFF);
-        // MRGAA2 | MRGAA1 | MRGAA0 => IN A => R7
-        let word = W::MRGAA2 | W::MRGAA1 | W::MRGAA0;
-        let inst = I::empty();
-        let signal = Signal::new().set_word(word).set_instruction(inst);
-        reg.write(&signal, 0xCD);
-        assert_eq!(reg.content[7], 0xCD);
-        // MRGAA3 | OP01 | OP00 => IN A => R3
-        let word = W::MRGAA3;
-        let inst = I::OP01 | I::OP00;
-        let signal = Signal::new().set_word(word).set_instruction(inst);
-        reg.write(&signal, 0x03);
-        assert_eq!(reg.content[3], 0x03);
-    }
-    #[test]
-    fn test_register_block_flags() {
-        let mut reg = Register::new();
-        let inst = Instruction::empty();
-        let word = Word::empty();
-        let mut signal = Signal::new().set_word(word).set_instruction(inst);
-        // All flags off by default
-        assert_eq!(reg.carry_flag(), false);
-        assert_eq!(reg.zero_flag(), false);
-        assert_eq!(reg.negative_flag(), false);
-        // Update flags #1
-        signal = signal
-            .set_carry_out(false)
-            .set_zero_out(true)
-            .set_negative_out(false);
-        reg.write_flags(&signal);
-        assert_eq!(reg.carry_flag(), false);
-        assert_eq!(reg.zero_flag(), true);
-        assert_eq!(reg.negative_flag(), false);
-        assert_eq!(reg.interrupt_enable_flag(), false);
-        // Update flags #2
-        reg.set_interrupt_enable_flag(true);
-        assert_eq!(reg.carry_flag(), false);
-        assert_eq!(reg.zero_flag(), true);
-        assert_eq!(reg.negative_flag(), false);
-        assert_eq!(reg.interrupt_enable_flag(), true);
-        // Update flags #3
-        signal = signal
-            .set_carry_out(true)
-            .set_zero_out(true)
-            .set_negative_out(false);
-        reg.write_flags(&signal);
-        assert_eq!(reg.carry_flag(), true);
-        assert_eq!(reg.zero_flag(), true);
-        assert_eq!(reg.negative_flag(), false);
-        assert_eq!(reg.interrupt_enable_flag(), true);
-    }
-    #[test]
-    fn test_register_block_output_a() {
-        use crate::Word as W;
-
-        let reg = Register {
-            content: [0xF0, 0xF1, 0xF2, 0xF3, 0x12, 0x32, 0x56, 0x00],
-        };
-        // MRGAA3 => R0
-        let inst = Instruction::empty();
-        let word = W::MRGAA3;
-        let signal = Signal::new().set_word(word).set_instruction(inst);
-        assert_eq!(reg.doa(&signal), 0xF0);
-        // MRGAA2 | MRGAA0 => R5
-        let inst = Instruction::empty();
-        let word = W::MRGAA2 | W::MRGAA0;
-        let signal = Signal::new().set_word(word).set_instruction(inst);
-        assert_eq!(reg.doa(&signal), 0x32);
-    }
-    #[test]
-    fn test_register_block_output_b() {
-        use crate::Word as W;
-
-        let reg = Register {
-            content: [0xF0, 0xF1, 0xF2, 0xF3, 0x12, 0x32, 0x56, 0x00],
-        };
-        // MRGAA3 (ignored) => R0
-        let inst = Instruction::empty();
-        let word = W::MRGAA3;
-        let signal = Signal::new().set_word(word).set_instruction(inst);
-        assert_eq!(reg.dob(&signal), 0xF0);
-        // MRGAB1 | MRGAB0 => R3
-        let inst = Instruction::empty();
-        let word = W::MRGAB1 | W::MRGAB0;
-        let signal = Signal::new().set_word(word).set_instruction(inst);
-        assert_eq!(reg.dob(&signal), 0xF3);
     }
 }

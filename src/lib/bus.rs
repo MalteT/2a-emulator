@@ -330,7 +330,29 @@ impl Bus {
     pub fn memory(&self) -> &[u8; 0xF0] {
         &self.ram
     }
+
+    /// Get mutable access to the memory connected to the bus.
+    ///
+    /// # Example
+    /// ```
+    /// # use emulator_2a_lib::Bus;
+    /// let mut bus = Bus::new();
+    ///
+    /// let memory = bus.memory_mut();
+    /// memory[0] = 123;
+    /// memory[42] = 76;
+    /// memory[0xEF] = 0xFF;
+    ///
+    /// assert_eq!(bus.read(0), 123);
+    /// assert_eq!(bus.read(42), 76);
+    /// assert_eq!(bus.read(0xEF), 0xFF);
+    /// ```
+    pub fn memory_mut(&mut self) -> &mut [u8; 0xF0] {
+        &mut self.ram
+    }
+
     /// Did anything trigger an interrupt in the UART?
+    #[allow(dead_code)]
     fn has_uart_interrupt(&self) -> bool {
         if self.ucr.contains(UCR::INT_ON_RX_READY) {
             self.usr.contains(USR::RX_READY)
@@ -349,6 +371,7 @@ impl Bus {
     /// # TODO
     ///
     /// This is not implemented (yet).
+    #[allow(dead_code)]
     fn fetch_mr2da2_interrupt(&mut self) -> bool {
         self.board.fetch_interrupt()
     }
