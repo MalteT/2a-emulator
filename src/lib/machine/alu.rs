@@ -6,6 +6,7 @@ use enum_primitive::{
 enum_from_primitive! {
     /// A list containing all functions understood by the alu.
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
     pub enum AluSelect {
         /// Add A and B but keep the carry_in or set it if the sum exceeds 8 bits.
         ADDH  = 0b0000,
@@ -55,6 +56,7 @@ enum_from_primitive! {
 /// assert_eq!(input.carry_in(), true);
 /// ```
 #[derive(Debug, Clone)]
+#[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct AluInput {
     /// Main input A.
     input_a: u8,
@@ -220,5 +222,25 @@ impl Default for AluInput {
 impl Default for AluSelect {
     fn default() -> Self {
         AluSelect::from_u8(0).expect("infallible")
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn alu_zero_flag_set(input in any::<AluInput>(), function in any::<AluSelect>()) {
+            let output = AluOutput::from_input(&input, &function);
+            assert_eq!(output.output() == 0, output.zero_out());
+        }
+
+        #[test]
+        fn alu_negative_flag_set(input in any::<AluInput>(), function in any::<AluSelect>()) {
+            let output = AluOutput::from_input(&input, &function);
+            assert_eq!(output.output() & 0b10000000 == 0b10000000, output.negative_out());
+        }
     }
 }
