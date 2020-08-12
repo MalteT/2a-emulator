@@ -1,3 +1,4 @@
+//! The MR2DA2 extension board and all its components.
 use bitflags::bitflags;
 use log::{trace, warn};
 
@@ -5,7 +6,34 @@ use std::{f32::consts::FRAC_PI_2, u8};
 
 const MAX_FAN_RPM: usize = 4200;
 
-/// The external board of the Minirechner 2a.
+/// The external board of the Minirechner 2a (MR2DA2).
+///
+/// ```text
+///                          ┌─────────────┨ P-AI1
+///     Bus                  │ ┌─────╮       0.20V
+///      ┇                   └─┼+ CP1├──┐
+///      ┃                   ┌─┼-    │  ○ D-CP1
+///      ┃   ┌───┐    ┌────╮ │ └─────╯  │
+///    F0┣━━━┽RG1┝━┳━━┽DAC1├─┴──╴○╶─────│──┨ P-AO1
+///      ┃   └───┘ ┃  └────╯     D-AO1  │    2.40V
+/// F1[3]┃<────────┃────────────────────┘
+///      ┃         ┗━━━━━━━━━━━━━━━━━━━━━━━┫ P-DO1
+///      ┃                                   214
+///      ┃
+///    F0┃<━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫ P-DI1
+///      ┃                                   99
+///      ┃   ┌────┐
+///      ┃   │TEMP├──╴○╶─────┬─────────────┨ P-AI2
+///      ┃   └────┘   D-AI2  │ ┌─────╮       0.00V
+///      ┃                   └─┼+ CP2├──┐
+///      ┃                   ┌─┼-    │  ○ D-CP2
+///      ┃   ┌───┐    ┌────╮ │ └─────╯  │
+///    F1┣━━━┽RG2┝━┳━━┽DAC2├─┴──╴○╶─────│──┨ P-AO2
+///      ┃   └───┘ ┃  └────╯     D-AO2  │    1.33V
+/// F1[4]┃<────────┃────────────────────┘
+///      ┃         ┗━━━━━━━━━━━━━━━━━━━━━━━┫ P-DO2
+///      ┇                                   42
+/// ```
 #[derive(Debug, Clone)]
 pub struct Board {
     /// The 8-bit input port.
