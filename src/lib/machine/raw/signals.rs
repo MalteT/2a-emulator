@@ -1,7 +1,7 @@
 use enum_primitive::FromPrimitive;
 
-use super::Machine;
-use crate::{AluSelect, Flags, Instruction, Interrupt, RegisterNumber, Word};
+use super::RawMachine;
+use crate::machine::{AluSelect, Flags, Instruction, Interrupt, RegisterNumber, Word};
 
 /// The collection of all relevant internal signals with
 /// simplified methods that all return [`bool`]s to easily
@@ -171,27 +171,28 @@ impl<'a> Signals<'a> {
         } else {
             (self.mrgaa2(), self.mrgaa1(), self.mrgaa0())
         };
-        let addr = ((aa2 as u8) << 2) + ((aa1 as u8) << 1) + (aa0 as u8);
+        let addr = (aa2 as u8) << 2 | (aa1 as u8) << 1 | aa0 as u8;
         RegisterNumber::from_u8(addr).expect("Infallible")
     }
     /// Get the [`RegisterNumber`] of the register that is selected by
     /// the select inputs AB2..AB0.
     pub fn selected_register_b(&self) -> RegisterNumber {
-        let (ab2, ab1, ab0) = if self.mrgaa3() {
-            (false, self.op01(), self.op00())
+        let (ab2, ab1, ab0) = if self.mrgab3() {
+            (false, self.op11(), self.op10())
         } else {
-            (self.mrgaa2(), self.mrgaa1(), self.mrgaa0())
+            (self.mrgab2(), self.mrgab1(), self.mrgab0())
         };
-        let addr = ((ab2 as u8) << 2) + ((ab1 as u8) << 1) + (ab0 as u8);
+        let addr = (ab2 as u8) << 2 | (ab1 as u8) << 1 | ab0 as u8;
         RegisterNumber::from_u8(addr).expect("Infallible")
     }
     /// Get the constant that can be used as the alu input b.
     /// The lower 3 bit contain MRGAB2..MRGAB0, the upper 5 bit are set
     /// to MRGAB3.
     pub const fn alu_input_b_constant(&self) -> u8 {
-        (0b1111_1000 * self.mrgab3() as u8) + (self.mrgab2() as u8)
-            << 2 + (self.mrgab1() as u8)
-            << 1 + (self.mrgab0() as u8)
+        (0b1111_1000 * self.mrgab3() as u8)
+            | (self.mrgab2() as u8) << 2
+            | (self.mrgab1() as u8) << 1
+            | (self.mrgab0() as u8)
     }
     /// Get the [`RegisterNumber`] that will is selected for writing.
     pub fn selected_register_for_writing(&self) -> RegisterNumber {
@@ -201,17 +202,17 @@ impl<'a> Signals<'a> {
             self.selected_register_a()
         }
     }
-    /// Get the next address of the [`MicroprogramRam`].
+    /// Get the next address of the [`MicroprogramRam`](crate::machine::MicroprogramRam).
     pub fn next_microprogram_address(&self) -> usize {
-        (self.a8() as usize)
-            << 8 + (self.a7() as usize)
-            << 7 + (self.a6() as usize)
-            << 6 + (self.a5() as usize)
-            << 5 + (self.na4() as usize)
-            << 4 + (self.na3() as usize)
-            << 3 + (self.na2() as usize)
-            << 2 + (self.am4() as usize)
-            << 1 + (self.am3() as usize)
+        (self.a8() as usize) << 8
+            | (self.a7() as usize) << 7
+            | (self.a6() as usize) << 6
+            | (self.a5() as usize) << 5
+            | (self.na4() as usize) << 4
+            | (self.na3() as usize) << 3
+            | (self.na2() as usize) << 2
+            | (self.am4() as usize) << 1
+            | (self.am3() as usize)
     }
     /// Get the output of the address multiplexer AM4.
     pub fn am4(&self) -> bool {
@@ -268,8 +269,8 @@ impl<'a> Signals<'a> {
     }
 }
 
-impl<'a> From<&'a Machine> for Signals<'a> {
-    fn from(machine: &'a Machine) -> Self {
+impl<'a> From<&'a RawMachine> for Signals<'a> {
+    fn from(machine: &'a RawMachine) -> Self {
         Signals {
             flags: machine.register.flags(),
             carry_out: machine.alu_output.carry_out(),

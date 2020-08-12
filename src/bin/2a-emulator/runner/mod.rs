@@ -1,4 +1,8 @@
 use colored::Colorize;
+use emulator_2a_lib::{
+    compiler::Translator,
+    machine::{Machine, State},
+};
 use humantime::format_duration;
 use log::trace;
 
@@ -12,7 +16,6 @@ use crate::{
     args::{RunArgs, RunVerifyArgs, RunVerifySubcommand},
     error::Error,
     helpers,
-    machine::{Machine, State},
 };
 
 pub struct Runner<'a> {
@@ -33,8 +36,11 @@ impl<'a> Runner<'a> {
     pub fn with_args(args: &'a RunArgs) -> Result<Self, Error> {
         trace!("Constructing Runner..");
         let asm = helpers::read_asm_file(&args.program)?;
+        let bytecode = Translator::compile(&asm);
+        let mut machine = Machine::new(args.init.clone().into());
+        machine.load_program(bytecode.bytes());
         Ok(Runner {
-            machine: Machine::new(Some(&asm), &args.init),
+            machine,
             max_cycles: args.cycles,
             emulated_cycles: 0,
             program: args.program.clone(),
@@ -48,7 +54,7 @@ impl<'a> Runner<'a> {
         trace!("Executing runner..");
         let before_emulation = Instant::now();
         for _ in 0..self.max_cycles {
-            self.machine.clk();
+            self.machine.trigger_key_clock();
             self.emulated_cycles += 1;
             if self.machine.state() != State::Running {
                 trace!("Machine stopped execution");
@@ -73,9 +79,10 @@ pub struct RunResults {
 impl RunResults {
     /// Collects the results of the emulation.
     pub fn collect(runner: &Runner, dur: Duration) -> Self {
+        let bus = runner.machine.bus();
         RunResults {
-            out_fe: runner.machine.output_fe(),
-            out_ff: runner.machine.output_ff(),
+            out_fe: bus.output_fe(),
+            out_ff: bus.output_ff(),
             program: runner.program.clone(),
             state: runner.machine.state(),
             emulated_cycles: runner.emulated_cycles,

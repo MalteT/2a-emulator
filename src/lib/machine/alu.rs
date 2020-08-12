@@ -47,7 +47,7 @@ enum_from_primitive! {
 /// # Example
 ///
 /// ```
-/// # use emulator_2a_lib::AluInput;
+/// # use emulator_2a_lib::machine::AluInput;
 /// let input = AluInput::new(103, 20, true);
 ///
 /// assert_eq!(input.input_a(), 103);
@@ -96,7 +96,7 @@ impl AluInput {
 /// # Example
 ///
 /// ```
-/// # use emulator_2a_lib::{AluInput, AluSelect, AluOutput};
+/// # use emulator_2a_lib::machine::{AluInput, AluSelect, AluOutput};
 /// let input = AluInput::new(40, 2, false);
 /// let function = AluSelect::ADD;
 ///

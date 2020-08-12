@@ -10,7 +10,7 @@ use tui::{
 
 use crate::{
     helpers,
-    tui::{input::InputWidget, ProgramHelpSidebar, SupervisorWrapper, Tui},
+    tui::{input::InputWidget, MachineWidget, ProgramHelpSidebar, Tui},
 };
 
 pub const MINIMUM_ALLOWED_WIDTH: u16 = 76;
@@ -111,7 +111,7 @@ impl StatefulWidget for MainView {
             height: area_inside_block.height - INPUT_AREA_HEIGHT,
             ..area_inside_block
         };
-        SupervisorWrapper::new().render(main_machine_area, buf, &mut state.supervisor);
+        MachineWidget.render(main_machine_area, buf, &mut state.machine);
     }
 }
 

@@ -1,4 +1,5 @@
 //! Everything needed for the right side of the TUI.
+use emulator_2a_lib::machine::RegisterNumber;
 use tui::{
     buffer::Buffer,
     layout::Rect,
@@ -14,7 +15,7 @@ mod keybinding_help;
 mod program_display;
 mod program_info;
 
-use crate::{helpers, machine::RegisterNumber, tui::Tui};
+use crate::{helpers, tui::Tui};
 pub use command_help::CommandHelpWidget;
 pub use keybinding_help::{KeybindingHelpState, KeybindingHelpWidget};
 pub use program_display::{ProgramDisplayState, ProgramDisplayWidget};
@@ -102,14 +103,11 @@ impl StatefulWidget for ProgramHelpSidebar {
         area.height -= info_height;
         // The rest of the area can be used for the program display
         let program_display_area = area;
-        ProgramDisplayWidget(
-            state
-                .supervisor()
-                .machine()
-                .registers()
-                .get(RegisterNumber::R3),
-        )
-        .render(program_display_area, buf, &mut state.program_display_state);
+        ProgramDisplayWidget(*state.machine().registers().get(RegisterNumber::R3)).render(
+            program_display_area,
+            buf,
+            &mut state.program_display_state,
+        );
     }
 }
 

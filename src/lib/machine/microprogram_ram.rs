@@ -3,7 +3,7 @@ use bitflags::bitflags;
 
 use std::ops::Index;
 
-use crate::Signals;
+use super::Signals;
 
 /// The microprogram ram.
 ///
@@ -48,18 +48,19 @@ bitflags! {
         const MALUS1     = 0b00000000000000000000000000000100;
         const MALUS0     = 0b00000000000000000000000000000010;
         const MCHFLG     = 0b00000000000000000000000000000001;
+        const ERROR_STOP = 0b00000000000000000000000000000000;
     }
 }
 
 impl MicroprogramRam {
     /// Contents of the MicroprogramRam.
-    pub const CONTENT: [Word; 512] = include!("../../static/microprogram_ram_content.rs");
+    pub const CONTENT: [Word; 512] = include!("../../../static/microprogram_ram_content.rs");
     /// Create a new MicroprogramRam with initial address of zero.
     ///
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{MicroprogramRam};
+    /// # use emulator_2a_lib::machine::{MicroprogramRam};
     /// let mut ram = MicroprogramRam::new();
     ///
     /// assert_eq!(ram.get_address(), 0);
@@ -72,7 +73,7 @@ impl MicroprogramRam {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Word, MicroprogramRam};
+    /// # use emulator_2a_lib::machine::{Word, MicroprogramRam};
     /// let mut ram = MicroprogramRam::new();
     /// let word = MicroprogramRam::CONTENT[0];
     ///
@@ -86,7 +87,7 @@ impl MicroprogramRam {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::MicroprogramRam;
+    /// # use emulator_2a_lib::machine::MicroprogramRam;
     /// let ram = MicroprogramRam::new();
     /// assert_eq!(ram.get_address(), 0);
     /// ```
@@ -98,7 +99,7 @@ impl MicroprogramRam {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::MicroprogramRam;
+    /// # use emulator_2a_lib::machine::MicroprogramRam;
     /// let mut ram = MicroprogramRam::new();
     /// assert_eq!(ram.get_address(), 0);
     ///
@@ -113,7 +114,7 @@ impl MicroprogramRam {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::MicroprogramRam;
+    /// # use emulator_2a_lib::machine::MicroprogramRam;
     /// let mut ram = MicroprogramRam::new();
     /// ram.set_address(42);
     ///

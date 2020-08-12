@@ -17,7 +17,7 @@ impl InstructionRegister {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{InstructionRegister, Instruction};
+    /// # use emulator_2a_lib::machine::{InstructionRegister, Instruction};
     /// let ir = InstructionRegister::new();
     ///
     /// assert_eq!(*ir.get(), Instruction::OP01);

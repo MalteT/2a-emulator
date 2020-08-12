@@ -1,3 +1,7 @@
+use emulator_2a_lib::{
+    compiler::ByteCode,
+    machine::{Machine, StepMode},
+};
 use tui::{
     buffer::Buffer,
     layout::{Margin, Rect},
@@ -5,12 +9,14 @@ use tui::{
     widgets::{StatefulWidget, Widget},
 };
 
-use std::ops::{Deref, DerefMut};
+use std::{
+    ops::{Deref, DerefMut},
+    path::PathBuf,
+};
 
 use crate::{
     args::InitialMachineConfiguration,
     helpers,
-    supervisor::Supervisor,
     tui::{
         display::Display,
         show_widgets::{MemoryWidget, RegisterBlockWidget},
@@ -51,22 +57,20 @@ const SHOW_PART_START_Y_OFFSET: u16 =
 /// R6 00000001
 /// R7 11111100
 /// ```
-pub struct SupervisorWrapper;
+pub struct MachineWidget;
 
-impl SupervisorWrapper {
-    pub fn new() -> Self {
-        SupervisorWrapper
-    }
-}
-
-/// State necessary to draw the [`SupervisorWrapper`] widget.
-pub struct SupervisorWrapperState {
-    /// The internal supervisor that contains the machine.
-    pub supervisor: Supervisor,
+/// State necessary to draw the [`MachineWidget`] widget.
+pub struct MachineState {
+    /// The machine that is drawn.
+    pub machine: Machine,
     /// The part currently displayed by the TUI.
     pub part: Part,
     /// Counting draw cycles.
     pub draw_counter: usize,
+    /// Is the auto run mode active?
+    pub auto_run_mode: bool,
+    /// Currenly active program.
+    program: Option<PathBuf>,
 }
 
 /// Displayable parts.
@@ -79,36 +83,53 @@ pub enum Part {
     Memory,
 }
 
-impl SupervisorWrapperState {
-    /// Create a new SupervisorWrapperState.
+impl MachineState {
+    /// Create a new MachineState.
     ///
     /// The given [`InitialMachineConfiguration`] is used to configure the underlying
-    /// [`Machine`](crate::machine::Machine). Initially the additional displayed part
-    /// is the [`Part::RegisterBlock`].
+    /// [`Machine`]. Initially the additional displayed part is the [`Part::RegisterBlock`].
     pub fn new(conf: &InitialMachineConfiguration) -> Self {
-        SupervisorWrapperState {
+        MachineState {
             part: Part::RegisterBlock,
-            supervisor: Supervisor::new(conf),
+            machine: Machine::new(conf.clone().into()),
             draw_counter: 0,
+            auto_run_mode: false,
+            program: None,
         }
     }
     /// Select another part for display.
     pub fn show(&mut self, part: Part) {
         self.part = part;
     }
+
+    pub fn toggle_auto_run_mode(&mut self) {
+        self.auto_run_mode = !self.auto_run_mode
+    }
+
+    pub fn toggle_step_mode(&mut self) {
+        let new_mode = match self.machine.step_mode() {
+            StepMode::Real => StepMode::Assembly,
+            StepMode::Assembly => StepMode::Real,
+        };
+        self.machine.set_step_mode(new_mode);
+    }
+
+    pub fn load_program(&mut self, path: PathBuf, bytecode: ByteCode) {
+        self.machine.load_program(bytecode.bytes());
+        self.program = Some(path);
+    }
+
+    pub fn program_path(&self) -> Option<&PathBuf> {
+        self.program.as_ref()
+    }
 }
 
-impl SupervisorWrapper {
+impl MachineWidget {
     /// Renders the [`OutputRegisterWidget`] correctly.
-    fn render_output_registers(
-        &self,
-        area: Rect,
-        buf: &mut Buffer,
-        state: &mut SupervisorWrapperState,
-    ) {
+    fn render_output_registers(&self, area: Rect, buf: &mut Buffer, state: &mut MachineState) {
         // Fetch output register values
-        let out_fe = state.machine().bus.output_fe();
-        let out_ff = state.machine().bus.output_ff();
+        let out_fe = state.machine.bus().output_fe();
+        let out_ff = state.machine.bus().output_ff();
         // Calculate area
         let inner_area = Rect {
             width: OUTPUT_REGISTER_WIDGET_WIDTH,
@@ -119,17 +140,12 @@ impl SupervisorWrapper {
         OutputRegisterWidget.render(inner_area, buf, &mut (out_fe, out_ff));
     }
     /// Renders the [`InputRegisterWidget`] corretly.
-    fn render_input_registers(
-        &self,
-        area: Rect,
-        buf: &mut Buffer,
-        state: &mut SupervisorWrapperState,
-    ) {
+    fn render_input_registers(&self, area: Rect, buf: &mut Buffer, state: &mut MachineState) {
         // Fetch input register values
-        let in_fc = state.machine().bus.read(0xFC);
-        let in_fd = state.machine().bus.read(0xFD);
-        let in_fe = state.machine().bus.read(0xFE);
-        let in_ff = state.machine().bus.read(0xFF);
+        let in_fc = state.machine.bus().read(0xFC);
+        let in_fd = state.machine.bus().read(0xFD);
+        let in_fe = state.machine.bus().read(0xFE);
+        let in_ff = state.machine.bus().read(0xFF);
         // Calculate area
         let inner_area = Rect {
             y: area.y + OUTPUT_REGISTER_WIDGET_HEIGHT + ONE_SPACE,
@@ -141,12 +157,7 @@ impl SupervisorWrapper {
         InputRegisterWidget.render(inner_area, buf, &mut (in_fc, in_fd, in_fe, in_ff));
     }
     /// Renders the [`BoardInfoSidebarWidget`] correctly.
-    fn render_board_info_sidebar(
-        &self,
-        area: Rect,
-        buf: &mut Buffer,
-        state: &mut SupervisorWrapperState,
-    ) {
+    fn render_board_info_sidebar(&self, area: Rect, buf: &mut Buffer, state: &mut MachineState) {
         if area.width > INPUT_REGISTER_WIDGET_WIDTH + BOARD_INFO_SIDEBAR_WIDGET_WIDTH {
             // Actually draw the information
             let sidebar_area = Rect {
@@ -240,8 +251,8 @@ impl StatefulWidget for OutputRegisterWidget {
     }
 }
 
-impl StatefulWidget for SupervisorWrapper {
-    type State = SupervisorWrapperState;
+impl StatefulWidget for MachineWidget {
+    type State = MachineState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         // Leave some space between the border and everything else
@@ -265,11 +276,11 @@ impl StatefulWidget for SupervisorWrapper {
 
         match state.part {
             Part::Memory => {
-                let memory = state.supervisor.machine().bus().memory();
+                let memory = state.machine.bus().memory();
                 MemoryWidget(memory).render(show_area, buf)
             }
             Part::RegisterBlock => {
-                let registers = state.supervisor.machine().registers();
+                let registers = state.machine.registers();
                 RegisterBlockWidget(registers).render(show_area, buf)
             }
         }
@@ -294,15 +305,15 @@ fn render_byte(buf: &mut Buffer, x: u16, y: u16, byte: u8) {
     buf.set_string(x, y, string, style)
 }
 
-impl Deref for SupervisorWrapperState {
-    type Target = Supervisor;
+impl Deref for MachineState {
+    type Target = Machine;
     fn deref(&self) -> &Self::Target {
-        &self.supervisor
+        &self.machine
     }
 }
 
-impl DerefMut for SupervisorWrapperState {
+impl DerefMut for MachineState {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.supervisor
+        &mut self.machine
     }
 }

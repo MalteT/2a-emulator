@@ -3,7 +3,7 @@ use enum_primitive::{enum_from_primitive, enum_from_primitive_impl, enum_from_pr
 
 use std::ops::{Index, IndexMut};
 
-use crate::Signals;
+use super::Signals;
 
 /// The register block.
 /// Containing `R0` through `R7`
@@ -11,7 +11,7 @@ use crate::Signals;
 /// # Example
 ///
 /// ```
-/// # use emulator_2a_lib::{Register, RegisterNumber};
+/// # use emulator_2a_lib::machine::{Register, RegisterNumber};
 /// let mut reg = Register::new();
 /// assert_eq!(*reg.get(RegisterNumber::R3), 0);
 ///
@@ -28,6 +28,11 @@ use crate::Signals;
 /// assert_eq!(*reg.get(RegisterNumber::R0), 0);
 /// assert_eq!(reg.negative_flag(), false);
 /// ```
+///
+/// # Note
+///
+/// Even though the register R4 (flag register) is only using bits 0 to 3, bits 4 to 7 are not
+/// guaranteed to be zero and will be kept by all flag operations.
 #[derive(Debug, Clone)]
 pub struct Register {
     content: [u8; 8],
@@ -68,7 +73,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, RegisterNumber};
+    /// # use emulator_2a_lib::machine::{Register, RegisterNumber};
     /// let reg = Register::new();
     ///
     /// assert_eq!(*reg.get(RegisterNumber::R2), 0);
@@ -82,7 +87,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, RegisterNumber};
+    /// # use emulator_2a_lib::machine::{Register, RegisterNumber};
     /// let mut reg = Register::new();
     /// reg.set_zero_flag(true);
     /// reg.set(RegisterNumber::R7, 123);
@@ -100,7 +105,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, RegisterNumber, Flags};
+    /// # use emulator_2a_lib::machine::{Register, RegisterNumber, Flags};
     /// let mut reg = Register::new();
     /// reg.set_interrupt_enable_flag(true);
     /// reg.set_negative_flag(true);
@@ -118,7 +123,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register};
+    /// # use emulator_2a_lib::machine::{Register};
     /// let mut reg = Register::new();
     /// assert_eq!(reg.carry_flag(), false);
     ///
@@ -133,7 +138,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register};
+    /// # use emulator_2a_lib::machine::{Register};
     /// let mut reg = Register::new();
     /// assert_eq!(reg.zero_flag(), false);
     ///
@@ -148,7 +153,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register};
+    /// # use emulator_2a_lib::machine::{Register};
     /// let mut reg = Register::new();
     /// assert_eq!(reg.negative_flag(), false);
     ///
@@ -163,7 +168,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register};
+    /// # use emulator_2a_lib::machine::{Register};
     /// let mut reg = Register::new();
     /// assert_eq!(reg.interrupt_enable_flag(), false);
     ///
@@ -178,64 +183,72 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, Flags};
+    /// # use emulator_2a_lib::machine::{Register, Flags};
     /// let mut reg = Register::new();
     /// reg.set_interrupt_enable_flag(true);
     ///
     /// assert!(reg.flags().contains(Flags::INTERRUPT_ENABLE_FLAG));
     /// ```
     pub fn set_interrupt_enable_flag(&mut self, val: bool) {
-        let mut new_flag = self.flags();
-        new_flag.set(Flags::INTERRUPT_ENABLE_FLAG, val);
-        self.content[4] = new_flag.bits()
+        if val {
+            self.content[4] |= Flags::INTERRUPT_ENABLE_FLAG.bits()
+        } else {
+            self.content[4] &= !Flags::INTERRUPT_ENABLE_FLAG.bits()
+        }
     }
     /// Set the carry flag to `val`.
     ///
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, Flags};
+    /// # use emulator_2a_lib::machine::{Register, Flags};
     /// let mut reg = Register::new();
     /// reg.set_carry_flag(true);
     ///
     /// assert!(reg.flags().contains(Flags::CARRY_FLAG));
     /// ```
     pub fn set_carry_flag(&mut self, val: bool) {
-        let mut new_flag = self.flags();
-        new_flag.set(Flags::CARRY_FLAG, val);
-        self.content[4] = new_flag.bits()
+        if val {
+            self.content[4] |= Flags::CARRY_FLAG.bits()
+        } else {
+            self.content[4] &= !Flags::CARRY_FLAG.bits()
+        }
     }
     /// Set the zero flag to `val`.
     ///
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, Flags};
+    /// # use emulator_2a_lib::machine::{Register, Flags};
     /// let mut reg = Register::new();
     /// reg.set_zero_flag(true);
     ///
     /// assert!(reg.flags().contains(Flags::ZERO_FLAG));
     /// ```
     pub fn set_zero_flag(&mut self, val: bool) {
-        let mut new_flag = self.flags();
-        new_flag.set(Flags::ZERO_FLAG, val);
-        self.content[4] = new_flag.bits()
+        if val {
+            self.content[4] |= Flags::ZERO_FLAG.bits()
+        } else {
+            self.content[4] &= !Flags::ZERO_FLAG.bits()
+        }
     }
     /// Set the negative flag to `val`.
     ///
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, Flags};
+    /// # use emulator_2a_lib::machine::{Register, Flags};
     /// let mut reg = Register::new();
     /// reg.set_negative_flag(true);
     ///
     /// assert!(reg.flags().contains(Flags::NEGATIVE_FLAG));
     /// ```
     pub fn set_negative_flag(&mut self, val: bool) {
-        let mut new_flag = self.flags();
-        new_flag.set(Flags::NEGATIVE_FLAG, val);
-        self.content[4] = new_flag.bits()
+        if val {
+            self.content[4] |= Flags::NEGATIVE_FLAG.bits()
+        } else {
+            self.content[4] &= !Flags::NEGATIVE_FLAG.bits()
+        }
     }
     /// Set the flags register (R4) to the given `new_flags`.
     ///
@@ -248,7 +261,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, Flags};
+    /// # use emulator_2a_lib::machine::{Register, Flags};
     /// let mut reg = Register::new();
     /// reg.set_interrupt_enable_flag(true);
     ///
@@ -260,14 +273,15 @@ impl Register {
     /// assert_eq!(reg.interrupt_enable_flag(), false);
     /// ```
     pub fn set_flags(&mut self, new_flags: Flags) {
-        self.content[4] = new_flags.bits();
+        self.content[4] &= !Flags::all().bits();
+        self.content[4] |= new_flags.bits()
     }
     /// Get register content for the given [`RegisterNumber`].
     ///
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, RegisterNumber};
+    /// # use emulator_2a_lib::machine::{Register, RegisterNumber};
     /// let mut reg = Register::new();
     /// reg.set_carry_flag(true);
     /// reg.set(RegisterNumber::R5, 42);
@@ -289,7 +303,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, RegisterNumber};
+    /// # use emulator_2a_lib::machine::{Register, RegisterNumber};
     /// let mut reg = Register::new();
     /// let r0 = reg.get_mut(RegisterNumber::R0);
     ///
@@ -305,7 +319,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, RegisterNumber, Flags};
+    /// # use emulator_2a_lib::machine::{Register, RegisterNumber, Flags};
     /// let mut reg = Register::new();
     /// reg.set(RegisterNumber::R6, 202);
     /// // Not recommend, use Register::set_flags() instead.
@@ -329,7 +343,7 @@ impl Register {
     /// # Example
     ///
     /// ```
-    /// # use emulator_2a_lib::{Register, RegisterNumber};
+    /// # use emulator_2a_lib::machine::{Register, RegisterNumber};
     /// let mut reg = Register::new();
     /// reg.set(RegisterNumber::R1, 42);
     /// reg.reset();
@@ -442,7 +456,7 @@ impl RegisterNumber {
 mod tests {
     use proptest::prelude::*;
 
-    use crate::{Instruction, Register, RegisterNumber, Signals, Word};
+    use crate::machine::{Register, RegisterNumber};
 
     proptest! {
         #[test]

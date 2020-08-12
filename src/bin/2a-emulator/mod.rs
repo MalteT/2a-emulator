@@ -244,10 +244,8 @@
 //!   should not be used on machines running Ubuntu.
 
 mod args;
-mod compiler;
 mod error;
 mod helpers;
-mod machine;
 mod runner;
 mod supervisor;
 mod testing;

@@ -1,10 +1,11 @@
 //! Everything related to drawing the [`ProgramInfoWidget`].
+use emulator_2a_lib::machine::State;
 use tui::{buffer::Buffer, layout::Rect, widgets::Widget};
 
 use std::{borrow::Cow, path::PathBuf};
 
 use super::{SpacedStr, HEADER_HEIGHT};
-use crate::{helpers, machine::State, tui::Tui};
+use crate::{helpers, tui::Tui};
 
 const WIDGET_HEIGHT: u16 = 4 + HEADER_HEIGHT;
 const INFO_PROGRAM: (&str, &str) = ("Program:", "");
@@ -25,7 +26,7 @@ const INFO_STATE: (&str, &str) = ("State:", "");
 /// State:                      Running
 /// ```
 pub struct ProgramInfoWidget<'a> {
-    program: &'a Option<PathBuf>,
+    program: Option<&'a PathBuf>,
     freq: f32,
     freq_measured: f32,
     state: State,
@@ -34,10 +35,10 @@ pub struct ProgramInfoWidget<'a> {
 impl<'a> ProgramInfoWidget<'a> {
     /// Read all necessary information from the given [`Tui`].
     pub fn from(tui: &'a Tui) -> Self {
-        let program = tui.supervisor.get_program_path();
-        let freq = tui.supervisor.get_frequency();
-        let freq_measured = tui.supervisor.get_measured_frequency();
-        let state = tui.supervisor.machine().state();
+        let program = tui.machine.program_path();
+        let freq = 0.0; //tui.machine.get_frequency();
+        let freq_measured = 0.0; //tui.machine.get_measured_frequency();
+        let state = tui.machine.state();
         ProgramInfoWidget {
             program,
             freq,

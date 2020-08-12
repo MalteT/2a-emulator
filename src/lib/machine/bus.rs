@@ -1,10 +1,11 @@
+/// Everything related to the bus.
 use bitflags::bitflags;
 use log::trace;
 use log::warn;
 
 use std::fmt;
 
-use crate::machine::board::Board;
+use super::{Board, Interrupt};
 
 /// The bus used in the Minirechner 2a.
 ///
@@ -102,7 +103,7 @@ bitflags! {
 impl Bus {
     /// Create a new Bus.
     /// The ram is empty.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         let ram = [0; 0xF0];
         let input_reg = [0; 4];
         let output_reg = [0; 2];
@@ -151,9 +152,9 @@ impl Bus {
         if addr <= 0xEF {
             self.ram[addr] = byte;
         } else if addr == 0xF0 {
-            self.board.set_org1(byte);
+            self.board.set_digital_output1(byte);
         } else if addr == 0xF1 {
-            self.board.set_org2(byte);
+            self.board.set_digital_output2(byte);
         } else if addr == 0xF2 {
             match (byte & 0b1100_0000) >> 6 {
                 0b00 => self.board.set_uor(byte),
@@ -222,13 +223,13 @@ impl Bus {
         if addr <= 0xEF {
             self.ram[addr]
         } else if addr == 0xF0 {
-            self.board.irg
+            *self.board.digital_input1()
         } else if addr == 0xF1 {
-            self.board.dasr.bits()
+            self.board.dasr().bits()
         } else if addr == 0xF2 {
             self.board.get_fan_period()
         } else if addr == 0xF3 {
-            self.board.daisr.bits()
+            self.board.daisr().bits()
         } else if addr == 0xF4 {
             warn!("Reading from 0xF4 does nothing! This feature might be implemented in the future, but as of now, the MR2DA2 board is very restricted.");
             0
@@ -279,34 +280,47 @@ impl Bus {
     pub fn output_ff(&self) -> u8 {
         self.output_reg[1]
     }
-    /// Did anything on the bus trigger a level interrupt?
-    pub fn has_level_int(&mut self) -> bool {
-        if self.micr.contains(MICR::UART_LEVEL_INTERRUPT_ENABLE) {
-            self.has_uart_interrupt()
-        } else if self.micr.contains(MICR::BUS_LEVEL_INTERRUPT_ENABLE) {
-            self.fetch_mr2da2_interrupt()
-        } else {
-            false
-        }
+    /// Is anything on the bus triggering a level interrupt?
+    ///
+    /// TODO: Implement
+    pub fn get_level_interrupt(&mut self) -> Option<Interrupt> {
+        warn!("Bus Interrupts are not implemented yet");
+        None
+        //if self.micr.contains(MICR::UART_LEVEL_INTERRUPT_ENABLE) {
+        //    None
+        //} else if self.micr.contains(MICR::BUS_LEVEL_INTERRUPT_ENABLE) {
+        //    None
+        //} else {
+        //    None
+        //}
     }
     /// Did anything on the bus trigger an edge interrupt?
     ///
     /// # Note:
     /// Level intterupts can also be triggered by the timer and by key!
     /// These are not checked here.
-    pub fn fetch_edge_int(&mut self) -> bool {
-        if self.micr.contains(MICR::UART_EDGE_INTERRUPT_ENABLE) {
-            self.has_uart_interrupt()
-        } else if self.micr.contains(MICR::BUS_EDGE_INTERRUPT_ENABLE) {
-            self.fetch_mr2da2_interrupt()
-        } else {
-            false
-        }
+    /// TODO: Implement
+    pub fn take_edge_interrupt(&mut self) -> Option<Interrupt> {
+        warn!("Bus Interrupts are not implemented yet");
+        None
+        //if self.micr.contains(MICR::UART_EDGE_INTERRUPT_ENABLE) {
+        //    None
+        //} else if self.micr.contains(MICR::BUS_EDGE_INTERRUPT_ENABLE) {
+        //    None
+        //} else {
+        //    None
+        //}
     }
     /// Get read access to the board.
     pub fn board(&self) -> &Board {
         &self.board
     }
+
+    /// Get mutable access to the connected [`Board`].
+    pub fn board_mut(&mut self) -> &mut Board {
+        &mut self.board
+    }
+
     /// Is key edge interrupt enabled?
     pub fn is_key_edge_int_enabled(&self) -> bool {
         self.micr.contains(MICR::KEY_EDGE_INTERRUPT_ENABLE)
@@ -322,7 +336,29 @@ impl Bus {
     pub fn memory(&self) -> &[u8; 0xF0] {
         &self.ram
     }
+
+    /// Get mutable access to the memory connected to the bus.
+    ///
+    /// # Example
+    /// ```
+    /// # use emulator_2a_lib::machine::Bus;
+    /// let mut bus = Bus::new();
+    ///
+    /// let memory = bus.memory_mut();
+    /// memory[0] = 123;
+    /// memory[42] = 76;
+    /// memory[0xEF] = 0xFF;
+    ///
+    /// assert_eq!(bus.read(0), 123);
+    /// assert_eq!(bus.read(42), 76);
+    /// assert_eq!(bus.read(0xEF), 0xFF);
+    /// ```
+    pub fn memory_mut(&mut self) -> &mut [u8; 0xF0] {
+        &mut self.ram
+    }
+
     /// Did anything trigger an interrupt in the UART?
+    #[allow(dead_code)]
     fn has_uart_interrupt(&self) -> bool {
         if self.ucr.contains(UCR::INT_ON_RX_READY) {
             self.usr.contains(USR::RX_READY)
@@ -341,6 +377,7 @@ impl Bus {
     /// # TODO
     ///
     /// This is not implemented (yet).
+    #[allow(dead_code)]
     fn fetch_mr2da2_interrupt(&mut self) -> bool {
         self.board.fetch_interrupt()
     }
@@ -348,7 +385,7 @@ impl Bus {
 
 impl InterruptTimer {
     /// Create a new, disabled interrupt timer.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         InterruptTimer {
             enabled: false,
             div1: 0,

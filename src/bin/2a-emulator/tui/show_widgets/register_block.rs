@@ -1,7 +1,8 @@
 //! Everything related to drawing the [`RegisterBlockWidget`].
+use emulator_2a_lib::machine::Register;
 use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 
-use crate::{helpers, machine::Register, tui::display::Display};
+use crate::{helpers, tui::display::Display};
 
 /// A widget for displaying the RegisterBlock.
 pub struct RegisterBlockWidget<'a>(pub &'a Register);
