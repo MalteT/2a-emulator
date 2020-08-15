@@ -13,7 +13,7 @@ mod raw;
 mod register;
 
 pub use alu::{AluInput, AluOutput, AluSelect};
-pub use board::{Board, DAICR, DAISR, DASR};
+pub use board::{Board, InterruptSource, DAICR, DAISR, DASR};
 pub use bus::Bus;
 pub use instruction::{Instruction, InstructionRegister};
 pub use microprogram_ram::{MicroprogramRam, Word};

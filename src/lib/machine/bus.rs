@@ -36,7 +36,7 @@ pub struct Bus {
     uart_send: u8,
     uart_recv: u8,
     int_timer: InterruptTimer,
-    pub(crate) board: Board,
+    board: Board,
 }
 
 /// The interrupt timer.

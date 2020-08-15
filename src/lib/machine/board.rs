@@ -1,5 +1,8 @@
 //! The MR2DA2 extension board and all its components.
 use bitflags::bitflags;
+use enum_primitive::{
+    enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty, FromPrimitive,
+};
 use log::{trace, warn};
 
 use std::{f32::consts::FRAC_PI_2, u8};
@@ -43,6 +46,8 @@ pub struct Board {
     /// The 8-bit output port 2.
     digital_output2: u8,
     /// Temperature value as a voltage.
+    // TODO: The handling of the temperature sensor is a shabby workaround, just
+    // implement something useful with good defaults already!
     temp: f32,
     /// Digital Analog Status Register.
     dasr: DASR,
@@ -57,9 +62,9 @@ pub struct Board {
     /// Fan rpms. This is an oversimplification. The maximum fan rpm equals 4200.
     /// But this fan spins even at 0.1V supply voltage.
     /// freq(volt) = 70Hz / 2.55V * volt
+    // TODO: This could be improved upon aswell. Doing this coherent to the temp sensor
+    // would be nice
     fan_rpm: usize,
-    /// Interrupt source (DA-ICR[0-2].
-    int_source: u8,
     /// UIO directions:
     ///
     /// - `true` => Output
@@ -68,36 +73,78 @@ pub struct Board {
 }
 
 bitflags! {
-/// Digital Analog Status Register
-pub struct DASR: u8 {
-    const J2        = 0b10000000;
-    const J1        = 0b01000000;
-    const FAN       = 0b00100000;
-    const COMP_DAC2 = 0b00010000;
-    const COMP_DAC1 = 0b00001000;
-    const UIO_3     = 0b00000100;
-    const UIO_2     = 0b00000010;
-    const UIO_1     = 0b00000001;
-}
-}
-
-bitflags! {
-/// Digital Analog Interrupt Status Register
-pub struct DAISR: u8 {
-    const INTERRUPT_PENDING   = 0b00001000;
-    const INTERRUPT_REQUESTED = 0b00000100;
-    const INTERRUPT_FF        = 0b00000010;
-    const SOURCE              = 0b00000001;
-}
+    /// Digital Analog Status Register
+    pub struct DASR: u8 {
+        const J2        = 0b10000000;
+        const J1        = 0b01000000;
+        const FAN       = 0b00100000;
+        const COMP_DAC2 = 0b00010000;
+        const COMP_DAC1 = 0b00001000;
+        const UIO_3     = 0b00000100;
+        const UIO_2     = 0b00000010;
+        const UIO_1     = 0b00000001;
+    }
 }
 
 bitflags! {
-/// Digital Analog Interrupt Control Register
-pub struct DAICR: u8 {
-    const IE      = 0b00100000;
-    const EDGE    = 0b00010000;
-    const FALLING = 0b00001000;
+    /// Digital Analog Interrupt Status Register
+    pub struct DAISR: u8 {
+        const INTERRUPT_PENDING   = 0b00001000;
+        const INTERRUPT_REQUESTED = 0b00000100;
+        const INTERRUPT_FF        = 0b00000010;
+        const SOURCE              = 0b00000001;
+    }
 }
+
+bitflags! {
+    /// Digital Analog Interrupt Control Register
+    pub struct DAICR: u8 {
+        const IE            = 0b00100000;
+        const EDGE          = 0b00010000;
+        const FALLING       = 0b00001000;
+        const INT_SOURCE2   = 0b00000100;
+        const INT_SOURCE1   = 0b00000010;
+        const INT_SOURCE0   = 0b00000001;
+    }
+}
+
+impl DAICR {
+    pub fn interrupt_source(&self) -> InterruptSource {
+        let source = (self.contains(DAICR::INT_SOURCE2) as u8) << 2
+            | (self.contains(DAICR::INT_SOURCE1) as u8) << 1
+            | (self.contains(DAICR::INT_SOURCE0) as u8);
+        InterruptSource::from_u8(source).expect("infallible")
+    }
+
+    pub fn set_interrupt_source(&mut self, source: InterruptSource) {
+        let source = source as u8;
+        let int_source_2 = source & 0b100 != 0;
+        let int_source_1 = source & 0b010 != 0;
+        let int_source_0 = source & 0b001 != 0;
+        self.set(DAICR::INT_SOURCE2, int_source_2);
+        self.set(DAICR::INT_SOURCE1, int_source_1);
+        self.set(DAICR::INT_SOURCE0, int_source_0);
+    }
+}
+
+enum_from_primitive! {
+    /// Selected interrupt source of the MR2DA2.
+    ///
+    /// This is part of the DAICR, thus the source can only be
+    /// changed by changing the DAICR.
+    ///
+    /// See [`DAICR::interrupt_source`] and [`DAICR::set_interrupt_source`] aswell.
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub enum InterruptSource {
+        Disabled    = 0b000,
+        Uio1        = 0b001,
+        Uio2        = 0b010,
+        Uio3        = 0b011,
+        Comp1       = 0b100,
+        Comp2       = 0b101,
+        Jumper1     = 0b110,
+        TachoSensor = 0b111,
+    }
 }
 
 impl Board {
@@ -114,11 +161,8 @@ impl Board {
             digital_output1: 0,
             digital_output2: 0,
             fan_rpm: 0,
-            int_source: 0,
             uio_dir: [false; 3],
         }
-        // board.set_org1(0);
-        // board.set_org2(0);
     }
 
     /// Set the 8-bit input port.
@@ -140,12 +184,13 @@ impl Board {
         }
         self.update_comp2();
     }
+
     /// Set the jumper J1.
     ///
     /// - `true` => Plugged in.
     /// - `false` => Unplugged.
     pub fn set_jumper1(&mut self, plugged: bool) {
-        if self.int_source == 0b110 {
+        if self.daicr().interrupt_source() == InterruptSource::Jumper1 {
             if self.dasr.contains(DASR::J1) && !plugged {
                 if self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
@@ -161,6 +206,7 @@ impl Board {
         }
         self.dasr.set(DASR::J1, plugged);
     }
+
     /// Set the jumper J2.
     ///
     /// - `true` => Plugged in.
@@ -182,6 +228,7 @@ impl Board {
         }
         self.update_comp1();
     }
+
     /// Set analog input port I2.
     pub fn set_analog_input2(&mut self, value: f32) {
         if value >= 0.0 && value <= 5.0 {
@@ -201,7 +248,7 @@ impl Board {
         if self.uio_dir[0] {
             return;
         }
-        if self.int_source == 0b001 {
+        if self.daicr().interrupt_source() == InterruptSource::Uio1 {
             if self.dasr.contains(DASR::UIO_1) && !value {
                 if self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
@@ -223,7 +270,7 @@ impl Board {
         if self.uio_dir[1] {
             return;
         }
-        if self.int_source == 0b010 {
+        if self.daicr().interrupt_source() == InterruptSource::Uio2 {
             if self.dasr.contains(DASR::UIO_2) && !value {
                 if self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
@@ -245,7 +292,7 @@ impl Board {
         if self.uio_dir[2] {
             return;
         }
-        if self.int_source == 0b011 {
+        if self.daicr().interrupt_source() == InterruptSource::Uio3 {
             if self.dasr.contains(DASR::UIO_3) && !value {
                 if self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
@@ -279,6 +326,7 @@ impl Board {
         self.analog_outputs[1] = analog;
         self.update_comp2();
     }
+
     /// Update the UIO Output Register.
     pub fn set_uor(&mut self, byte: u8) {
         let (uio1, uio2, uio3) = (
@@ -290,6 +338,7 @@ impl Board {
         self.dasr.set(DASR::UIO_2, uio2);
         self.dasr.set(DASR::UIO_3, uio3);
     }
+
     /// Update the UIO Direction Register.
     pub fn set_udr(&mut self, byte: u8) {
         self.uio_dir = [
@@ -298,17 +347,19 @@ impl Board {
             byte & 0b0000_0100 == 4,
         ];
     }
+
     /// Update the Interrupt Control Register.
     pub fn set_icr(&mut self, byte: u8) {
         let rem = DAISR::INTERRUPT_PENDING | DAISR::INTERRUPT_REQUESTED | DAISR::INTERRUPT_FF;
         self.daisr.remove(rem);
         self.daicr = DAICR::from_bits_truncate(byte);
-        self.int_source = byte & 0b0000_0111;
     }
+
     /// Delete the interrupt ff.
     pub fn delete_int_ff(&mut self) {
         self.daisr.remove(DAISR::INTERRUPT_FF);
     }
+
     /// Get the fan period.
     ///
     /// period(volt) = 255 - 255 / 2.55V * volt
@@ -317,12 +368,13 @@ impl Board {
     pub fn get_fan_period(&self) -> u8 {
         u8::MAX - (u8::MAX as f32 / self.fan_rpm as f32 * MAX_FAN_RPM as f32) as u8
     }
+
     /// Is there an interrupt?
     pub fn fetch_interrupt(&mut self) -> bool {
         if !self.daicr.contains(DAICR::IE) {
             return false;
         }
-        if self.int_source == 0b111 && self.fan_rpm > 0 {
+        if self.daicr().interrupt_source() == InterruptSource::TachoSensor && self.fan_rpm > 0 {
             self.set_int_ff();
             self.daisr.insert(DAISR::SOURCE);
         }
@@ -334,15 +386,17 @@ impl Board {
             self.daisr.contains(DAISR::INTERRUPT_FF)
         }
     }
+
     /// Set the interrupt flipflop.
     fn set_int_ff(&mut self) {
         self.daisr.insert(DAISR::INTERRUPT_FF);
     }
+
     /// Update comparator COMP1.
     fn update_comp1(&mut self) {
         let analog = self.digital_output1 as f32 / 100.0;
         let new_value = self.analog_inputs[0] > analog;
-        if self.int_source == 0b100 {
+        if self.daicr().interrupt_source() == InterruptSource::Comp1 {
             if self.dasr.contains(DASR::COMP_DAC1) && !new_value {
                 if self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
@@ -359,13 +413,14 @@ impl Board {
         trace!("Updating comparator CP1 to {}", new_value);
         self.dasr.set(DASR::COMP_DAC1, new_value);
     }
+
     /// Update comparator COMP2.
     fn update_comp2(&mut self) {
         let analog = self.digital_output2 as f32 / 100.0;
         // TODO: Verify (J9)
         let comp_in = self.temp.max(self.analog_inputs[1]);
         let new_value = comp_in > analog;
-        if self.int_source == 0b101 {
+        if self.daicr().interrupt_source() == InterruptSource::Comp2 {
             if self.dasr.contains(DASR::COMP_DAC2) && !new_value {
                 if self.daicr.contains(DAICR::FALLING) {
                     self.daisr.insert(DAISR::SOURCE);
@@ -383,6 +438,7 @@ impl Board {
         self.dasr.set(DASR::COMP_DAC2, new_value);
         trace!("New DASR: {:0>8b}", self.dasr.bits());
     }
+
     /// Reset the board.
     pub fn reset(&mut self) {
         self.digital_output1 = 0;
@@ -393,39 +449,49 @@ impl Board {
         self.daicr = DAICR::empty();
         self.analog_outputs = [0.0; 2];
         self.fan_rpm = 0;
-        self.int_source = 0;
         self.uio_dir = [false; 3];
     }
+
     pub const fn digital_input1(&self) -> &u8 {
         &self.digital_input1
     }
+
     pub const fn digital_output1(&self) -> &u8 {
         &self.digital_output1
     }
+
     pub const fn digital_output2(&self) -> &u8 {
         &self.digital_output2
     }
+
     pub const fn temp(&self) -> &f32 {
         &self.temp
     }
+
     pub const fn dasr(&self) -> &DASR {
         &self.dasr
     }
+
     pub const fn daisr(&self) -> &DAISR {
         &self.daisr
     }
+
     pub const fn daicr(&self) -> &DAICR {
         &self.daicr
     }
+
     pub const fn analog_inputs(&self) -> &[f32; 2] {
         &self.analog_inputs
     }
+
     pub const fn analog_outputs(&self) -> &[f32; 2] {
         &self.analog_outputs
     }
+
     pub const fn fan_rpm(&self) -> &usize {
         &self.fan_rpm
     }
+
     pub const fn uio_dir(&self) -> &[bool; 3] {
         &self.uio_dir
     }
