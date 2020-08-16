@@ -197,7 +197,7 @@ pub enum Line {
     Instruction(Instruction, Option<Comment>),
 }
 
-/// Represenation of a Minirechner2a ASM program.
+/// Represenation of a Minirechner2a ASM program. (Root of the AST)
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Asm {
     pub comment_after_shebang: Option<Comment>,

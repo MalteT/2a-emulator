@@ -19,15 +19,7 @@
 //!
 //!     let parsed: Result<Asm, ParserError> = AsmParser::parse(asm);
 //!
-//!     match parsed {
-//!         Ok(parsed) => {
-//!             #[cfg(feature = "formatting")]
-//!             println!("{}", parsed);
-//!             #[cfg(not(feature = "formatting"))]
-//!             println!("{:?}", parsed);
-//!         },
-//!         Err(e) => panic!("Whoooops {}", e),
-//!     }
+//!     assert!(parsed.is_ok());
 //! }
 //! ```
 
