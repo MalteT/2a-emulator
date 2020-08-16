@@ -4,3 +4,4 @@
 //mod helpers;
 pub mod compiler;
 pub mod machine;
+pub mod parser;
