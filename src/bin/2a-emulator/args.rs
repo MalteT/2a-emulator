@@ -1,8 +1,7 @@
+use emulator_2a_lib::machine::{MachineConfig, State};
 use structopt::StructOpt;
 
 use std::{num::ParseIntError, path::PathBuf};
-
-use crate::machine::State;
 
 #[derive(Debug, StructOpt)]
 #[structopt(author = "Malte Tammena <malte.tammena@gmx.de>")]
@@ -209,6 +208,26 @@ pub struct InitialMachineConfiguration {
     #[structopt(long, value_name = "BYTE", default_value = "0",
                 parse(try_from_str = parse_u8_auto_radix))]
     pub ff: u8,
+}
+
+impl From<InitialMachineConfiguration> for MachineConfig {
+    fn from(init: InitialMachineConfiguration) -> Self {
+        MachineConfig {
+            analog_input1: init.ai1,
+            analog_input2: init.ai2,
+            digital_input1: init.di1,
+            temp: init.temp,
+            input_fc: init.fc,
+            input_fd: init.fd,
+            input_fe: init.fe,
+            input_ff: init.ff,
+            jumper1: init.j1,
+            jumper2: init.j2,
+            universal_input_output1: init.uio1,
+            universal_input_output2: init.uio2,
+            universal_input_output3: init.uio3,
+        }
+    }
 }
 
 fn parse_u8_auto_radix(num: &str) -> Result<u8, ParseIntError> {

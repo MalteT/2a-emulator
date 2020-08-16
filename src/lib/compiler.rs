@@ -1,32 +1,40 @@
-//! Assembler to byte code compilation module.
-//! ```text
-//!           ;     .ORG 0x00
+//! Everything related to translating the AST to bytecode.
 //!
-//!        04 ;     CLR R0
-//!           ; LOOP:
-//!  F0 1F FF ;     ST (0xFF), R0
-//!  F0 1F F0 ;     ST (0xF0), R0
-//!        44 ;     INC R0
-//!     20 F7 ;     JR LOOP
+//! Simply use the [`Translator`] to compile your [`Assembly`](Asm) into valid [`ByteCode`].
+//!
+//! # Example
+//!
 //! ```
-
+//! # use emulator_2a_lib::compiler::{Translator};
+//! # use parser2a::parser::AsmParser;
+//! let asm = r#"
+//!     #! mrasm
+//!
+//!     .DB 42
+//!     CLR R0
+//! "#.trim();
+//!
+//! let parsed = AsmParser::parse(asm).expect("Parsing went well");
+//! let bytecode = Translator::compile(&parsed);
+//! let bytes: Vec<u8> = bytecode.bytes().cloned().collect();
+//!
+//! assert_eq!(bytes, vec![42, 4]);
+//!
+//! ```
 use colored::Colorize;
 use parser2a::asm::{
     Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Register,
     RegisterDDI, RegisterDI, Source, Stacksize,
 };
 
-use std::collections::HashMap;
-use std::fmt;
-use std::ops::Deref;
-use std::rc::Rc;
+use std::{collections::HashMap, fmt, ops::Deref, rc::Rc};
 
-#[derive(Clone)]
 /// An either type for [`u8`]/[`Label`].
 ///
 /// This is used for label references.
 /// During translation all labels will be translated into
 /// this type which is, after all Labels are defined, translated into the correct bytes.
+#[derive(Clone)]
 pub enum ByteOrLabel {
     /// An ordinary byte.
     Byte(u8),
@@ -37,9 +45,9 @@ pub enum ByteOrLabel {
     LabelFn(Label, Rc<dyn Fn(u8) -> u8>),
 }
 
-#[derive(Debug, Clone)]
 /// This is the final byte code with additional information from which [`Line`]
 /// the byte code originates.
+#[derive(Debug, Clone)]
 pub struct ByteCode {
     /// Lines with translated byte code.
     pub lines: Vec<(Line, Vec<u8>)>,
@@ -47,9 +55,8 @@ pub struct ByteCode {
     pub stacksize: Stacksize,
 }
 
-// # TODO: Handle Stacksize
-#[derive(Debug, Clone)]
 /// Translator for [`Asm`] -> [`ByteCode`]
+#[derive(Debug, Clone)]
 pub struct Translator {
     next_addr: u8,
     known_labels: HashMap<Label, u8>,
@@ -60,6 +67,8 @@ pub struct Translator {
 impl ByteCode {
     /// Get an iterator over the byte code.
     /// This iterator always starts at address zero.
+    ///
+    /// Thus the resulting bytes can be easily written into the program memory.
     pub fn bytes<'a>(&'a self) -> impl Iterator<Item = &u8> + 'a {
         self.lines.iter().map(|(_, c)| c).flatten()
     }
@@ -81,8 +90,7 @@ impl Translator {
             bytes: vec![],
             known_labels: HashMap::new(),
             next_addr: 0,
-            // TODO: Default?
-            stacksize: Stacksize::NotSet,
+            stacksize: Stacksize::_16,
         }
     }
     /// Push a [`Line`] into the translator, adding the translated bytes,

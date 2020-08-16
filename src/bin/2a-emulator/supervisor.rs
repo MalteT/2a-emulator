@@ -1,5 +1,8 @@
 //! Supervisor of the emulated Machine.
-
+use emulator_2a_lib::{
+    compiler::Translator,
+    machine::{Machine, State},
+};
 use log::trace;
 use parser2a::asm::Asm;
 
@@ -9,10 +12,6 @@ use std::time::Duration;
 use std::time::Instant;
 
 use crate::args::InitialMachineConfiguration;
-use crate::error::Error;
-use crate::helpers;
-use crate::machine::Machine;
-use crate::machine::State;
 
 const NUMBER_OF_MEASUREMENTS: usize = 10;
 const DEFAULT_CLK_PERIOD: Duration = Duration::from_nanos((1_000.0 / 7.3728) as u64);
@@ -33,8 +32,6 @@ pub struct Supervisor {
     clk_period: Duration,
     /// Frequency measurement utility.
     freq_measurements: FreqMeasurements,
-    /// Initial configuration for the machine.
-    conf: InitialMachineConfiguration,
 }
 
 /// Helper struct for frequency measurements.
@@ -81,14 +78,13 @@ pub struct EmulationState {
 
 impl Supervisor {
     /// Initialize a new Supervisor.
-    pub fn new(conf: &InitialMachineConfiguration) -> Self {
-        let machine = Machine::new(None, conf);
+    pub fn new(conf: InitialMachineConfiguration) -> Self {
+        let machine = Machine::new(conf.into());
         let clk_auto_run_mode = false;
         let clk_asm_step_mode = false;
         let program_path = None;
         let clk_period = DEFAULT_CLK_PERIOD;
         let freq_measurements = FreqMeasurements::new();
-        let conf = conf.clone();
         Supervisor {
             machine,
             clk_auto_run_mode,
@@ -96,7 +92,6 @@ impl Supervisor {
             program_path,
             clk_period,
             freq_measurements,
-            conf,
         }
     }
     /// Emulate the machine with the given [`EmulationParameter`].
@@ -104,16 +99,17 @@ impl Supervisor {
     /// process.
     pub fn execute_with_parameter(
         param: EmulationParameter,
-        conf: &InitialMachineConfiguration,
+        conf: InitialMachineConfiguration,
     ) -> EmulationState {
         // Create emulation state
         let mut fs = EmulationState::new();
         // Create supervisor
-        let mut sv = Supervisor::new(conf);
+        let mut sv = Supervisor::new(conf.into());
         sv.toggle_auto_run_mode();
         if let Some((path, asm)) = param.program {
             sv.program_path = Some(path.clone());
-            sv.machine = Machine::new(Some(&asm), conf);
+            let bytecode = Translator::compile(&asm);
+            sv.machine.load_program(bytecode.bytes());
             fs.program = Some((path, asm));
         }
         // Remember initial outputs
@@ -126,15 +122,15 @@ impl Supervisor {
             if param.inputs.contains_key(&tick) {
                 let inputs = param.inputs.get(&tick).unwrap();
                 fs.inputs.insert(tick, *inputs);
-                sv.machine.input_fc(inputs.0);
-                sv.machine.input_fd(inputs.1);
-                sv.machine.input_fe(inputs.2);
-                sv.machine.input_ff(inputs.3);
+                sv.machine.set_input_fc(inputs.0);
+                sv.machine.set_input_fd(inputs.1);
+                sv.machine.set_input_fe(inputs.2);
+                sv.machine.set_input_ff(inputs.3);
                 fs.inputs.insert(tick, *inputs);
             }
             // Check if outputs updated, and note them, if they did.
-            if last_outputs != (sv.machine.output_fe(), sv.machine.output_ff()) {
-                last_outputs = (sv.machine.output_fe(), sv.machine.output_ff());
+            if last_outputs != (sv.machine.bus().output_fe(), sv.machine.bus().output_ff()) {
+                last_outputs = (sv.machine.bus().output_fe(), sv.machine.bus().output_ff());
                 fs.outputs.insert(tick, (last_outputs.0, last_outputs.1));
             }
             // Reset the machine if needed.
@@ -145,7 +141,7 @@ impl Supervisor {
             }
             // Interrupt the machine if needed.
             if param.interrupts.contains(&tick) {
-                sv.machine.key_edge_int();
+                sv.machine.trigger_key_interrupt();
                 fs.interrupts.insert(tick);
                 trace!("Test: Set edge interrupt on machine");
             }
@@ -153,22 +149,14 @@ impl Supervisor {
             sv.tick();
         }
         // Add final outputs if necessary
-        if last_outputs != (sv.machine.output_fe(), sv.machine.output_ff()) {
-            last_outputs = (sv.machine.output_fe(), sv.machine.output_ff());
+        if last_outputs != (sv.machine.bus().output_fe(), sv.machine.bus().output_ff()) {
+            last_outputs = (sv.machine.bus().output_fe(), sv.machine.bus().output_ff());
             fs.outputs
                 .insert(param.ticks, (last_outputs.0, last_outputs.1));
         }
         // get the machine state at the end of execution
         fs.final_machine_state = sv.machine.state();
         fs
-    }
-    /// Load a new program from the given path.
-    /// Resets the machine.
-    pub fn load_program<P: Into<PathBuf>>(&mut self, path: P) -> Result<(), Error> {
-        self.program_path = Some(path.into());
-        let program = helpers::read_asm_file(self.program_path.clone().unwrap())?;
-        self.machine = Machine::new(Some(&program), &self.conf);
-        Ok(())
     }
     /// Do necessary calculation (i.e. in auto-run-mode).
     pub fn tick(&mut self) {
@@ -183,42 +171,14 @@ impl Supervisor {
     pub fn next_clk(&mut self) {
         if self.clk_asm_step_mode && self.machine().state() == State::Running {
             while self.machine.is_instruction_done() && self.machine().state() == State::Running {
-                self.machine.clk()
+                self.machine.trigger_key_clock()
             }
             while !self.machine.is_instruction_done() && self.machine().state() == State::Running {
-                self.machine.clk()
+                self.machine.trigger_key_clock()
             }
         } else {
-            self.machine.clk()
+            self.machine.trigger_key_clock()
         }
-    }
-    /// Toggle between single step and asm step modes.
-    pub fn toggle_asm_step_mode(&mut self) {
-        self.clk_asm_step_mode = !self.clk_asm_step_mode;
-    }
-    /// Emulate a reset.
-    pub fn reset(&mut self) {
-        self.machine.reset()
-    }
-    /// Set input register FC.
-    pub fn input_fc(&mut self, byte: u8) {
-        self.machine.input_fc(byte)
-    }
-    /// Set input register FD.
-    pub fn input_fd(&mut self, byte: u8) {
-        self.machine.input_fd(byte)
-    }
-    /// Set input register FE.
-    pub fn input_fe(&mut self, byte: u8) {
-        self.machine.input_fe(byte)
-    }
-    /// Set input register FF.
-    pub fn input_ff(&mut self, byte: u8) {
-        self.machine.input_ff(byte)
-    }
-    /// Emulate an edge interrupt.
-    pub fn key_edge_int(&mut self) {
-        self.machine.key_edge_int()
     }
     /// Toggle the auto-run-mode.
     pub fn toggle_auto_run_mode(&mut self) {
@@ -227,77 +187,6 @@ impl Supervisor {
     /// Get a reference to the underlying machine.
     pub const fn machine(&self) -> &Machine {
         &self.machine
-    }
-    /// Continue the machine after a stop.
-    pub fn continue_from_stop(&mut self) {
-        self.machine.continue_from_stop()
-    }
-    /// Is auto-run-mode activated?
-    pub const fn is_auto_run_mode(&self) -> bool {
-        self.clk_auto_run_mode
-    }
-    /// Is asm-step-mode activated?
-    pub const fn is_asm_step_mode(&self) -> bool {
-        self.clk_asm_step_mode
-    }
-    /// Get the frequency settings.
-    pub fn get_frequency(&self) -> f32 {
-        1_000_000_000.0 / self.clk_period.as_nanos() as f32
-    }
-    /// Get the currently running programs path.
-    pub const fn get_program_path(&self) -> &Option<PathBuf> {
-        &self.program_path
-    }
-    /// Get the average measured frequency of the machine during the last x clock edges.
-    /// This returns `0.0` if the machine is *not* in auto-run-mode.
-    pub fn get_measured_frequency(&self) -> f32 {
-        if self.clk_auto_run_mode {
-            self.freq_measurements.get_average()
-        } else {
-            0.0
-        }
-    }
-    /// Set the 8-bit input port.
-    pub fn set_irg(&mut self, value: u8) {
-        self.machine.bus.board.set_irg(value);
-    }
-    /// Set the temperature value.
-    pub fn set_temp(&mut self, value: f32) {
-        self.machine.bus.board.set_temp(value);
-    }
-    /// Set the jumper J1.
-    ///
-    /// - `true` => Plugged in.
-    /// - `false` => Unplugged.
-    pub fn set_j1(&mut self, plugged: bool) {
-        self.machine.bus.board.set_j1(plugged);
-    }
-    /// Set the jumper J2.
-    ///
-    /// - `true` => Plugged in.
-    /// - `false` => Unplugged.
-    pub fn set_j2(&mut self, plugged: bool) {
-        self.machine.bus.board.set_j2(plugged);
-    }
-    /// Set the analog input I1.
-    pub fn set_i1(&mut self, value: f32) {
-        self.machine.bus.board.set_i1(value);
-    }
-    /// Set the analog input I2.
-    pub fn set_i2(&mut self, value: f32) {
-        self.machine.bus.board.set_i2(value);
-    }
-    /// Set the Universal Input/Output UIO1.
-    pub fn set_uio1(&mut self, value: bool) {
-        self.machine.bus.board.set_uio1(value);
-    }
-    /// Set the Universal Input/Output UIO2.
-    pub fn set_uio2(&mut self, value: bool) {
-        self.machine.bus.board.set_uio2(value);
-    }
-    /// Set the Universal Input/Output UIO3.
-    pub fn set_uio3(&mut self, value: bool) {
-        self.machine.bus.board.set_uio3(value);
     }
 }
 
@@ -324,12 +213,6 @@ impl FreqMeasurements {
         self.oldest_index %= NUMBER_OF_MEASUREMENTS;
         self.last_clk = clk_now;
         time_since_last_measurement
-    }
-    /// Return the average over the measured data.
-    /// This is biased if less then x measurements have been pushed yet.
-    pub fn get_average(&self) -> f32 {
-        let sum: f32 = self.measurements.iter().sum();
-        sum / NUMBER_OF_MEASUREMENTS as f32
     }
 }
 

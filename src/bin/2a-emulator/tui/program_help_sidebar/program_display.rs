@@ -1,10 +1,11 @@
 //! Everythin related to drawing the [`ProgramDisplayWidget`].
+use emulator_2a_lib::compiler::ByteCode;
 use parser2a::asm::Line;
 use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget};
 
 use std::ops::Range;
 
-use crate::{compiler::ByteCode, helpers};
+use crate::helpers;
 
 /// Maximum number of lines shown before and after the current line.
 const MAX_LINES_OF_CONTEXT: usize = 3;

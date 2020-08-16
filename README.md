@@ -24,6 +24,7 @@ is versatile enough to test solutions.
   - [`verify`ing programs](#verifying-programs)
   - [`test`ing programs](#testing-programs)
 - [Compilation flags](#compilation-flags)
+- [Implementation & Contribution](#implementation-&-contribution)
 
 
 ### Installation
@@ -244,6 +245,12 @@ The following feature flags can be used to influence the generated binary.
   **Warning**: The Ubuntu Terminal in combination with the Ubuntu Mono font has
   troubles displaying some characters. Thus the `utf8` feature
   should not be used on machines running Ubuntu.
+
+### Implementation & Contribution
+
+The binary is based on the `emulator-2a-lib` library, that is contained in this crate.
+**Contributions are very welcome!** Additionally, other frontends could be added. I.e. a web-based
+emulator is planned and might be added in the future.
 
 Current version: 5.0.0
 

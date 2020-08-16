@@ -4,6 +4,10 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use emulator_2a_lib::{
+    compiler::Translator,
+    machine::{State, StepMode},
+};
 use log::{trace, warn};
 use scopeguard::defer;
 use tui::{backend::CrosstermBackend, Terminal};
@@ -24,13 +28,13 @@ mod program_help_sidebar;
 pub mod show_widgets;
 mod supervisor_wrapper;
 
-use crate::{args::InteractiveArgs, compiler::Translator, error::Error, helpers, machine::State};
+use crate::{args::InteractiveArgs, error::Error, helpers};
 pub use board_info_sidebar::BoardInfoSidebarWidget;
 use events::Events;
 use input::{Command, InputRegister, InputState};
 use interface::Interface;
 pub use program_help_sidebar::{KeybindingHelpState, ProgramDisplayState, ProgramHelpSidebar};
-pub use supervisor_wrapper::{Part, SupervisorWrapper, SupervisorWrapperState};
+pub use supervisor_wrapper::{MachineState, MachineWidget, Part};
 
 pub type Backend = CrosstermBackend<Stdout>;
 type AbortEmulation = bool;
@@ -40,10 +44,10 @@ const ONE_MILLISECOND: Duration = Duration::from_millis(1);
 
 /// The Terminal User Interface (TUI)
 pub struct Tui {
-    /// State for the [`SupervisorWrapper`].
-    /// It contains the [`Supervisor`](crate::supervisor::Supervisor)
-    /// which contains the actual [`Machine`](crate::machine::Machine).
-    supervisor: SupervisorWrapperState,
+    /// State for the [`MachineWidget`].
+    /// It contains the [`Machine`](emulator_2a_lib::machine::Machine)
+    /// which contains the [`RawMachine`](emulator_2a_lib::machine::RawMachine).
+    machine: MachineState,
     /// Event iterator.
     events: Events,
     /// State for the input field at the bottom of the TUI.
@@ -60,7 +64,7 @@ pub struct Tui {
 impl Tui {
     /// Creates a new Tui and shows it.
     pub fn new(args: &InteractiveArgs) -> Self {
-        let supervisor = SupervisorWrapperState::new(&args.init);
+        let machine = MachineState::new(&args.init);
         let events = Events::new();
         let input_field = InputState::new();
         let keybinding_state = KeybindingHelpState::init();
@@ -68,7 +72,7 @@ impl Tui {
         Tui {
             program_display_state,
             keybinding_state,
-            supervisor,
+            machine,
             events,
             input_field,
         }
@@ -115,8 +119,10 @@ impl Tui {
             last_draw = Instant::now();
             // Loop until the next draw is necessary
             while last_draw.elapsed() < DURATION_BETWEEN_FRAMES {
-                // Let the supervisor do some work
-                self.supervisor.tick();
+                // Let the machine do some work
+                if self.machine.auto_run_mode {
+                    self.machine.trigger_key_clock();
+                }
                 // Update interface state
                 self.maintain();
                 // Handle event
@@ -125,7 +131,7 @@ impl Tui {
                     // Quit
                     break 'outer;
                 }
-                if !self.supervisor.is_auto_run_mode() {
+                if self.machine.step_mode() == StepMode::Real {
                     thread::sleep(10 * ONE_MILLISECOND);
                 }
             }
@@ -134,9 +140,9 @@ impl Tui {
         backend.show_cursor()?;
         Ok(())
     }
-    /// Get a reference to the underlying supervisor.
-    pub const fn supervisor(&self) -> &SupervisorWrapperState {
-        &self.supervisor
+    /// Get a reference to the underlying machine.
+    pub const fn machine(&self) -> &MachineState {
+        &self.machine
     }
     /// Handle one single event in the queue.
     /// Returns whether to abort emulation or not.
@@ -148,25 +154,25 @@ impl Tui {
                 match event.code {
                     Char('c') => true,
                     Char('a') => {
-                        self.supervisor.toggle_auto_run_mode();
+                        self.machine.toggle_auto_run_mode();
                         false
                     }
                     Char('w') => {
-                        self.supervisor.toggle_asm_step_mode();
+                        self.machine.toggle_step_mode();
                         false
                     }
                     Char('e') => {
-                        self.supervisor.key_edge_int();
+                        self.machine.trigger_key_interrupt();
                         self.keybinding_state.int_pressed();
                         false
                     }
                     Char('r') => {
-                        self.supervisor.reset();
+                        self.machine.reset();
                         self.keybinding_state.reset_pressed();
                         false
                     }
                     Char('l') => {
-                        self.supervisor.continue_from_stop();
+                        self.machine.trigger_key_continue();
                         self.keybinding_state.continue_pressed();
                         false
                     }
@@ -179,7 +185,7 @@ impl Tui {
                 match event.code {
                     Enter => {
                         if self.input_field.is_empty() {
-                            self.supervisor.next_clk();
+                            self.machine.trigger_key_clock();
                             self.keybinding_state.clk_pressed();
                             false
                         } else {
@@ -218,20 +224,20 @@ impl Tui {
                         Err(e) => warn!("Failed to run program: {}", e),
                     }
                 }
-                Command::SetInputReg(InputRegister::FC, val) => self.supervisor.input_fc(val),
-                Command::SetInputReg(InputRegister::FD, val) => self.supervisor.input_fd(val),
-                Command::SetInputReg(InputRegister::FE, val) => self.supervisor.input_fe(val),
-                Command::SetInputReg(InputRegister::FF, val) => self.supervisor.input_ff(val),
-                Command::SetIRG(val) => self.supervisor.set_irg(val),
-                Command::SetTEMP(val) => self.supervisor.set_temp(val),
-                Command::SetI1(val) => self.supervisor.set_i1(val),
-                Command::SetI2(val) => self.supervisor.set_i2(val),
-                Command::SetJ1(val) => self.supervisor.set_j1(val),
-                Command::SetJ2(val) => self.supervisor.set_j2(val),
-                Command::SetUIO1(val) => self.supervisor.set_uio1(val),
-                Command::SetUIO2(val) => self.supervisor.set_uio2(val),
-                Command::SetUIO3(val) => self.supervisor.set_uio3(val),
-                Command::Show(part) => self.supervisor.show(part),
+                Command::SetInputReg(InputRegister::FC, val) => self.machine.set_input_fc(val),
+                Command::SetInputReg(InputRegister::FD, val) => self.machine.set_input_fd(val),
+                Command::SetInputReg(InputRegister::FE, val) => self.machine.set_input_fe(val),
+                Command::SetInputReg(InputRegister::FF, val) => self.machine.set_input_ff(val),
+                Command::SetIRG(val) => self.machine.set_digital_input1(val),
+                Command::SetTEMP(val) => self.machine.set_temp(val),
+                Command::SetI1(val) => self.machine.set_analog_input1(val),
+                Command::SetI2(val) => self.machine.set_analog_input2(val),
+                Command::SetJ1(val) => self.machine.set_jumper1(val),
+                Command::SetJ2(val) => self.machine.set_jumper2(val),
+                Command::SetUIO1(val) => self.machine.set_universal_input_output1(val),
+                Command::SetUIO2(val) => self.machine.set_universal_input_output2(val),
+                Command::SetUIO3(val) => self.machine.set_universal_input_output3(val),
+                Command::Show(part) => self.machine.show(part),
                 Command::Quit => return true,
             }
         } else {
@@ -241,15 +247,15 @@ impl Tui {
     }
     fn maintain(&mut self) {
         // Update keybinding state to reflect machine state
-        let continue_possible = self.supervisor.machine().state() == State::Stopped;
+        let continue_possible = self.machine.state() == State::Stopped;
         self.keybinding_state
             .set_continue_possible(continue_possible);
-        let edge_int_possible = self.supervisor.machine().is_key_edge_int_enabled();
+        let edge_int_possible = self.machine.bus().is_key_edge_int_enabled();
         self.keybinding_state
             .set_edge_int_possible(edge_int_possible);
-        let asm_step_on = self.supervisor.is_asm_step_mode();
+        let asm_step_on = self.machine.step_mode() == StepMode::Assembly;
         self.keybinding_state.set_asm_step_on(asm_step_on);
-        let autorun_on = self.supervisor.is_auto_run_mode();
+        let autorun_on = self.machine.auto_run_mode;
         self.keybinding_state.set_autorun_on(autorun_on);
     }
     pub fn load_program<P: Into<PathBuf>>(&mut self, path: P) -> Result<(), Error> {
@@ -258,7 +264,8 @@ impl Tui {
         let bytecode = Translator::compile(&program);
         // Update the program display state
         self.program_display_state = ProgramDisplayState::from_bytecode(&bytecode);
-        self.supervisor.load_program(&path)?;
+        // Load the program into the machine
+        self.machine.load_program(path, bytecode);
         Ok(())
     }
 }

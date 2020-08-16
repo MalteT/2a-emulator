@@ -1,4 +1,5 @@
 use colored::*;
+use emulator_2a_lib::machine::State;
 use log::{info, trace};
 use parser2a::asm::Asm;
 use pest::iterators::Pair;
@@ -12,7 +13,6 @@ use std::path::PathBuf;
 use crate::args::{InitialMachineConfiguration, TestArgs};
 use crate::error::Error;
 use crate::helpers;
-use crate::machine::State;
 use crate::supervisor::{EmulationParameter, Supervisor};
 
 #[derive(Debug, Parser)]
@@ -142,7 +142,7 @@ impl Test {
 
         // Run the emulation
         let final_state =
-            Supervisor::execute_with_parameter(ep, &InitialMachineConfiguration::default());
+            Supervisor::execute_with_parameter(ep, InitialMachineConfiguration::default());
         let final_outputs = final_state.final_outputs();
 
         // Verify

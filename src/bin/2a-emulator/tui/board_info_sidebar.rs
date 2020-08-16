@@ -1,12 +1,9 @@
 //! Everything related to drawing info about the MR2DA2.
 //! See [`BoardInfoSidebarWidget`] for a render example.
+use emulator_2a_lib::machine::{Board, DASR};
 use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget};
 
-use crate::{
-    helpers,
-    machine::{Board, DASR},
-    tui::SupervisorWrapperState,
-};
+use crate::{helpers, tui::MachineState};
 
 const FAN_RPM_OFFSET: u16 = 0;
 const IRG_OFFSET: u16 = 2;
@@ -51,12 +48,12 @@ pub struct BoardInfoSidebarWidget;
 
 impl StatefulWidget for BoardInfoSidebarWidget {
     /// Input registers FC, FD, FE, FF.
-    type State = SupervisorWrapperState;
+    type State = MachineState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         render_fan_rpm(area, buf, state);
 
-        let board = state.machine().bus.board();
+        let board = state.machine.bus().board();
         render_digital_io(area, buf, board);
         render_analog_io(area, buf, board);
         render_uios(area, buf, board);
@@ -71,12 +68,12 @@ impl StatefulWidget for BoardInfoSidebarWidget {
 /// ```text
 /// 16 RPM +
 /// ```
-pub fn render_fan_rpm(area: Rect, buf: &mut Buffer, state: &mut SupervisorWrapperState) {
+pub fn render_fan_rpm(area: Rect, buf: &mut Buffer, state: &mut MachineState) {
     // Display fan speed in rpm
-    if *state.machine().bus.board().fan_rpm() != 0 {
+    if *state.machine.bus().board().fan_rpm() != 0 {
         let s = format!(
             "{:>4} RPM {}",
-            state.machine().bus.board().fan_rpm(),
+            state.machine.bus().board().fan_rpm(),
             if state.draw_counter % 10 < 5 {
                 "×"
             } else {
@@ -102,8 +99,8 @@ pub fn render_fan_rpm(area: Rect, buf: &mut Buffer, state: &mut SupervisorWrappe
 /// 0x02 ORG2
 /// ```
 pub fn render_digital_io(area: Rect, buf: &mut Buffer, board: &Board) {
-    if *board.irg() != 0 {
-        let s = format!("{:>02X}  IRG", board.irg());
+    if *board.digital_input1() != 0 {
+        let s = format!("{:>02X}  IRG", board.digital_input1());
         buf.set_string(
             area.right() - 9,
             area.y + IRG_OFFSET,
@@ -112,8 +109,8 @@ pub fn render_digital_io(area: Rect, buf: &mut Buffer, board: &Board) {
         );
         buf.set_string(area.right() - 7, area.y + IRG_OFFSET, s, Style::default());
     }
-    if *board.org1() != 0 {
-        let s = format!("{:>02X} ORG1", board.org1());
+    if *board.digital_output1() != 0 {
+        let s = format!("{:>02X} ORG1", board.digital_output1());
         buf.set_string(
             area.right() - 9,
             area.y + ORG1_OFFSET,
@@ -122,8 +119,8 @@ pub fn render_digital_io(area: Rect, buf: &mut Buffer, board: &Board) {
         );
         buf.set_string(area.right() - 7, area.y + ORG1_OFFSET, s, Style::default());
     }
-    if *board.org2() != 0 {
-        let s = format!("{:>02X} ORG2", board.org2());
+    if *board.digital_output2() != 0 {
+        let s = format!("{:>02X} ORG2", board.digital_output2());
         buf.set_string(
             area.right() - 9,
             area.y + ORG2_OFFSET,
