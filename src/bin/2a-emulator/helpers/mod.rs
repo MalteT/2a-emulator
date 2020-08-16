@@ -1,8 +1,7 @@
 //! Types and Functions to aid the program.
 
 use colored::Colorize;
-use parser2a::asm::Asm;
-use parser2a::parser::AsmParser;
+use emulator_2a_lib::parser::{Asm, AsmParser};
 
 use std::fs::read_to_string;
 use std::path::PathBuf;

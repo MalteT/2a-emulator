@@ -203,7 +203,7 @@ impl fmt::Display for Asm {
 
 #[cfg(test)]
 mod test {
-    use crate::asm::*;
+    use super::*;
 
     macro_rules! s {
         ($val:expr, $expect:expr) => {
@@ -250,21 +250,22 @@ mod test {
 
     #[test]
     fn test_display_instruction() {
-        s!(Instruction::AsmOrigin(17.into()), ".ORG 0x11");
+        s!(Instruction::AsmOrigin(17.into()), ".ORG 17");
         s!(Instruction::AsmByte(0x0A.into()), ".BYTE 10");
         s!(
             Instruction::AsmDefineBytes(vec![0.into(), 255.into(), 33.into(), 1.into()]),
             ".DB 0x00, 0xFF, 0x21, 0x01"
         );
-        s!(
-            Instruction::AsmDefineWords(vec![
-                0.into(),
-                (255 * 255).into(),
-                33.into(),
-                (0x1000).into()
-            ]),
-            ".DW 0x0000, 0xFE01, 0x0021, 0x1000"
-        );
+        // TODO: Reimplement .DW
+        // s!(
+        //     Instruction::AsmDefineWords(vec![
+        //         0.into(),
+        //         (255 * 255).into(),
+        //         33.into(),
+        //         (0x1000).into()
+        //     ]),
+        //     ".DW 0x0000, 0xFE01, 0x0021, 0x1000"
+        // );
         s!(
             Instruction::AsmEquals("label".into(), 0xf1.into()),
             ".EQU label 0xF1"

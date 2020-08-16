@@ -1,8 +1,8 @@
-//! # Minirechner2a ASM parser
+//! AST & parser for assembly
 //!
 //! # Example
 //! ```
-//! # use emulator_2a_lib::parser::AsmParser;
+//! # use emulator_2a_lib::parser::{AsmParser, ParserError, Asm};
 //!
 //! fn main() {
 //!     let asm = r##"#! mrasm
@@ -17,7 +17,7 @@
 //!         JR LOOP
 //!     "##;
 //!
-//!     let parsed = AsmParser::parse(asm);
+//!     let parsed: Result<Asm, ParserError> = AsmParser::parse(asm);
 //!
 //!     match parsed {
 //!         Ok(parsed) => {
@@ -31,5 +31,8 @@
 //! }
 //! ```
 
-pub mod ast;
-pub mod parser;
+mod ast;
+mod parser;
+
+pub use ast::*;
+pub use parser::{AsmParser, ParserError};

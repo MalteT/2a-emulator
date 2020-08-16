@@ -5,8 +5,7 @@
 //! # Example
 //!
 //! ```
-//! # use emulator_2a_lib::compiler::{Translator};
-//! # use parser2a::parser::AsmParser;
+//! # use emulator_2a_lib::{parser::AsmParser, compiler::{Translator}};
 //! let asm = r#"
 //!     #! mrasm
 //!
@@ -22,12 +21,13 @@
 //!
 //! ```
 use colored::Colorize;
-use parser2a::asm::{
+
+use std::{collections::HashMap, fmt, ops::Deref, rc::Rc};
+
+use crate::parser::{
     Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Register,
     RegisterDDI, RegisterDI, Source, Stacksize,
 };
-
-use std::{collections::HashMap, fmt, ops::Deref, rc::Rc};
 
 /// An either type for [`u8`]/[`Label`].
 ///

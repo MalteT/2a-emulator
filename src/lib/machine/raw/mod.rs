@@ -1,7 +1,6 @@
 //! The actual emulated machine.
 
 use log::{trace, warn};
-use parser2a::asm::Stacksize;
 
 mod signals;
 
@@ -9,6 +8,7 @@ use super::{
     AluInput, AluOutput, Bus, Instruction, InstructionRegister, MicroprogramRam, Register,
     RegisterNumber, Word,
 };
+use crate::parser::Stacksize;
 pub use signals::Signals;
 
 /// A marker for an Interrupt.

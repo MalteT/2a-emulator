@@ -1,7 +1,6 @@
 use colored::*;
-use emulator_2a_lib::machine::State;
+use emulator_2a_lib::{machine::State, parser::Asm};
 use log::{info, trace};
-use parser2a::asm::Asm;
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;

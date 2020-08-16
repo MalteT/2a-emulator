@@ -5,6 +5,7 @@ use std::fmt;
 
 use super::Rule;
 
+/// Possible failures while parsing assembly.
 #[derive(Debug, Fail)]
 pub enum ParserError {
     /// Some syntax violation occured.

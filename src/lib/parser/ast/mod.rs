@@ -1,7 +1,6 @@
 pub type Comment = String;
 pub type Label = String;
 
-#[cfg(feature = "formatting")]
 mod format;
 mod trait_impls;
 

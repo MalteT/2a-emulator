@@ -1,0 +1,131 @@
+// Most basic char rules
+eol           = ${ NEWLINE }
+colon         = ${ ":" }
+semicolon     = ${ ";" }
+ws            = ${ (" " | "\t") }
+space         = ${ ws+ }
+comma         = ${ "," }
+oparen        = ${ "(" }
+cparen        = ${ ")" }
+plus          = ${ "+" }
+sep_ip        = ${ ws+ }         // Seperator between instruction and parameter
+sep_pp        = ${ "," ~ ws* }   // Seperator between two parameters
+// These constants are very explicit to match only 0 - 255
+constant_bin  =  { "0b" ~ ("0"* ~ ASCII_BIN_DIGIT{1,8} | "0"+) }
+constant_hex  =  { "0x" ~ ("0"* ~ ASCII_HEX_DIGIT{1,2} | "0"+) }
+constant_dec  =  { ( "0"* ~ ( ( "2"      ~ "5"      ~ '0'..'5' ) |
+                             ( "2"      ~ '0'..'4' ~ '0'..'9' ) |
+                             ( "1"      ~ '0'..'9' ~ '0'..'9' ) |
+                                        ( '1'..'9' ~ '0'..'9' ) |
+                                                     '1'..'9'   ) ) | "0"+ }
+constant      =  { constant_bin | constant_hex | constant_dec | raw_label }
+// Explicit words for the range 0 - 65536
+word_bin      =  { "0b" ~ ("0"* ~ ASCII_BIN_DIGIT{1,16} | "0"+) }
+word_hex      =  { "0x" ~ ("0"* ~ ASCII_HEX_DIGIT{1,4} | "0"+) }
+word_dec      =  { ( "0"* ~ ( ( "6553"                                    ~ '0'..'5' ) |
+                            ( "655"                          ~ '0'..'2' ~ '0'..'9' ) |
+                            ( "65"                ~ '0'..'4' ~ '0'..'9' ~ '0'..'9' ) |
+                            ( "6"      ~ '0'..'4' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ) |
+                            ( '1'..'5' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ) |
+                            (            '1'..'9' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ) |
+                            (                       '1'..'9' ~ '0'..'9' ~ '0'..'9' ) |
+                            (                                  '1'..'9' ~ '0'..'9' ) |
+                            (                                             '1'..'9' ) )
+                   ) | "0"+ }
+word          =  { word_bin | word_hex | word_dec | raw_label }
+// The rest of a line
+rest          =  { ( !eol ~ ANY )* }
+// A raw label, without a colon
+raw_label     =  { !(^"R"|^"PC"|^"SP") ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+// All stacksize values
+raw_stacksize =  { "16" | "32" | "48" | "64" | ^"NOSET" }
+// Possible register values
+register      =  { ( ^"R" ~ '0'..'3' ) | "PC" }
+// Dereferenced and double dereferenced registers
+registerdi    =  { oparen ~ register ~ plus ~ cparen }
+registerddi   =  { oparen ~ registerdi ~ cparen }
+// Possible dereferenciations
+memory        =  { oparen ~ (constant | register | raw_label) ~ cparen }
+// Equivalent to the src/dst mentions in the manual
+source        =  { register | registerdi | registerddi | memory | constant }
+destination   =  { register | registerdi | registerddi | memory }
+// Assembler operations
+org           =  { ^".ORG"       ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
+byte          =  { ^".BYTE"      ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
+db            =  { ^".DB"        ~ sep_ip ~ constant       ~ ( sep_pp ~ constant )*        }
+equ           =  { ^".EQU"       ~ sep_ip ~ raw_label      ~   sep_pp ~ constant           }
+stacksize     =  { ^"*STACKSIZE" ~ sep_ip ~ raw_stacksize  }
+// Arithmetic operations
+clr           =  { ^"CLR" ~ sep_ip ~ register }
+add           =  { ^"ADD" ~ sep_ip ~ register ~ sep_pp ~ register }
+adc           =  { ^"ADC" ~ sep_ip ~ register ~ sep_pp ~ register }
+sub           =  { ^"SUB" ~ sep_ip ~ register ~ sep_pp ~ register }
+mul           =  { ^"MUL" ~ sep_ip ~ register ~ sep_pp ~ register }
+div           =  { ^"DIV" ~ sep_ip ~ register ~ sep_pp ~ register }
+inc           =  { ^"INC" ~ sep_ip ~ register }
+dec           =  { ^"DEC" ~ sep_ip ~ source   }
+// Logic operations
+and           =  { ^"AND"  ~ sep_ip ~ register    ~ sep_pp ~ register }
+or            =  { ^"OR"   ~ sep_ip ~ register    ~ sep_pp ~ register }
+xor           =  { ^"XOR"  ~ sep_ip ~ register    ~ sep_pp ~ register }
+com           =  { ^"COM"  ~ sep_ip ~ register    }
+neg           =  { ^"NEG"  ~ sep_ip ~ register    }
+bits          =  { ^"BITS" ~ sep_ip ~ destination ~ sep_pp ~ source   }
+bitc          =  { ^"BITC" ~ sep_ip ~ destination ~ sep_pp ~ source   }
+// Test / Comparison operations
+tst           =  { ^"TST"  ~ sep_ip ~ register    }
+cmp           =  { ^"CMP"  ~ sep_ip ~ destination ~ sep_pp ~ source }
+bitt          =  { ^"BITT" ~ sep_ip ~ destination ~ sep_pp ~ source }
+// Bit-Shift operations
+lsr           =  { ^"LSR" ~ sep_ip ~ register }
+asr           =  { ^"ASR" ~ sep_ip ~ register }
+lsl           =  { ^"LSL" ~ sep_ip ~ register }
+rrc           =  { ^"RRC" ~ sep_ip ~ register }
+rlc           =  { ^"RLC" ~ sep_ip ~ register }
+// Data-Copying operations
+mov           =  { ^"MOV"   ~ sep_ip ~ destination ~ sep_pp   ~ source   }
+ld_const      =  { ^"LD"    ~ sep_ip ~ register    ~ sep_pp   ~ constant }
+ld_memory     =  { ^"LD"    ~ sep_ip ~ register    ~ sep_pp   ~ memory   }
+st            =  { ^"ST"    ~ sep_ip ~ memory      ~ sep_pp   ~ register }
+push          =  { ^"PUSH"  ~ sep_ip ~ register    }
+pop           =  { ^"POP"   ~ sep_ip ~ register    }
+pushf         =  { ^"PUSHF" }
+popf          =  { ^"POPF"  }
+ldsp          =  { ^"LDSP"  ~ sep_ip ~ source      }
+ldfr          =  { ^"LDFR"  ~ sep_ip ~ source      }
+// Decision-Making operations
+jmp           =  { ^"JMP" ~ sep_ip ~ raw_label }
+jcs           =  { ^"JCS" ~ sep_ip ~ raw_label }
+jcc           =  { ^"JCC" ~ sep_ip ~ raw_label }
+jzs           =  { ^"JZS" ~ sep_ip ~ raw_label }
+jzc           =  { ^"JZC" ~ sep_ip ~ raw_label }
+jns           =  { ^"JNS" ~ sep_ip ~ raw_label }
+jnc           =  { ^"JNC" ~ sep_ip ~ raw_label }
+jr            =  { ^"JR"  ~ sep_ip ~ raw_label }
+// Call and Return
+call          =  { ^"CALL" ~ sep_ip ~ raw_label }
+ret           =  { ^"RET"  }
+reti          =  { ^"RETI" }
+// Misc operations
+stop          =  { ^"STOP" }
+nop           =  { ^"NOP"  }
+ei            =  { ^"EI"   }
+di            =  { ^"DI"   }
+// All possible instructions understood by the assembler
+instruction   =  { org | byte | db | equ | stacksize | clr | add | adc | sub
+                 | mul | div | inc | dec | neg | and | or | xor | com | bits | bitc
+                 | tst | cmp | bitt | lsr | asr | lsl | rrc | rlc | mov | ld_const
+                 | ld_memory | st | push | pop | pushf | popf | ldsp | ldfr | jmp
+                 | jcs | jcc | jzs | jzc | jns | jnc | jr | call | reti | ret
+                 | stop | nop | ei | di }
+// A comment at the end of a line, prefixed by a semicolon
+comment       =  { semicolon ~ rest }
+// A jump target, like "MAIN:"
+label         =  { raw_label ~ colon }
+// Always the first line of a program ('#! mrasm') possibly ended by a comment.
+header        =  { "#! mrasm" ~ ws? ~ comment? ~ (eol | EOI) }
+// A single asm line, possibly containing a label or an instruction.
+// A comment can be used at the end of the line.
+line          =  { space? ~ (label | instruction)? ~ space? ~ comment? }
+// The complete asm file
+file          = _{ SOI ~ header ~ (line ~ eol)* ~ line ~ EOI }
