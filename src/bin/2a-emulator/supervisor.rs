@@ -2,9 +2,9 @@
 use emulator_2a_lib::{
     compiler::Translator,
     machine::{Machine, State},
+    parser::Asm,
 };
 use log::trace;
-use parser2a::asm::Asm;
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;

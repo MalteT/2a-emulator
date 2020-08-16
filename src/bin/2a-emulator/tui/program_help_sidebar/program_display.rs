@@ -1,6 +1,5 @@
 //! Everythin related to drawing the [`ProgramDisplayWidget`].
-use emulator_2a_lib::compiler::ByteCode;
-use parser2a::asm::Line;
+use emulator_2a_lib::{compiler::ByteCode, parser::Line};
 use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget};
 
 use std::ops::Range;

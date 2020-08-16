@@ -2,8 +2,8 @@
 //!
 //! This module defines the error type used through-out the program.
 
+use emulator_2a_lib::parser::ParserError;
 use failure::Fail;
-use parser2a::parser::ParserError;
 use pest::error::Error as PestError;
 
 use std::fmt;
