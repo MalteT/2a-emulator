@@ -22,7 +22,7 @@
 //!   - [`verify`ing programs](#verifying-programs)
 //!   - [`test`ing programs](#testing-programs)
 //! - [Compilation flags](#compilation-flags)
-//! - [Implementation & Contribution](#implementation-&-contribution)
+//! - [Implementation & Contribution](#implementation--contribution)
 //!
 //!
 //! ## Installation
@@ -78,12 +78,12 @@
 //! interactive` the interactive terminal user interface (TUI) is started.
 //!
 //! ![*An image showing the interactive
-//! interface*](https://raw.githubusercontent.com/MalteT/2a-emulator/master/static/interactive-tui.svg)
+//! interface*](https://raw.githubusercontent.com/MalteT/2a-emulator/main/static/interactive-tui.svg)
 //!
 //! Let's annotate the interface to make sure that we're all on the same page.
 //!
 //! ![*An image showing the interactive
-//! interface with helpful annotations*](https://raw.githubusercontent.com/MalteT/2a-emulator/master/static/interactive-tui-annotated.svg)
+//! interface with helpful annotations*](https://raw.githubusercontent.com/MalteT/2a-emulator/main/static/interactive-tui-annotated.svg)
 //!
 //! **See `2a-emulator interactive --help` for a full list of options.**
 //!

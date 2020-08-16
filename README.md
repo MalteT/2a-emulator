@@ -24,7 +24,7 @@ is versatile enough to test solutions.
   - [`verify`ing programs](#verifying-programs)
   - [`test`ing programs](#testing-programs)
 - [Compilation flags](#compilation-flags)
-- [Implementation & Contribution](#implementation-&-contribution)
+- [Implementation & Contribution](#implementation--contribution)
 
 
 ### Installation
@@ -80,12 +80,12 @@ When starting the `2a-emulator` without any parameters or by using `2a-emulator
 interactive` the interactive terminal user interface (TUI) is started.
 
 ![*An image showing the interactive
-interface*](https://raw.githubusercontent.com/MalteT/2a-emulator/master/static/interactive-tui.svg)
+interface*](https://raw.githubusercontent.com/MalteT/2a-emulator/main/static/interactive-tui.svg)
 
 Let's annotate the interface to make sure that we're all on the same page.
 
 ![*An image showing the interactive
-interface with helpful annotations*](https://raw.githubusercontent.com/MalteT/2a-emulator/master/static/interactive-tui-annotated.svg)
+interface with helpful annotations*](https://raw.githubusercontent.com/MalteT/2a-emulator/main/static/interactive-tui-annotated.svg)
 
 **See `2a-emulator interactive --help` for a full list of options.**
 
@@ -252,6 +252,6 @@ The binary is based on the `emulator-2a-lib` library, that is contained in this 
 **Contributions are very welcome!** Additionally, other frontends could be added. I.e. a web-based
 emulator is planned and might be added in the future.
 
-Current version: 5.0.0
+Current version: 6.0.0
 
 License: GPL-3.0
