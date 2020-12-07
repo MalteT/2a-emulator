@@ -1,7 +1,9 @@
 name: Build
 on:
- - push
- - schedule:
+  push:
+    branches:
+      - main
+  schedule:
     - cron: "0 0 * * 0"
 jobs:
   test:
