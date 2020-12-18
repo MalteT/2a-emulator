@@ -15,7 +15,7 @@ use crate::helpers;
 use crate::supervisor::{EmulationParameter, Supervisor};
 
 #[derive(Debug, Parser)]
-#[grammar = "../static/tests.pest"]
+#[grammar = "../syntax/tests.pest"]
 struct TestParser;
 
 #[derive(Debug, Clone, Copy)]

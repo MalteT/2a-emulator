@@ -19,7 +19,7 @@ type ParseResult<T> = Result<T, ParserError>;
 /// Parser for valid Minirechner 2a assembly files.
 /// See [module documentation](crate::parser) for more information.
 #[derive(Parser)]
-#[grammar = "../static/mrasm.pest"]
+#[grammar = "../syntax/mrasm.pest"]
 pub struct AsmParser;
 
 /// Parse inner elements of a [`Pair`] into a tuple.
