@@ -1,0 +1,10 @@
+sep          = ${ ws? ~ "|" ~ ws? }
+ws           = _{ ( " " | "\t" )+ }
+
+digit        = ${ ws? ~ ("0" | "1") }
+instruction  = ${ ( !sep ~ ANY )* }
+address      =  { digit{9} }
+word         =  { digit{28} }
+
+line         =  { address ~ sep ~ instruction? ~ sep ~ word? ~ ws? }
+file         = _{ SOI ~ (line ~ NEWLINE)* ~ line? ~ EOI }

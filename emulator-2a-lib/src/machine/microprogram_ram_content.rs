@@ -1,0 +1,515 @@
+// This file is not a module but directly included by the rest of the source code
+[
+    Word::from_bits_truncate(0b0011001110000000000000011000), // 000000000 | NOP:
+    Word::from_bits_truncate(0b0011001110010000000010111000), // 000000001 | CLR Rd: (clear reg)
+    Word::from_bits_truncate(0b0000001000001001000010100100), // 000000010 | EI: (F OR 8)
+    Word::from_bits_truncate(0b0000001010001000100010000100), // 000000011 | DI: (F AND 7)
+    Word::from_bits_truncate(0b0000001100001000100010000100), // 000000100 | (EI)
+    Word::from_bits_truncate(0b0000001100001001000010100100), // 000000101 | (DI)
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 000000110 | no int:
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 000000111 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000001000
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000001001
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000001010
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000001011
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000001100
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000001101
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000001110
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000001111
+    Word::from_bits_truncate(0b0000100010001011111010101000), // 000010000 | PUSH FR: DEC SP
+    Word::from_bits_truncate(0b0000100101101010100000011000), // 000010001 | ... MOV (SP),FR
+    Word::from_bits_truncate(0b0000100110001011111010101000), // 000010010 | PUSH PC: DEC SP
+    Word::from_bits_truncate(0b0000101001101010011000011000), // 000010011 | ... MOV (SP),PC
+    Word::from_bits_truncate(0b0000101010001000100010000100), // 000010100 | DI
+    Word::from_bits_truncate(0b0000101100001001000010100100), // 000010101 | ... DI
+    Word::from_bits_truncate(0b0000101110000110010010111000), // 000010110 | JUMP 2: MOV PC,2
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 000010111 | next opcode
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000011000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000011001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000011010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000011011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000011100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000011101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000011110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000011111 |
+    Word::from_bits_truncate(0b0000001000010000110110000010), // 000100000 | PUSH Rn: MOV R6,Rn
+    Word::from_bits_truncate(0b0000001100101010110111000010), // 000100001 | POP Rn: MOV R6,(SP)
+    Word::from_bits_truncate(0b0000001000001000110110000010), // 000100010 | PUSH F: MOV R6,R4
+    Word::from_bits_truncate(0b0000001110101010100111000010), // 000100011 | POP F: MOV R4,(SP)
+    Word::from_bits_truncate(0b0000001010001011111010101000), // 000100100 | PUSH: DEC SP
+    Word::from_bits_truncate(0b0011010011101010110000011000), // 000100101 | MOV (SP),R6
+    Word::from_bits_truncate(0b0000001110010000110010011000), // 000100110 | POP: MOV Rd,R6
+    Word::from_bits_truncate(0b0011010010001010001010101000), // 000100111 | INC SP
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 000101000 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 000101001 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000101010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000101011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000101100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000101101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000101110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000101111 |
+    Word::from_bits_truncate(0b0011010010010000110010011000), // 000110000 | MOV Rd,R6
+    Word::from_bits_truncate(0b0011010011110000110000011000), // 000110001 | MOV (Rd),R6
+    Word::from_bits_truncate(0b0000101011110000110000011000), // 000110010 | [MOV (Rd+),R6]
+    Word::from_bits_truncate(0b0000101000110000111111000010), // 000110011 | [MOV ((Rd+)),R6]
+    Word::from_bits_truncate(0b0000101011101110110000011000), // 000110100 | MOV (R7),R6
+    Word::from_bits_truncate(0b0011010010010000001010101000), // 000110101 | INC Rd
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000110110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000110111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000111000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000111001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000111010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000111011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000111100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000111101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000111110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 000111111 |
+    Word::from_bits_truncate(0b0001001000000000000000011000), // 001000000 | JR cond,offs:
+    Word::from_bits_truncate(0b0001001000000000000000011000), // 001000001 | (JR cond,offs):
+    Word::from_bits_truncate(0b0000001100001011111010101000), // 001000010 | CALL adr: DEC SP
+    Word::from_bits_truncate(0b0000010100101010011111000010), // 001000011 | RETI: POP PC
+    Word::from_bits_truncate(0b0011011110000110001010101000), // 001000100 | JR, condition nicht erfüllt:
+    Word::from_bits_truncate(0b0011011110100110011011001010), // 001000101 | JR, condition erfüllt:
+    Word::from_bits_truncate(0b0000001110000110110110000010), // 001000110 | CALL: MOV R6,PC
+    Word::from_bits_truncate(0b0000010000000110001010101000), // 001000111 | ... INC PC
+    Word::from_bits_truncate(0b0000010011101010011000011000), // 001001000 | ... PUSH PC
+    Word::from_bits_truncate(0b0011011110101100011111000010), // 001001001 | ... MOV PC,(R6)
+    Word::from_bits_truncate(0b0000010110001010001010101000), // 001001010 | RETI: POP PC: INC SP
+    Word::from_bits_truncate(0b0000011000101010100111000010), // 001001011 | ... POP FR
+    Word::from_bits_truncate(0b0000011100001010001010101000), // 001001100 | ... INC SP
+    Word::from_bits_truncate(0b0000000000000000000000011000), // 001001101 | - frei -
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 001001110 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 001001111 | int:
+    Word::from_bits_truncate(0b0000101100010000111110000010), // 001010000 | Rd: MOV R7,Rd
+    Word::from_bits_truncate(0b0000101100110000111111000010), // 001010001 | (Rd): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000101010110000111111000010), // 001010010 | (Rd+): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000101000110000111111000010), // 001010011 | ((Rd+)): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000101010101110111111000010), // 001010100 | MOV R7,(R7)
+    Word::from_bits_truncate(0b0000101100010000001010101000), // 001010101 | INC Rd
+    Word::from_bits_truncate(0b0000101110001100110010000100), // 001010110 | COM R6
+    Word::from_bits_truncate(0b0011011110001100111000001011), // 001010111 | ADD R7,R6,1
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001011000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001011001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001011010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001011011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001011100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001011101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001011110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001011111 |
+    Word::from_bits_truncate(0b0011001110010000000010100101), // 001100000 | COM Rn:
+    Word::from_bits_truncate(0b0000001000010000000010100100), // 001100001 | NEG Rn: COM Rn
+    Word::from_bits_truncate(0b0011001110010000000010010001), // 001100010 | LSR Rn:
+    Word::from_bits_truncate(0b0011001110010000000010010111), // 001100011 | ASR Rn:
+    Word::from_bits_truncate(0b0011001110010000001010101001), // 001100100 | NEG: INC Rn
+    Word::from_bits_truncate(0b0000000000000000000000011000), // 001100101 | (frei)
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 001100110 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 001100111 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001101000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001101001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001101010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001101011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001101100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001101101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001101110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001101111 |
+    Word::from_bits_truncate(0b0000101100010000111110000010), // 001110000 | Rd: MOV R7,Rd
+    Word::from_bits_truncate(0b0000101100110000111111000010), // 001110001 | (Rd): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000101010110000111111000010), // 001110010 | (Rd+): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000101000110000111111000010), // 001110011 | ((Rd+)): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000101010101110111111000010), // 001110100 | MOV R7,(R7)
+    Word::from_bits_truncate(0b0000101100010000001010101000), // 001110101 | INC Rd
+    Word::from_bits_truncate(0b0000101110001100110010000100), // 001110110 | COM R6
+    Word::from_bits_truncate(0b0000110000001110111010000100), // 001110111 | COM R7
+    Word::from_bits_truncate(0b0011001110001100111000000101), // 001111000 | NOR R7,R6
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001111001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001111010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001111011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001111100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001111101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001111110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 001111111 |
+    Word::from_bits_truncate(0b0011001110010000000010010101), // 010000000 | RRC Rn:
+    Word::from_bits_truncate(0b0011001110010000001010101001), // 010000001 | INC Rn:
+    Word::from_bits_truncate(0b0011001110010000000000000011), // 010000010 | TST Rn:
+    Word::from_bits_truncate(0b0000000110000000000000011000), // 010000011 | frei: unbekannter opcode
+    Word::from_bits_truncate(0b0000000000000000000000011000), // 010000100 | (frei)
+    Word::from_bits_truncate(0b0000000000000000000000011000), // 010000101 | (frei)
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 010000110 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 010000111 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010001000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010001001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010001010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010001011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010001100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010001101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010001110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010001111 |
+    Word::from_bits_truncate(0b0011001110001010110010011001), // 010010000 | LDSP: MOV R5, R6
+    Word::from_bits_truncate(0b0011001110001000110010011001), // 010010001 | LDFR: MOV R4,R6
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 010010010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 010010011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010010100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010010101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010010110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010010111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010011000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010011001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010011010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010011011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010011100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010011101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010011110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010011111 |
+    Word::from_bits_truncate(0b0011011010010001110010101011), // 010100000 | DEC Rd:
+    Word::from_bits_truncate(0b0000001000110000110111000010), // 010100001 | DEC (Rd):
+    Word::from_bits_truncate(0b0000001100110000110111000010), // 010100010 | DEC (Rd+):
+    Word::from_bits_truncate(0b0000010000110000111111000010), // 010100011 | DEC ((Rd+)): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000001010001101110010101011), // 010100100 | DEC R6
+    Word::from_bits_truncate(0b0011011011110000110000011000), // 010100101 | MOV (Rd),R6
+    Word::from_bits_truncate(0b0000001110001101110010101011), // 010100110 | DEC R6
+    Word::from_bits_truncate(0b0000010111110000110000011000), // 010100111 | MOV (Rd),R6
+    Word::from_bits_truncate(0b0000010010101110110111000010), // 010101000 | MOV R6,(R7)
+    Word::from_bits_truncate(0b0000010100001101110010101011), // 010101001 | DEC R6
+    Word::from_bits_truncate(0b0000010111101110110000011000), // 010101010 | MOV (R7),R6
+    Word::from_bits_truncate(0b0011011010010000001010101000), // 010101011 | INC Rd
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 010101100 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 010101101 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010101110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010101111 |
+    Word::from_bits_truncate(0b0000101000010000110110000100), // 010110000 | Rd: NOR R6,Rd
+    Word::from_bits_truncate(0b0000101100110000110111000100), // 010110001 | (Rd): NOR R6,(Rd)
+    Word::from_bits_truncate(0b0000110000110000110111000100), // 010110010 | (Rd+): NOR R6,(Rd)
+    Word::from_bits_truncate(0b0000110110110000111111000010), // 010110011 | ((Rd+)): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000101010001100110010000100), // 010110100 | Rd: COM R6
+    Word::from_bits_truncate(0b0011011010010000110010011001), // 010110101 | ... MOV Rd,R6
+    Word::from_bits_truncate(0b0000101110001100110010000100), // 010110110 | (Rd): COM R6
+    Word::from_bits_truncate(0b0011011011110000110000011001), // 010110111 | ... MOV (Rd),R6
+    Word::from_bits_truncate(0b0000110010001100110010000100), // 010111000 | (Rd+): COM R6
+    Word::from_bits_truncate(0b0000110101110000110000011001), // 010111001 | ... MOV (Rd),R6
+    Word::from_bits_truncate(0b0011011010010000001010101000), // 010111010 | ... INC Rd
+    Word::from_bits_truncate(0b0000111000101110110111000100), // 010111011 | ((Rd+)): NOR R6,(R7)
+    Word::from_bits_truncate(0b0000111010001100110010000100), // 010111100 | ... COM R6
+    Word::from_bits_truncate(0b0000111101101110110000011001), // 010111101 | ... MOV (R7),R6
+    Word::from_bits_truncate(0b0011011010010000001010101000), // 010111110 | ... INC Rd
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 010111111 |
+    Word::from_bits_truncate(0b0011001010010001000010001001), // 011000000 | ADD Rd, Rs:
+    Word::from_bits_truncate(0b0011001010010001000010001001), // 011000001 | (ADD Rd, Rs):
+    Word::from_bits_truncate(0b0011001010010001000010001001), // 011000010 | (ADD Rd, Rs):
+    Word::from_bits_truncate(0b0011001010010001000010001001), // 011000011 | (ADD Rd, Rs):
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 011000100 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 011000101 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011000110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011000111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011001000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011001001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011001010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011001011 |
+    Word::from_bits_truncate(0b0000011010001110111010000100), // 011001100 | (Rd+): COM R7
+    Word::from_bits_truncate(0b0000011100001110110010000100), // 011001101 | ... NOR R7,R6
+    Word::from_bits_truncate(0b0000011111110000111000011001), // 011001110 | ... MOV (Rd),R7
+    Word::from_bits_truncate(0b0011001010010000001010101000), // 011001111 | ... INC Rd
+    Word::from_bits_truncate(0b0000101000010000111110000010), // 011010000 | Rd: MOV R7,Rd
+    Word::from_bits_truncate(0b0000101110110000111111000010), // 011010001 | (Rd): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000011000110000111111000010), // 011010010 | (Rd+): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000110100110000111111000010), // 011010011 | ((Rd+)): MOV R7,(Rd)
+    Word::from_bits_truncate(0b0000101010001110111010000100), // 011010100 | Rd: COM R7
+    Word::from_bits_truncate(0b0000101100001110110010000100), // 011010101 | ... NOR R7,R6
+    Word::from_bits_truncate(0b0011001010010000111010011001), // 011010110 | ... MOV Rd,R7
+    Word::from_bits_truncate(0b0000110000001110111010000100), // 011010111 | (Rd): COM R7
+    Word::from_bits_truncate(0b0000110010001110110010000100), // 011011000 | ... NOR R7,R6
+    Word::from_bits_truncate(0b0011001011110000111000011001), // 011011001 | ... MOV (Rd),R7
+    Word::from_bits_truncate(0b0000110110101110111111000010), // 011011010 | ((Rd+)): MOV R7,(R7)
+    Word::from_bits_truncate(0b0000111000001110111010000100), // 011011011 | ... COM R7
+    Word::from_bits_truncate(0b0000111010001110110010000100), // 011011100 | ... NOR R7,R6
+    Word::from_bits_truncate(0b0000111100110000110111000010), // 011011101 | ... MOV R6,(Rd)
+    Word::from_bits_truncate(0b0000111111101100111000011001), // 011011110 | ... MOV (R6),R7
+    Word::from_bits_truncate(0b0011001010010000001010101000), // 011011111 | ... INC Rd
+    Word::from_bits_truncate(0b0011001010010001000010001101), // 011100000 | ADC Rd, Rs:
+    Word::from_bits_truncate(0b0011001010010001000010001101), // 011100001 | (ADC Rd, Rs):
+    Word::from_bits_truncate(0b0011001010010001000010001101), // 011100010 | (ADC Rd, Rs):
+    Word::from_bits_truncate(0b0011001010010001000010001101), // 011100011 | (ADC Rd, Rs):
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 011100100 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 011100101 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011100110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011100111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011101000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011101001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011101010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011101011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011101100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011101101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011101110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011101111 |
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 011110000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100010000000000000011000), // 011110001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 011110010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 011110011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011110100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011110101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011110110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011110111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011111000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011111001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011111010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011111011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011111100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011111101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011111110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 011111111 |
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 100000000 | SUB Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 100000001 | (SUB Rd, Rs): MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 100000010 | (SUB Rd, Rs): MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 100000011 | (SUB Rd, Rs): MOV R6,Rs
+    Word::from_bits_truncate(0b0000001010001100110010000100), // 100000100 | COM R6
+    Word::from_bits_truncate(0b0011001110010000110010001011), // 100000101 | ADD Rd,R6,1
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 100000110 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 100000111 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100001000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100001001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100001010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100001011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100001100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100001101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100001110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100001111 |
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 100010000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100010000000000000011000), // 100010001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 100010010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 100010011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100010100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100010101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100010110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100010111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100011000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100011001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100011010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100011011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100011100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100011101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100011110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100011111 |
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 100100000 | AND Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 100100001 | AND Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 100100010 | AND Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 100100011 | AND Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001010010000111110000010), // 100100100 | MOV R7,Rd
+    Word::from_bits_truncate(0b0000001100001110111010000100), // 100100101 | COM R7
+    Word::from_bits_truncate(0b0000001110001100110010000100), // 100100110 | COM R6
+    Word::from_bits_truncate(0b0000010000001110110010000101), // 100100111 | NOR R7,R6
+    Word::from_bits_truncate(0b0011010110010000111010011000), // 100101000 | MOV Rd,R7
+    Word::from_bits_truncate(0b0000000000000000000000011000), // 100101001 | frei
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 100101010 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 100101011 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100101100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100101101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100101110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100101111 |
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 100110000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100010000000000000011000), // 100110001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 100110010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 100110011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100110100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100110101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100110110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100110111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100111000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100111001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100111010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100111011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100111100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100111101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100111110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 100111111 |
+    Word::from_bits_truncate(0b0000001000010000111110000010), // 101000000 | OR Rd, Rs: MOV R7,Rd
+    Word::from_bits_truncate(0b0000001000010000111110000010), // 101000001 | (OR Rd, Rs): MOV R7,Rd
+    Word::from_bits_truncate(0b0000001000010000111110000010), // 101000010 | (OR Rd, Rs): MOV R7,Rd
+    Word::from_bits_truncate(0b0000001000010000111110000010), // 101000011 | (OR Rd, Rs): MOV R7,Rd
+    Word::from_bits_truncate(0b0000001010001111000010000100), // 101000100 | NOR R7,Rs
+    Word::from_bits_truncate(0b0000001100001110111010000101), // 101000101 | COM R7
+    Word::from_bits_truncate(0b0011010010010000111010011000), // 101000110 | MOV Rd,R7
+    Word::from_bits_truncate(0b0000000000000000000000011000), // 101000111 |
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 101001000 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 101001001 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101001010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101001011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101001100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101001101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101001110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101001111 |
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 101010000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100010000000000000011000), // 101010001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 101010010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 101010011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101010100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101010101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101010110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101010111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101011000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101011001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101011010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101011011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101011100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101011101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101011110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101011111 |
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 101100000 | MUL Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 101100001 | (MUL Rd, Rs): MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 101100010 | (MUL Rd, Rs): MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 101100011 | (MUL Rd, Rs): MOV R6,Rs
+    Word::from_bits_truncate(0b0000001010001110000010111001), // 101100100 | MOV R7,0
+    Word::from_bits_truncate(0b0010001100010000000010010000), // 101100101 | LSR Rd / JC 7
+    Word::from_bits_truncate(0b0010010010010000000000000010), // 101100110 | TST Rd / JZ 9
+    Word::from_bits_truncate(0b0000001100001110110010000001), // 101100111 | ADD R7, R6 / JMP 6
+    Word::from_bits_truncate(0b0000001010001100110010000001), // 101101000 | LSL R6 / JMP 5
+    Word::from_bits_truncate(0b0011010110010000111010011101), // 101101001 | MOV Rd,R7
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 101101010 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 101101011 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101101100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101101101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101101110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101101111 |
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 101110000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100010000000000000011000), // 101110001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 101110010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 101110011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101110100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101110101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101110110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101110111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101111000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101111001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101111010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101111011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101111100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101111101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101111110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 101111111 |
+    Word::from_bits_truncate(0b0010001010001101000010011000), // 110000000 | DIV Rd, Rs: MOV R6,Rs / JZ 5
+    Word::from_bits_truncate(0b0010001010001101000010011000), // 110000001 | (DIV Rd, Rs): MOV R6,Rs / JZ 5
+    Word::from_bits_truncate(0b0010001010001101000010011000), // 110000010 | (DIV Rd, Rs): MOV R6,Rs / JZ 5
+    Word::from_bits_truncate(0b0010001010001101000010011000), // 110000011 | (DIV Rd, Rs): MOV R6,Rs / JZ 5
+    Word::from_bits_truncate(0b0000001100001110000010111001), // 110000100 | MOV R7,0 / JMP 6
+    Word::from_bits_truncate(0b0000011000001111111010111000), // 110000101 | /0: MOV R7,-1 / JMP 12
+    Word::from_bits_truncate(0b0000001110001100110010000100), // 110000110 | COM R6
+    Word::from_bits_truncate(0b0010010000010000110010001010), // 110000111 | loop: ADD Rd,R6,1 / JC 9
+    Word::from_bits_truncate(0b0000001110001110001010101001), // 110001000 | INC R7 / JMP 7
+    Word::from_bits_truncate(0b0011010110010000111010011000), // 110001001 | MOV Rd,R7
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 110001010 | fertig: no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 110001011 | int:
+    Word::from_bits_truncate(0b0000010010000000111000011011), // 110001100 | SETC / JMP 9
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110001101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110001110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110001111 |
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 110010000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100010000000000000011000), // 110010001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 110010010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 110010011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110010100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110010101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110010110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110010111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110011000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110011001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110011010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110011011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110011100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110011101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110011110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110011111 |
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 110100000 | XOR Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 110100001 | XOR Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 110100010 | XOR Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001000001101000010011000), // 110100011 | XOR Rd, Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001010010000111110000010), // 110100100 | MOV R7,Rd
+    Word::from_bits_truncate(0b0000001100001110111010000100), // 110100101 | COM R7
+    Word::from_bits_truncate(0b0000001110001100110010000100), // 110100110 | COM R6
+    Word::from_bits_truncate(0b0000010000001110110010000100), // 110100111 | NOR R7,R6
+    Word::from_bits_truncate(0b0000010010010001000010000100), // 110101000 | NOR Rd,Rs
+    Word::from_bits_truncate(0b0011010110010000111010000101), // 110101001 | NOR Rd, R7
+    Word::from_bits_truncate(0b1101000000100110001010101000), // 110101010 | no int:
+    Word::from_bits_truncate(0b0110100000000000000000011000), // 110101011 | int:
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110101100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110101101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110101110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110101111 |
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 110110000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100010000000000000011000), // 110110001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 110110010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 110110011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110110100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110110101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110110110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110110111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110111000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110111001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110111010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110111011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110111100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110111101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110111110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 110111111 |
+    Word::from_bits_truncate(0b0000000000000000000000011000), // 111000000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000010000000000000011000), // 111000001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000100000000000000011000), // 111000010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000110000000000000011000), // 111000011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111000100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111000101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111000110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111000111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111001000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111001001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111001010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111001011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111001100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111001101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111001110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111001111 |
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 111010000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100010000000000000011000), // 111010001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 111010010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 111010011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111010100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111010101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111010110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111010111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111011000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111011001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111011010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111011011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111011100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111011101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111011110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111011111 |
+    Word::from_bits_truncate(0b0000001100010000110110000010), // 111100000 | Rs: MOV R6,Rs
+    Word::from_bits_truncate(0b0000001100110000110111000010), // 111100001 | (Rs): MOV R6,(Rs)
+    Word::from_bits_truncate(0b0000001010110000110111000010), // 111100010 | (Rs+): MOV R6,(Rs)
+    Word::from_bits_truncate(0b0000001000110000111111000010), // 111100011 | ((Rs+)): MOV R7,(Rs)
+    Word::from_bits_truncate(0b0000001010101110110111000010), // 111100100 | MOV R6,(R7)
+    Word::from_bits_truncate(0b0000001100010000001010101000), // 111100101 | INC Rs
+    Word::from_bits_truncate(0b0101100000100110001010101000), // 111100110 | zweiter opcode
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111100111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111101000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111101001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111101010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111101011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111101100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111101101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111101110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111101111 |
+    Word::from_bits_truncate(0b0000100000000000000000011000), // 111110000 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100010000000000000011000), // 111110001 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100100000000000000011000), // 111110010 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000100110000000000000011000), // 111110011 | - unbekannter opcode -
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111110100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111110101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111110110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111110111 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111111000 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111111001 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111111010 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111111011 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111111100 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111111101 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111111110 |
+    Word::from_bits_truncate(0b0000000000000000000000000000), // 111111111 |
+]

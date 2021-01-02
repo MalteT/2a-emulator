@@ -1,7 +1,7 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+//! Library for the 2a-emulator
+
+//mod error;
+//mod helpers;
+pub mod compiler;
+pub mod machine;
+pub mod parser;
