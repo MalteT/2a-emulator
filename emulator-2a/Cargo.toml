@@ -9,7 +9,7 @@ repository = "https://github.com/MalteT/2a-emulator"
 
 [[bin]]
 name = "2a-emulator"
-path = "src/bin/2a-emulator/mod.rs"
+path = "src/main.rs"
 
 [dependencies]
 log = "0.4.0"
