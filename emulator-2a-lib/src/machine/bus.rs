@@ -139,12 +139,55 @@ impl Bus {
     /// - MICR.
     /// - MISR.
     /// - *Not* the input register nor the ram.
+    #[deprecated = "use [`Machine::cpu_reset`] or [`Machine::master_reset`]"]
     pub fn reset(&mut self) {
         self.output_reg = [0; 2];
         self.board.reset();
         self.micr = MICR::empty();
         self.misr = MISR::empty();
     }
+
+    /// Reset the program execution on the bus.
+    ///
+    /// This resets:
+    ///  - The output registers
+    ///  - The MICR
+    ///  - The UCR
+    pub fn cpu_reset(&mut self) {
+        self.output_reg = [0; 2];
+        self.micr = MICR::empty();
+        self.ucr = UCR::empty();
+    }
+
+    /// Reset the bus.
+    ///
+    /// On top of the [`Machine::cpu_reset`], the following will be reset:
+    ///  - The ram
+    ///  - The input register
+    ///  - The interrupt timer config
+    pub fn master_reset(&mut self) {
+        self.cpu_reset();
+        self.reset_ram();
+        self.input_reg = [0; 4];
+        self.int_timer.reset();
+    }
+
+    /// Fill the ram with zeros.
+    ///
+    /// # Example
+    /// ```
+    /// # use emulator_2a_lib::machine::Bus;
+    /// # let mut bus = Bus::new();
+    ///
+    /// bus.write(0x11, 42);
+    /// # assert_eq!(bus.read(0x11), 42);
+    /// bus.reset_ram();
+    /// assert_eq!(bus.read(0x11), 0);
+    /// ```
+    pub fn reset_ram(&mut self) {
+        self.ram = [0; 0xF0];
+    }
+
     /// Write to the bus
     pub fn write(&mut self, addr: u8, byte: u8) {
         let addr = addr as usize;
@@ -392,6 +435,10 @@ impl InterruptTimer {
             div2: 0,
             div3: 0,
         }
+    }
+    /// Reset the configuration of the interrupt timer.
+    pub fn reset(&mut self) {
+        *self = Self::new();
     }
 }
 

@@ -199,7 +199,7 @@ impl RawMachine {
     ///
     /// It does *not*:
     /// - Delete the memory (or anything on the bus).
-    // # TODO: Do we need to reset interrupt inputs?
+    #[deprecated = "use [`Machine::cpu_reset`] or [`Machine::master_reset`]"]
     pub fn reset(&mut self) {
         self.microprogram_ram.reset();
         self.register.reset();
@@ -211,6 +211,46 @@ impl RawMachine {
         self.pending_wait_for_memory = None;
         self.alu_output = AluOutput::default();
         self.last_bus_read = 0;
+    }
+
+    /// Reset the program execution.
+    ///
+    /// This resets:
+    ///  - The program execution
+    ///  - The CPU registers
+    ///  - The instruction register
+    ///  - The output register
+    ///  - The MICR
+    ///  - The UCR
+    ///  - Edge interrupts
+    ///  - The machine state back to Running
+    /// TODO: Implementation
+    pub fn cpu_reset(&mut self) {
+        self.microprogram_ram.reset();
+        self.register.reset();
+        self.instruction_register.reset();
+        self.pending_register_write = None;
+        self.pending_flag_write = None;
+        self.pending_edge_interrupt = None;
+        self.state = State::Running;
+        self.pending_wait_for_memory = None;
+        self.alu_output = AluOutput::default();
+        self.last_bus_read = 0;
+        self.bus.cpu_reset();
+        // ...
+    }
+
+    /// Reset the machine.
+    ///
+    /// On top of the [`Machine::cpu_reset`], the following will be reset:
+    ///  - The input register
+    ///  - The raw
+    ///  - The interrupt timer configuration
+    /// TODO: Implementation
+    pub fn master_reset(&mut self) {
+        self.cpu_reset();
+        self.bus.master_reset();
+        // ...
     }
 
     /// Emulate a rising CLK edge.
