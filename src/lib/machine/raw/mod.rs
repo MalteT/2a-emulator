@@ -105,7 +105,7 @@ impl RawMachine {
         let pending_level_interrupt = None;
         let pending_wait_for_memory = None;
         let bus = Bus::new();
-        let stacksize = Stacksize::_16;
+        let stacksize = Stacksize::default();
         let state = State::Running;
         let alu_output = AluOutput::default();
         let last_bus_read = 0;

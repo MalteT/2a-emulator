@@ -4,6 +4,10 @@ pub type Label = String;
 mod format;
 mod trait_impls;
 
+/// The default Stacksize. To be used if no `*STACKSIZE n` is given.
+/// Specified in mr2_icd-4.1_asm-1.3.7.pdf.
+const DEFAULT_STACKSIZE: Stacksize = Stacksize::_16;
+
 /// A single byte.
 /// Either given by a constant or a label.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
