@@ -20,6 +20,8 @@ pub use microprogram_ram::{MicroprogramRam, Word};
 pub(crate) use raw::Interrupt;
 pub use raw::{RawMachine, Signals, State};
 pub use register::{Flags, Register, RegisterNumber};
+use crate::compiler::ByteCode;
+
 
 /// A higher level abstraction over the [`RawMachine`].
 ///
@@ -280,16 +282,41 @@ impl Machine {
         });
     }
 
-    /// TODO: Documentation
+    #[deprecated = "Renamed to [`Machine::load_raw`]"]
     pub fn load_program<'a, I>(&mut self, bytes: I)
     where
         I: Iterator<Item = &'a u8>,
     {
         trace!("Loading program into memory");
+        self.reset();
         bytes.enumerate().for_each(|(address, byte)| {
             self.raw_mut().bus_mut().memory_mut()[address] = *byte;
         });
+    }
+
+    /// Fill the memory with the given bytes.
+    /// TODO: Documentation
+    pub fn load_raw<'a, I>(&mut self, bytes: I)
+    where
+        I: Iterator<Item = &'a u8>,
+    {
+        trace!("Loading bytes into memory");
         self.reset();
+        bytes.enumerate().for_each(|(address, byte)| {
+            self.raw_mut().bus_mut().memory_mut()[address] = *byte;
+        });
+    }
+
+    /// Load the given program into the machine.
+    ///
+    /// This will:
+    /// - Reset the machine
+    /// - Fill the memory
+    /// - Set the maximum stacksize
+    pub fn load(&mut self, program: ByteCode) {
+        trace!("Loading new program");
+        self.load_raw(program.bytes());
+        self.raw_mut().set_stacksize(program.stacksize);
     }
 
     /// Reset the machine.
