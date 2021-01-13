@@ -6,22 +6,6 @@ on:
   schedule:
     - cron: "0 0 * * 0"
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
-        rust: [stable, nightly]
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release --all-features
   build-linux:
     name: linux-packager
     runs-on: ubuntu-latest
@@ -60,7 +44,7 @@ jobs:
           path: binaries/2a-emulator-x86_64-pc-windows-msvc.exe
   build-macOS:
     name: macOS-packager
-    runs-on: macOS-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -76,6 +60,3 @@ jobs:
         with:
           name: 2a-emulator-x86_64-apple-darwin
           path: binaries/2a-emulator-x86_64-apple-darwin
-
-      
-    

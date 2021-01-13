@@ -1,0 +1,29 @@
+name: Test
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        rust: [stable, nightly]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --all-features
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --no-default-features
