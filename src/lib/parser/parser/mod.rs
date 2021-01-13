@@ -401,6 +401,7 @@ fn parse_instruction_stacksize(instruction: Pair<Rule>) -> Instruction {
 fn parse_raw_stacksize(stacksize: Pair<Rule>) -> Stacksize {
     let stacksize = stacksize.as_str().to_lowercase();
     match stacksize.as_str() {
+        "0" => Stacksize::_0,
         "16" => Stacksize::_16,
         "32" => Stacksize::_32,
         "48" => Stacksize::_48,

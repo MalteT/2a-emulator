@@ -242,6 +242,7 @@ impl RawMachine {
             return false;
         }
         match self.stacksize {
+            Stacksize::_0 => true,
             Stacksize::_16 => sp <= 0xD0 || sp >= 0xDF,
             Stacksize::_32 => sp <= 0xC0 || sp >= 0xCF,
             Stacksize::_48 => sp <= 0xB0 || sp >= 0xBF,

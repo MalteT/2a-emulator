@@ -46,6 +46,9 @@ pub struct RegisterDDI(pub Register);
 /// The different stack sizes the Stack may have.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Stacksize {
+    /// Disable the lower bound of the stack. This allows the stack
+    /// to grow infinitely (or until it overwrites your program or wraps at 0).
+    _0,
     /// 16 byte stack.
     _16,
     /// 32 byte stack.

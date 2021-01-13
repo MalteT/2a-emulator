@@ -22,6 +22,7 @@ impl fmt::Display for Stacksize {
             f,
             "{}",
             match self {
+                Stacksize::_0 => "0",
                 Stacksize::_16 => "16",
                 Stacksize::_32 => "32",
                 Stacksize::_48 => "48",
