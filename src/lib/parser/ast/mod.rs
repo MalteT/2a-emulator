@@ -57,7 +57,7 @@ pub enum Stacksize {
     _48,
     /// 64 byte stack.
     _64,
-    /// Unlimited stack.
+    /// Do not change the stacksize.
     NotSet,
 }
 

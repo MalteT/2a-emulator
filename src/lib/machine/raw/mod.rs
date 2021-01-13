@@ -247,7 +247,7 @@ impl RawMachine {
             Stacksize::_32 => sp <= 0xC0 || sp >= 0xCF,
             Stacksize::_48 => sp <= 0xB0 || sp >= 0xBF,
             Stacksize::_64 => sp <= 0xA0 || sp >= 0xAF,
-            Stacksize::NotSet => true,
+            Stacksize::NotSet => unreachable!("BUG: The stacksize must never be UNSET"),
         }
     }
     /// Writes values to the register that were created during the
