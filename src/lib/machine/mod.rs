@@ -20,7 +20,7 @@ pub use microprogram_ram::{MicroprogramRam, Word};
 pub(crate) use raw::Interrupt;
 pub use raw::{RawMachine, Signals, State};
 pub use register::{Flags, Register, RegisterNumber};
-use crate::compiler::ByteCode;
+use crate::{parser::Stacksize, compiler::ByteCode};
 
 
 /// A higher level abstraction over the [`RawMachine`].
@@ -316,7 +316,10 @@ impl Machine {
     pub fn load(&mut self, program: ByteCode) {
         trace!("Loading new program");
         self.load_raw(program.bytes());
-        self.raw_mut().set_stacksize(program.stacksize);
+        // If the stacksize is NOSET, do not update the stacksize
+        if program.stacksize != Stacksize::NotSet {
+            self.raw_mut().set_stacksize(program.stacksize);
+        }
     }
 
     /// Reset the machine.
@@ -394,5 +397,40 @@ mod test {
         let mut machine = Machine::new(MachineConfig::default());
         machine.load_program([42].iter());
         assert_eq!(machine.bus().memory()[0], 42);
+    }
+
+    #[test]
+    fn test_stackpointer_when_loading() {
+        use crate::{parser::AsmParser, compiler::Translator};
+        let mut machine = Machine::new(MachineConfig::default());
+        let mut load_verify = |program: &str, ss: Stacksize| {
+            let asm = AsmParser::parse(program).expect("Parsing failed");
+            let bytecode = Translator::compile(&asm);
+            machine.load(bytecode);
+            assert_eq!(machine.stacksize(), ss)
+        };
+        let program_asm_0 = &[
+            "#! mrasm",
+            "*STACKSIZE 0",
+        ].join("\n");
+        load_verify(program_asm_0, Stacksize::_0);
+
+        let program_asm_16 = &[
+            "#! mrasm",
+            "*STACKSIZE 16",
+        ].join("\n");
+        load_verify(program_asm_16, Stacksize::_16);
+
+        let program_asm_64 = &[
+            "#! mrasm",
+            "*STACKSIZE 64",
+        ].join("\n");
+        load_verify(program_asm_64, Stacksize::_64);
+
+        let program_asm_no_set = &[
+            "#! mrasm",
+            "*STACKSIZE NOSET",
+        ].join("\n");
+        load_verify(program_asm_no_set, Stacksize::_64);
     }
 }
