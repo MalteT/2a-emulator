@@ -395,7 +395,7 @@ mod test {
     #[test]
     fn test_program_loading() {
         let mut machine = Machine::new(MachineConfig::default());
-        machine.load_program([42].iter());
+        machine.load_raw([42].iter());
         assert_eq!(machine.bus().memory()[0], 42);
     }
 
@@ -409,6 +409,11 @@ mod test {
             machine.load(bytecode);
             assert_eq!(machine.stacksize(), ss)
         };
+        let program_asm_default = &[
+            "#! mrasm",
+        ].join("\n");
+        load_verify(program_asm_default, Stacksize::_16);
+
         let program_asm_0 = &[
             "#! mrasm",
             "*STACKSIZE 0",
