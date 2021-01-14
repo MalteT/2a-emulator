@@ -12,6 +12,7 @@ mod microprogram_ram;
 mod raw;
 mod register;
 
+use crate::{compiler::ByteCode, parser::Stacksize};
 pub use alu::{AluInput, AluOutput, AluSelect};
 pub use board::{Board, InterruptSource, DAICR, DAISR, DASR};
 pub use bus::Bus;
@@ -20,8 +21,6 @@ pub use microprogram_ram::{MicroprogramRam, Word};
 pub(crate) use raw::Interrupt;
 pub use raw::{RawMachine, Signals, State};
 pub use register::{Flags, Register, RegisterNumber};
-use crate::{parser::Stacksize, compiler::ByteCode};
-
 
 /// A higher level abstraction over the [`RawMachine`].
 ///
@@ -55,23 +54,6 @@ impl Machine {
         m.set_universal_input_output2(config.universal_input_output2);
         m.set_universal_input_output3(config.universal_input_output3);
         m
-    }
-
-    /// Get a reference to the underlying raw machine.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use emulator_2a_lib::machine::{Machine, MachineConfig};
-    /// let mut machine = Machine::new(MachineConfig::default());
-    /// machine.set_input_ff(42);
-    ///
-    /// let input_reg_ff = machine.bus().read(0xFF);
-    /// assert_eq!(input_reg_ff, 42);
-    /// ```
-    #[deprecated(note = "Machine implements Deref now!")]
-    pub const fn raw(&self) -> &RawMachine {
-        &self.raw
     }
 
     /// Get the currently active [`StepMode`].
@@ -246,54 +228,6 @@ impl Machine {
         self.step_mode = step_mode
     }
 
-    /// Load the given bytes of a program into the main memory.
-    ///
-    /// The memory will be filled starting at address zero. All bytes
-    /// will be written consecutively.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use emulator_2a_lib::machine::{Machine, MachineConfig};
-    /// let mut machine = Machine::new(MachineConfig::default());
-    /// let mut program = vec![23, 24, 25, 26, 0, 28];
-    ///
-    /// machine.fill_memory(program.drain(..));
-    ///
-    /// assert_eq!(machine.bus().read(0), 23);
-    /// assert_eq!(machine.bus().read(5), 28);
-    ///
-    /// machine.fill_memory((0_u8..0xF0).by_ref());
-    ///
-    /// assert_eq!(machine.bus().memory()[0], 0);
-    /// assert_eq!(machine.bus().memory()[0xEF], 0xEF);
-    /// ```
-    ///
-    /// # Panic
-    ///
-    /// This method will panic if more than `0xF0` (`240`) bytes are supplied.
-    #[deprecated(note = "use load_program instead")]
-    pub fn fill_memory<I>(&mut self, bytes: I)
-    where
-        I: IntoIterator<Item = u8>,
-    {
-        bytes.into_iter().enumerate().for_each(|(address, byte)| {
-            self.raw_mut().bus_mut().memory_mut()[address] = byte;
-        });
-    }
-
-    #[deprecated = "Renamed to [`Machine::load_raw`]"]
-    pub fn load_program<'a, I>(&mut self, bytes: I)
-    where
-        I: Iterator<Item = &'a u8>,
-    {
-        trace!("Loading program into memory");
-        self.reset();
-        bytes.enumerate().for_each(|(address, byte)| {
-            self.raw_mut().bus_mut().memory_mut()[address] = *byte;
-        });
-    }
-
     /// Fill the memory with the given bytes.
     /// TODO: Documentation
     pub fn load_raw<'a, I>(&mut self, bytes: I)
@@ -401,7 +335,7 @@ mod test {
 
     #[test]
     fn test_stackpointer_when_loading() {
-        use crate::{parser::AsmParser, compiler::Translator};
+        use crate::{compiler::Translator, parser::AsmParser};
         let mut machine = Machine::new(MachineConfig::default());
         let mut load_verify = |program: &str, ss: Stacksize| {
             let asm = AsmParser::parse(program).expect("Parsing failed");
@@ -409,33 +343,19 @@ mod test {
             machine.load(bytecode);
             assert_eq!(machine.stacksize(), ss)
         };
-        let program_asm_default = &[
-            "#! mrasm",
-        ].join("\n");
+        let program_asm_default = &["#! mrasm"].join("\n");
         load_verify(program_asm_default, Stacksize::_16);
 
-        let program_asm_0 = &[
-            "#! mrasm",
-            "*STACKSIZE 0",
-        ].join("\n");
+        let program_asm_0 = &["#! mrasm", "*STACKSIZE 0"].join("\n");
         load_verify(program_asm_0, Stacksize::_0);
 
-        let program_asm_16 = &[
-            "#! mrasm",
-            "*STACKSIZE 16",
-        ].join("\n");
+        let program_asm_16 = &["#! mrasm", "*STACKSIZE 16"].join("\n");
         load_verify(program_asm_16, Stacksize::_16);
 
-        let program_asm_64 = &[
-            "#! mrasm",
-            "*STACKSIZE 64",
-        ].join("\n");
+        let program_asm_64 = &["#! mrasm", "*STACKSIZE 64"].join("\n");
         load_verify(program_asm_64, Stacksize::_64);
 
-        let program_asm_no_set = &[
-            "#! mrasm",
-            "*STACKSIZE NOSET",
-        ].join("\n");
+        let program_asm_no_set = &["#! mrasm", "*STACKSIZE NOSET"].join("\n");
         load_verify(program_asm_no_set, Stacksize::_64);
     }
 }

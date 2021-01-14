@@ -109,6 +109,6 @@ impl Stacksize {
     /// Default Stacksize if none is specified in the asm file.
     // XXX: Replace with Default impl when `const impl` is available.
     pub const fn default() -> Self {
-         DEFAULT_STACKSIZE
+        DEFAULT_STACKSIZE
     }
 }
