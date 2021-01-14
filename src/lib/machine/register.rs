@@ -3,8 +3,6 @@ use enum_primitive::{enum_from_primitive, enum_from_primitive_impl, enum_from_pr
 
 use std::ops::{Index, IndexMut};
 
-use super::Signals;
-
 /// The register block.
 /// Containing `R0` through `R7`
 ///
@@ -352,58 +350,6 @@ impl Register {
     /// ```
     pub fn reset(&mut self) {
         self.content = [0; 8];
-    }
-
-    /// Get current data output A of the register.
-    #[deprecated]
-    pub fn doa(&self, signal: &Signals) -> u8 {
-        let (a2, a1, a0) = if signal.mrgaa3() {
-            (false, signal.op01(), signal.op00())
-        } else {
-            (signal.mrgaa2(), signal.mrgaa1(), signal.mrgaa0())
-        };
-        let addr = ((a2 as usize) << 2) + ((a1 as usize) << 1) + (a0 as usize);
-        self.content[addr]
-    }
-    /// Get current data output B of the register.
-    #[deprecated]
-    pub fn dob(&self, signal: &Signals) -> u8 {
-        let (b2, b1, b0) = if signal.mrgab3() {
-            (false, signal.op11(), signal.op10())
-        } else {
-            (signal.mrgab2(), signal.mrgab1(), signal.mrgab0())
-        };
-        let addr = ((b2 as usize) << 2) + ((b1 as usize) << 1) + (b0 as usize);
-        self.content[addr]
-    }
-    /// Derive the selected register from the given [`Signals`]s.
-    #[deprecated]
-    pub fn get_selected(signal: &Signals) -> RegisterNumber {
-        let (a2, a1, a0) = if signal.mrgws() {
-            // Write to address selected by b
-            if signal.mrgab3() {
-                (false, signal.op11(), signal.op10())
-            } else {
-                (signal.mrgab2(), signal.mrgab1(), signal.mrgab0())
-            }
-        } else {
-            // Write to address selected by a
-            if signal.mrgaa3() {
-                (false, signal.op01(), signal.op00())
-            } else {
-                (signal.mrgaa2(), signal.mrgaa1(), signal.mrgaa0())
-            }
-        };
-        match (a2, a1, a0) {
-            (false, false, false) => RegisterNumber::R0,
-            (false, false, true) => RegisterNumber::R1,
-            (false, true, false) => RegisterNumber::R2,
-            (false, true, true) => RegisterNumber::R3,
-            (true, false, false) => RegisterNumber::R4,
-            (true, false, true) => RegisterNumber::R5,
-            (true, true, false) => RegisterNumber::R6,
-            (true, true, true) => RegisterNumber::R7,
-        }
     }
 }
 

@@ -38,7 +38,7 @@ impl<'a> Runner<'a> {
         let asm = helpers::read_asm_file(&args.program)?;
         let bytecode = Translator::compile(&asm);
         let mut machine = Machine::new(args.init.clone().into());
-        machine.load_program(bytecode.bytes());
+        machine.load(bytecode);
         Ok(Runner {
             machine,
             max_cycles: args.cycles,

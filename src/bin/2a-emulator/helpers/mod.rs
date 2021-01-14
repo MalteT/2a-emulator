@@ -40,6 +40,7 @@ where
 }
 
 /// Format a number using the suffixes `k`, `M`, `G` when useful.
+#[cfg(feature = "interactive-tui")]
 pub fn format_number(mut nr: f32) -> String {
     let mut suffix = "";
     if nr > 2_000_000_000.0 {

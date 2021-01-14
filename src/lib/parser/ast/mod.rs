@@ -4,6 +4,10 @@ pub type Label = String;
 mod format;
 mod trait_impls;
 
+/// The default Stacksize. To be used if no `*STACKSIZE n` is given.
+/// Specified in mr2_icd-4.1_asm-1.3.7.pdf.
+const DEFAULT_STACKSIZE: Stacksize = Stacksize::_16;
+
 /// A single byte.
 /// Either given by a constant or a label.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -42,6 +46,9 @@ pub struct RegisterDDI(pub Register);
 /// The different stack sizes the Stack may have.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Stacksize {
+    /// Disable the lower bound of the stack. This allows the stack
+    /// to grow infinitely (or until it overwrites your program or wraps at 0).
+    _0,
     /// 16 byte stack.
     _16,
     /// 32 byte stack.
@@ -50,7 +57,7 @@ pub enum Stacksize {
     _48,
     /// 64 byte stack.
     _64,
-    /// Unlimited stack.
+    /// Do not change the stacksize.
     NotSet,
 }
 

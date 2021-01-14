@@ -109,7 +109,7 @@ impl Supervisor {
         if let Some((path, asm)) = param.program {
             sv.program_path = Some(path.clone());
             let bytecode = Translator::compile(&asm);
-            sv.machine.load_program(bytecode.bytes());
+            sv.machine.load(bytecode);
             fs.program = Some((path, asm));
         }
         // Remember initial outputs
