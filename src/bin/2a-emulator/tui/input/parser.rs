@@ -60,14 +60,14 @@ fn parse_part(input: &str) -> IResult<&str, Part> {
 }
 
 /// `load path/to/program`
-fn cmd_load_prgm<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
+fn cmd_load_prgm(input: &str) -> IResult<&str, Command> {
     map(tuple((tag_no_case("load"), ws, rest)), |(_, _, path)| {
         Command::LoadProgram(path)
     })(input)
 }
 
 /// `set FC = 99`
-fn cmd_set_input_reg<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
+fn cmd_set_input_reg(input: &str) -> IResult<&str, Command> {
     let fc = value(InputRegister::FC, tag_no_case("fc"));
     let fd = value(InputRegister::FD, tag_no_case("fd"));
     let fe = value(InputRegister::FE, tag_no_case("fe"));
@@ -80,7 +80,7 @@ fn cmd_set_input_reg<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
 }
 
 /// `set IRG = 0xAB`
-fn cmd_set_irg<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
+fn cmd_set_irg(input: &str) -> IResult<&str, Command> {
     let irg = tag_no_case("IRG");
     map(tuple((set_ws, irg, eq_ws, value_u8)), |(_, _, _, val)| {
         Command::SetIRG(val)
@@ -88,7 +88,7 @@ fn cmd_set_irg<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
 }
 
 /// `set TEMP = 42.0`
-fn cmd_set_temp<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
+fn cmd_set_temp(input: &str) -> IResult<&str, Command> {
     let temp = tag_no_case("TEMP");
     map(tuple((set_ws, temp, eq_ws, float)), |(_, _, _, f)| {
         Command::SetTEMP(f)
@@ -96,7 +96,7 @@ fn cmd_set_temp<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
 }
 
 /// `set I1 = 1.1` and `set I2 = 2.2`
-fn cmd_set_ix<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
+fn cmd_set_ix(input: &str) -> IResult<&str, Command> {
     let i1 = map(tuple((tag_no_case("I1"), eq_ws, float)), |(_, _, f)| {
         Command::SetI1(f)
     });
@@ -117,7 +117,7 @@ fn cmd_set_jx<'a>(input: &'a str) -> IResult<&str, Command<'a>> {
 }
 
 /// `set UIO1`, `unset UIO2` and same for `UIO3`
-fn cmd_set_uiox<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
+fn cmd_set_uiox(input: &str) -> IResult<&str, Command> {
     let set_uio1 = value(
         Command::SetUIO1(true),
         preceded(set_ws, tag_no_case("UIO1")),
@@ -148,7 +148,7 @@ fn cmd_set_uiox<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
 }
 
 /// `show blub`
-fn cmd_show<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
+fn cmd_show(input: &str) -> IResult<&str, Command> {
     map(
         tuple((tag_no_case("show"), ws, parse_part)),
         |(_, _, part)| Command::Show(part),
@@ -156,13 +156,13 @@ fn cmd_show<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
 }
 
 /// `quit`
-fn cmd_quit<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
+fn cmd_quit(input: &str) -> IResult<&str, Command> {
     let quit = tag_no_case("quit");
     let exit = tag_no_case("exit");
     value(Command::Quit, alt((quit, exit)))(input)
 }
 
-pub fn parse_cmd<'a>(input: &'a str) -> IResult<&'a str, Command<'a>> {
+pub fn parse_cmd(input: &str) -> IResult<&str, Command> {
     let cmd = alt((
         cmd_load_prgm,
         cmd_set_input_reg,
