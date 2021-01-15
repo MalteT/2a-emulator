@@ -189,7 +189,7 @@ impl fmt::Display for ParserError {
         match self {
             ParserError::InvalidSyntax(inner) => write!(f, "{}", inner),
             ParserError::UndefinedLabels(labels) => {
-                write!(f, "Undefined references! These labels are undefined:\n")?;
+                writeln!(f, "Undefined references! These labels are undefined:")?;
                 for label in labels {
                     write!(f, "\t- {}", label)?;
                 }

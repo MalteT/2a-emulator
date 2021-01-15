@@ -1,0 +1,37 @@
+name: Verify Makefile
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - README.md
+      - README.tpl
+      - src/bin/2a-emulator/mod.rs
+      - Cargo.toml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - README.md
+      - README.tpl
+      - src/bin/2a-emulator/mod.rs
+      - Cargo.toml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          profile: minimal
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-readme
+          version: latest
+          use-tool-cache: true
+      - run: cargo readme --input src/bin/2a-emulator/mod.rs --output README.md
+      # This will verify that cargo readme did not do anything
+      # If it did, the CI should fail, because the README is outdated
+      - run: git diff --exit-code

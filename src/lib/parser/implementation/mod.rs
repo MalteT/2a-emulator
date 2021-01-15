@@ -75,9 +75,7 @@ fn id<T>(element: T) -> T {
 
 /// Helper function for [`inner_tuple`] macro.
 /// This function discards it's input.
-fn ignore<T>(_: T) -> () {
-    ()
-}
+fn ignore<T>(_: T) {}
 
 impl AsmParser {
     /// Parse a valid Minirechner 2a assembly file.
@@ -163,16 +161,15 @@ fn parse_line(line: Pair<Rule>) -> Line {
 /// # Checks
 /// - Undefined Labels
 /// - Too many Labels
-fn validate_lines(lines: &Vec<Line>) -> Result<(), ParserError> {
+fn validate_lines(lines: &[Line]) -> Result<(), ParserError> {
     // Collect labels
     let mut labels = vec![];
     for line in lines {
         match line {
             Line::Label(label, _) => labels.push(label.to_lowercase()),
-            Line::Instruction(inst, _) => match inst {
-                Instruction::AsmEquals(label, _) => labels.push(label.to_lowercase()),
-                _ => {}
-            },
+            Line::Instruction(Instruction::AsmEquals(label, _), _) => {
+                labels.push(label.to_lowercase())
+            }
             _ => {}
         }
     }
@@ -265,7 +262,7 @@ fn parse_instruction(instruction: Pair<Rule>) -> Instruction {
         .into_inner()
         .next()
         .expect("an instruction rule should have an actual instruction");
-    let instruction = match instruction.as_rule() {
+    match instruction.as_rule() {
         Rule::org => parse_instruction_org(instruction),
         Rule::byte => parse_instruction_byte(instruction),
         Rule::db => parse_instruction_db(instruction),
@@ -320,8 +317,7 @@ fn parse_instruction(instruction: Pair<Rule>) -> Instruction {
         Rule::ei => parse_instruction_ei(),
         Rule::di => parse_instruction_di(),
         _ => unreachable!(),
-    };
-    instruction
+    }
 }
 /// Parse an `org` rule into an [`Instruction`].
 fn parse_instruction_org(org: Pair<Rule>) -> Instruction {
@@ -344,13 +340,13 @@ fn parse_constant(constant: Pair<Rule>) -> Constant {
     };
     match inner.as_rule() {
         Rule::constant_bin => u8::from_str_radix(&inner.as_str()[2..], 2)
-            .map(|nr| Constant::Constant(nr))
+            .map(Constant::Constant)
             .unwrap(),
         Rule::constant_hex => u8::from_str_radix(&inner.as_str()[2..], 16)
-            .map(|nr| Constant::Constant(nr))
+            .map(Constant::Constant)
             .unwrap(),
         Rule::constant_dec => u8::from_str_radix(&inner.as_str(), 10)
-            .map(|nr| Constant::Constant(nr))
+            .map(Constant::Constant)
             .unwrap(),
         Rule::raw_label => Constant::Label(parse_raw_label(inner)),
         _ => unreachable!(),
@@ -375,7 +371,7 @@ fn parse_instruction_db(db: Pair<Rule>) -> Instruction {
     let results = db
         .into_inner()
         .filter(|pair| pair.as_rule() == Rule::constant)
-        .map(|constant| parse_constant(constant));
+        .map(parse_constant);
     let constants = results.collect();
     Instruction::AsmDefineBytes(constants)
 }
@@ -537,7 +533,7 @@ fn parse_memory(memory: Pair<Rule>) -> MemAddress {
         register | registerdi | registerddi | memory | constant => id;
         cparen                                                  => ignore;
     };
-    let memory = match inner.as_rule() {
+    match inner.as_rule() {
         Rule::constant => parse_constant(inner).into(),
         Rule::register => parse_register(inner).into(),
         Rule::raw_label => {
@@ -545,8 +541,7 @@ fn parse_memory(memory: Pair<Rule>) -> MemAddress {
             constant.into()
         }
         _ => unreachable!(),
-    };
-    memory
+    }
 }
 /// Parse a `neg` rule into an [`Instruction`].
 fn parse_instruction_neg(neg: Pair<Rule>) -> Instruction {

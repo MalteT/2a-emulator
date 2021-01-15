@@ -173,7 +173,7 @@ impl Board {
     /// Set the temperature value.
     pub fn set_temp(&mut self, value: f32) {
         trace!("Setting temperature to {}", value);
-        if value >= 0.0 && value <= 5.0 {
+        if (0.0..=5.0).contains(&value) {
             self.temp = value;
         } else if value >= 0.0 {
             warn!("Temperature value > 5.0. Set to 5.0!");
@@ -217,7 +217,7 @@ impl Board {
 
     /// Set analog input port I1.
     pub fn set_analog_input1(&mut self, value: f32) {
-        if value >= 0.0 && value <= 5.0 {
+        if (0.0..=5.0).contains(&value) {
             self.analog_inputs[0] = value;
         } else if value >= 0.0 {
             warn!("I1 > 5V. Setting 5V");
@@ -231,7 +231,7 @@ impl Board {
 
     /// Set analog input port I2.
     pub fn set_analog_input2(&mut self, value: f32) {
-        if value >= 0.0 && value <= 5.0 {
+        if (0.0..=5.0).contains(&value) {
             self.analog_inputs[1] = value;
         } else if value >= 0.0 {
             warn!("I2 > 5V. Setting 5V");
@@ -504,59 +504,61 @@ mod test {
     #[test]
     fn test_dac_1() {
         let mut board = Board::new();
+        let err = f32::EPSILON;
         assert_eq!(board.digital_output1, 0x00);
         board.set_digital_output1(0);
         assert_eq!(board.digital_output1, 0x00);
         board.set_digital_output1(1);
         assert_eq!(board.digital_output1, 0x01);
-        assert_eq!(board.analog_outputs[0], 0.01);
+        assert!((board.analog_outputs[0] - 0.01).abs() < err);
         board.set_digital_output1(2);
         assert_eq!(board.digital_output1, 0x02);
-        assert_eq!(board.analog_outputs[0], 0.02);
+        assert!((board.analog_outputs[0] - 0.02).abs() < err);
         board.set_digital_output1(99);
         assert_eq!(board.digital_output1, 0x63);
-        assert_eq!(board.analog_outputs[0], 0.99);
+        assert!((board.analog_outputs[0] - 0.99).abs() < err);
         board.set_digital_output1(100);
         assert_eq!(board.digital_output1, 0x64);
-        assert_eq!(board.analog_outputs[0], 1.00);
+        assert!((board.analog_outputs[0] - 1.00).abs() < err);
         board.set_digital_output1(101);
         assert_eq!(board.digital_output1, 0x65);
-        assert_eq!(board.analog_outputs[0], 1.01);
+        assert!((board.analog_outputs[0] - 1.01).abs() < err);
         board.set_digital_output1(254);
         assert_eq!(board.digital_output1, 0xFE);
-        assert_eq!(board.analog_outputs[0], 2.54);
+        assert!((board.analog_outputs[0] - 2.54).abs() < err);
         board.set_digital_output1(255);
         assert_eq!(board.digital_output1, 0xFF);
-        assert_eq!(board.analog_outputs[0], 2.55);
+        assert!((board.analog_outputs[0] - 2.55).abs() < err);
     }
 
     #[test]
     fn test_dac_2() {
         let mut board = Board::new();
+        let err = f32::EPSILON;
         assert_eq!(board.digital_output2, 0x00);
         board.set_digital_output2(0);
         assert_eq!(board.digital_output2, 0x00);
         board.set_digital_output2(1);
         assert_eq!(board.digital_output2, 0x01);
-        assert_eq!(board.analog_outputs[1], 0.01);
+        assert!((board.analog_outputs[1] - 0.01).abs() < err);
         board.set_digital_output2(2);
         assert_eq!(board.digital_output2, 0x02);
-        assert_eq!(board.analog_outputs[1], 0.02);
+        assert!((board.analog_outputs[1] - 0.02).abs() < err);
         board.set_digital_output2(99);
         assert_eq!(board.digital_output2, 0x63);
-        assert_eq!(board.analog_outputs[1], 0.99);
+        assert!((board.analog_outputs[1] - 0.99).abs() < err);
         board.set_digital_output2(100);
         assert_eq!(board.digital_output2, 0x64);
-        assert_eq!(board.analog_outputs[1], 1.00);
+        assert!((board.analog_outputs[1] - 1.00).abs() < err);
         board.set_digital_output2(101);
         assert_eq!(board.digital_output2, 0x65);
-        assert_eq!(board.analog_outputs[1], 1.01);
+        assert!((board.analog_outputs[1] - 1.01).abs() < err);
         board.set_digital_output2(254);
         assert_eq!(board.digital_output2, 0xFE);
-        assert_eq!(board.analog_outputs[1], 2.54);
+        assert!((board.analog_outputs[1] - 2.54).abs() < err);
         board.set_digital_output2(255);
         assert_eq!(board.digital_output2, 0xFF);
-        assert_eq!(board.analog_outputs[1], 2.55);
+        assert!((board.analog_outputs[1] - 2.55).abs() < err);
     }
 
     #[test]

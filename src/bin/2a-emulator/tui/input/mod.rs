@@ -207,7 +207,7 @@ impl InputState {
     /// Try to complete the current input.
     fn complete(&mut self) {
         let s: String = self.input.iter().collect();
-        if s.starts_with("load ") {
+        if let Some(s) = s.strip_prefix("load ") {
             let file_comp = FilenameCompleter::new();
             let s = &s[5..];
             let pos = if self.input_index > 5 {
