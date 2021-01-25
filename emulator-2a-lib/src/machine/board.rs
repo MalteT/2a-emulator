@@ -440,6 +440,20 @@ impl Board {
     }
 
     /// Reset the board.
+    pub fn master_reset(&mut self) {
+        self.digital_output1 = 0;
+        self.digital_output2 = 0;
+        self.analog_outputs = [0.0; 2];
+        self.temp = 0.0;
+        self.daicr = DAICR::empty();
+        self.fan_rpm = 0;
+        self.uio_dir = [false; 3];
+        // self.dasr = DASR::J2;
+        // self.daisr = DAISR::empty();
+    }
+
+    /// Reset the board.
+    #[deprecated = "Renamed to [`Board::master_reset`]"]
     pub fn reset(&mut self) {
         self.digital_output1 = 0;
         self.digital_output2 = 0;

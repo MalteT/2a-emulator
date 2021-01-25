@@ -135,7 +135,7 @@ impl Supervisor {
             }
             // Reset the machine if needed.
             if param.resets.contains(&tick) {
-                sv.machine.reset();
+                sv.machine.cpu_reset();
                 fs.resets.insert(tick);
                 trace!("Test: Randomly reseted machine");
             }

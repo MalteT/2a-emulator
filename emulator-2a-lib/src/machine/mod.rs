@@ -230,13 +230,13 @@ impl Machine {
     }
 
     /// Fill the memory with the given bytes.
-    /// TODO: Documentation
+    #[deprecated = "use [`Machine::load`]"]
     pub fn load_raw<'a, I>(&mut self, bytes: I)
     where
         I: Iterator<Item = &'a u8>,
     {
         trace!("Loading bytes into memory");
-        self.reset();
+        self.master_reset();
         bytes.enumerate().for_each(|(address, byte)| {
             self.raw_mut().bus_mut().memory_mut()[address] = *byte;
         });
@@ -250,7 +250,11 @@ impl Machine {
     /// - Set the maximum stacksize
     pub fn load(&mut self, program: ByteCode) {
         trace!("Loading new program");
-        self.load_raw(program.bytes());
+        self.master_reset();
+        trace!("Loading bytes into memory");
+        program.bytes().enumerate().for_each(|(address, byte)| {
+            self.raw_mut().bus_mut().memory_mut()[address] = *byte;
+        });
         // If the stacksize is NOSET, do not update the stacksize
         if program.stacksize != Stacksize::NotSet {
             self.raw_mut().set_stacksize(program.stacksize);
@@ -260,7 +264,7 @@ impl Machine {
     /// Reset the machine.
     #[deprecated = "use [`Machine::cpu_reset`] or [`Machine::master_reset`]"]
     pub fn reset(&mut self) {
-        self.raw_mut().reset()
+        self.raw_mut().cpu_reset()
     }
 
     /// Reset the program execution.
@@ -350,17 +354,20 @@ pub enum StepMode {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::{compiler::Translator, parser::AsmParser};
 
     #[test]
     fn test_program_loading() {
         let mut machine = Machine::new(MachineConfig::default());
-        machine.load_raw([42].iter());
+        let prog = &["#! mrasm", ".DB 42"].join("\n");
+        let parsed = AsmParser::parse(prog).expect("Parsing failed");
+        let compiled = Translator::compile(&parsed);
+        machine.load(compiled);
         assert_eq!(machine.bus().memory()[0], 42);
     }
 
     #[test]
     fn test_stackpointer_when_loading() {
-        use crate::{compiler::Translator, parser::AsmParser};
         let mut machine = Machine::new(MachineConfig::default());
         let mut load_verify = |program: &str, ss: Stacksize| {
             let asm = AsmParser::parse(program).expect("Parsing failed");

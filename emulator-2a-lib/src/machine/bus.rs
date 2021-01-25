@@ -142,7 +142,7 @@ impl Bus {
     #[deprecated = "use [`Machine::cpu_reset`] or [`Machine::master_reset`]"]
     pub fn reset(&mut self) {
         self.output_reg = [0; 2];
-        self.board.reset();
+        self.board.master_reset();
         self.micr = MICR::empty();
         self.misr = MISR::empty();
     }
