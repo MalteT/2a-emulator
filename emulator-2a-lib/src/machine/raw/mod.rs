@@ -204,7 +204,7 @@ impl RawMachine {
         self.microprogram_ram.reset();
         self.register.reset();
         self.instruction_register.reset();
-        self.bus.reset();
+        self.bus.cpu_reset();
         self.pending_register_write = None;
         self.pending_flag_write = None;
         self.state = State::Running;

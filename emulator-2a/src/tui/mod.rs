@@ -167,7 +167,7 @@ impl Tui {
                         false
                     }
                     Char('r') => {
-                        self.machine.reset();
+                        self.machine.cpu_reset();
                         self.keybinding_state.reset_pressed();
                         false
                     }
