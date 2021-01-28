@@ -1,0 +1,66 @@
+[package]
+name = "emulator-2a"
+version = "7.0.0"
+authors = ["Malte Tammena <malte.tammena@gmx.de>"]
+edition = "2018"
+license = "GPL-3.0"
+readme = "README.md"
+repository = "https://github.com/MalteT/2a-emulator"
+
+[[bin]]
+name = "2a-emulator"
+path = "src/main.rs"
+
+[dependencies]
+log = "0.4.0"
+pretty_env_logger = "0.4.0"
+bitflags = "1.0.0"
+pest = "2.1.0"
+pest_derive = "2.1.0"
+failure = "0.1.0"
+colored = "1.8.0"
+lazy_static = "1.3.0"
+humantime = "2.0.1"
+rand = "0.7.0"
+paw = "1.0.0"
+enum_primitive = "0.1.0"
+derive_builder = "0.9.0"
+pad = "0.1"
+unicode-width = { version = "0.1.8", optional = true }
+rustyline = { version = "5.0.3", optional = true }
+nom = { version = "5.1.0", optional = true }
+scopeguard = { version = "1.1.0", optional = true }
+
+[dependencies.emulator-2a-lib]
+version = "0.1.0"
+path = "../emulator-2a-lib"
+
+[dependencies.structopt]
+version = "0.3.15"
+features = ["wrap_help", "paw"]
+
+[dependencies.tui]
+version = "0.9.5"
+# TODO: Use termion for linux and mac as soon as #1197 (https://github.com/rust-lang/cargo/issues/1197) is fixed
+default-features = false
+features = ["crossterm"]
+optional = true
+
+[dependencies.crossterm]
+# Use tui's version
+version = "^0.17"
+
+[dev-dependencies]
+proptest = "0.10.0"
+proptest-derive = "0.2.0"
+
+[features]
+default = ["interactive-tui"]
+# Enable the interactive tui
+interactive-tui = ["tui", "rustyline", "nom", "scopeguard", "unicode-width"]
+# The std::fmt::Display implementation defaults to Display::to_utf8_string
+# instead of Display::to_ascii_string
+utf8 = []
+
+[profile.release]
+lto = true

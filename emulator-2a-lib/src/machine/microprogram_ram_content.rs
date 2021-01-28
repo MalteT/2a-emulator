@@ -1,3 +1,4 @@
+// This file is not a module but directly included by the rest of the source code
 [
     Word::from_bits_truncate(0b0011001110000000000000011000), // 000000000 | NOP:
     Word::from_bits_truncate(0b0011001110010000000010111000), // 000000001 | CLR Rd: (clear reg)

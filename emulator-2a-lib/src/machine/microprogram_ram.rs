@@ -52,7 +52,7 @@ bitflags! {
 
 impl MicroprogramRam {
     /// Contents of the MicroprogramRam.
-    pub const CONTENT: [Word; 512] = include!("../../../static/microprogram_ram_content.rs");
+    pub const CONTENT: [Word; 512] = include!("microprogram_ram_content.rs");
     /// Create a new MicroprogramRam with initial address of zero.
     ///
     /// # Example
