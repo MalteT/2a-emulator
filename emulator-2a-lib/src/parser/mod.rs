@@ -24,7 +24,7 @@
 //! ```
 
 mod ast;
-mod parser;
+mod implementation;
 
 pub use ast::*;
-pub use parser::{AsmParser, ParserError};
+pub use implementation::{AsmParser, ParserError};

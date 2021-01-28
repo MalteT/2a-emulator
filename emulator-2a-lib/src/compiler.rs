@@ -90,7 +90,7 @@ impl Translator {
             bytes: vec![],
             known_labels: HashMap::new(),
             next_addr: 0,
-            stacksize: Stacksize::_16,
+            stacksize: Stacksize::default(),
         }
     }
     /// Push a [`Line`] into the translator, adding the translated bytes,

@@ -115,7 +115,7 @@ impl MachineState {
     }
 
     pub fn load_program(&mut self, path: PathBuf, bytecode: ByteCode) {
-        self.machine.load_program(bytecode.bytes());
+        self.machine.load(bytecode);
         self.program = Some(path);
     }
 

@@ -1,0 +1,40 @@
+name: Test
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+        rust: [stable, nightly]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+          profile: minimal
+          components: rustfmt, clippy
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-features --all-targets -- -D warnings
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check

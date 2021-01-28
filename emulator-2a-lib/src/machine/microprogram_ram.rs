@@ -3,8 +3,6 @@ use bitflags::bitflags;
 
 use std::ops::Index;
 
-use super::Signals;
-
 /// The microprogram ram.
 ///
 /// Containing all microprogram words used by the
@@ -123,56 +121,6 @@ impl MicroprogramRam {
     /// ```
     pub fn reset(&mut self) {
         self.current_index = 0;
-    }
-
-    /// Calculate the next address from the given Signals.
-    #[deprecated]
-    pub fn get_addr(sig: &Signals, edge_int: bool, level_int: bool) -> usize {
-        let a8 = sig.a8();
-        let a7 = sig.a7();
-        let a6 = sig.a6();
-        let a5 = sig.a5();
-        let a4 = sig.na4();
-        let a3 = sig.na3();
-        let a2 = sig.na2();
-        let a1 = if sig.mac2() { sig.op11() } else { sig.na1() };
-        let a0 = if sig.mac2() {
-            sig.op10()
-        } else {
-            let select = ((sig.mac1() as u8) << 2) + ((sig.mac0() as u8) << 1) + (sig.na0() as u8);
-            match select {
-                0b000 => false,
-                0b001 => true,
-                0b010 => {
-                    let select = ((sig.op01() as u8) << 1) + (sig.op00() as u8);
-                    let am2 = match select {
-                        0b00 => true,
-                        0b01 => sig.carry_flag(),
-                        0b10 => sig.zero_flag(),
-                        0b11 => sig.negative_flag(),
-                        _ => unreachable!(),
-                    };
-                    let op10 = sig.op10();
-                    // XOR op10 and am2
-                    (am2 || op10) && !(am2 && op10)
-                }
-                0b011 => sig.carry_flag(),
-                0b100 => sig.carry_out(),
-                0b101 => sig.zero_flag(),
-                0b110 => sig.negative_out(),
-                0b111 => sig.interrupt_enable_flag() && (level_int || edge_int),
-                _ => unreachable!(),
-            }
-        };
-        ((a8 as usize) << 8)
-            + ((a7 as usize) << 7)
-            + ((a6 as usize) << 6)
-            + ((a5 as usize) << 5)
-            + ((a4 as usize) << 4)
-            + ((a3 as usize) << 3)
-            + ((a2 as usize) << 2)
-            + ((a1 as usize) << 1)
-            + (a0 as usize)
     }
 }
 

@@ -36,10 +36,11 @@ where
     P: Into<PathBuf>,
 {
     let content = read_to_string(path.into())?;
-    Ok(AsmParser::parse(&content).map_err(Error::from)?)
+    AsmParser::parse(&content).map_err(Error::from)
 }
 
 /// Format a number using the suffixes `k`, `M`, `G` when useful.
+#[cfg(feature = "interactive-tui")]
 pub fn format_number(mut nr: f32) -> String {
     let mut suffix = "";
     if nr > 2_000_000_000.0 {

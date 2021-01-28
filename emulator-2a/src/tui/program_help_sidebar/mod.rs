@@ -181,7 +181,7 @@ impl Widget for SpacedStr<'_, '_> {
 ///
 /// ```
 /// let header = make_header("Main", 10);
-/// assert_eq!(header, String::from("━╸Main╺━━━");
+/// assert_eq!(header, String::from("━╸Main╺━━━"));
 /// ```
 fn make_header(title: &str, width: u16) -> String {
     let mut ret = String::from("━╸");

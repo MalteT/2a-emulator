@@ -103,8 +103,10 @@ impl Test {
         let mut rng = thread_rng();
 
         // Initialize stuff
-        let mut ep = EmulationParameter::default();
-        ep.program = Some((path.clone(), asm));
+        let mut ep = EmulationParameter {
+            program: Some((path.clone(), asm)),
+            ..Default::default()
+        };
 
         ep.ticks = self.ticks;
         let mut initial_input = (0, 0, 0, 0);

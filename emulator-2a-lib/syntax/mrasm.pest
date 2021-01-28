@@ -38,7 +38,7 @@ rest          =  { ( !eol ~ ANY )* }
 // A raw label, without a colon
 raw_label     =  { !(^"R"|^"PC"|^"SP") ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 // All stacksize values
-raw_stacksize =  { "16" | "32" | "48" | "64" | ^"NOSET" }
+raw_stacksize =  { "0" | "16" | "32" | "48" | "64" | ^"NOSET" }
 // Possible register values
 register      =  { ( ^"R" ~ '0'..'3' ) | "PC" }
 // Dereferenced and double dereferenced registers

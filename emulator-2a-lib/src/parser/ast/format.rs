@@ -22,6 +22,7 @@ impl fmt::Display for Stacksize {
             f,
             "{}",
             match self {
+                Stacksize::_0 => "0",
                 Stacksize::_16 => "16",
                 Stacksize::_32 => "32",
                 Stacksize::_48 => "48",
@@ -172,7 +173,7 @@ impl fmt::Display for Line {
                 Ok(())
             }
             Line::Instruction(inst, comment) => {
-                let prefix = format!("{}", "".pad_to_width(INST_WIDTH));
+                let prefix = "".pad_to_width(INST_WIDTH);
                 let inst = format!("{}", inst).pad_to_width(COMMENT_WIDTH - INST_WIDTH);
                 write!(f, "{}{}", prefix, inst)?;
                 if let Some(comment) = comment {
@@ -250,8 +251,8 @@ mod test {
 
     #[test]
     fn test_display_instruction() {
-        s!(Instruction::AsmOrigin(17.into()), ".ORG 17");
-        s!(Instruction::AsmByte(0x0A.into()), ".BYTE 10");
+        s!(Instruction::AsmOrigin(17), ".ORG 17");
+        s!(Instruction::AsmByte(0x0A), ".BYTE 10");
         s!(
             Instruction::AsmDefineBytes(vec![0.into(), 255.into(), 33.into(), 1.into()]),
             ".DB 0x00, 0xFF, 0x21, 0x01"

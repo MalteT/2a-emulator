@@ -260,7 +260,7 @@ mod testing;
 #[cfg(feature = "interactive-tui")]
 mod tui;
 
-use args::{Args, InteractiveArgs, RunArgs, SubCommand, TestArgs, VerifyArgs};
+use args::{Args, RunArgs, SubCommand, TestArgs, VerifyArgs};
 use error::Error;
 
 use colored::Colorize;
@@ -280,7 +280,7 @@ fn main(args: Args) {
         #[cfg(feature = "interactive-tui")]
         Some(SubCommand::Interactive(args)) => run_interactive_session(&args),
         #[cfg(feature = "interactive-tui")]
-        None => run_interactive_session(&InteractiveArgs::default()),
+        None => run_interactive_session(&args::InteractiveArgs::default()),
         #[cfg(not(feature = "interactive-tui"))]
         None => {
             eprintln!("Nothing to do..");
@@ -309,7 +309,7 @@ fn run_verification(args: &VerifyArgs) -> Result<(), Error> {
 }
 
 #[cfg(feature = "interactive-tui")]
-fn run_interactive_session(args: &InteractiveArgs) -> Result<(), Error> {
+fn run_interactive_session(args: &args::InteractiveArgs) -> Result<(), Error> {
     // TODO: Move verification here!
     tui::Tui::run_with_args(args)?;
     Ok(())

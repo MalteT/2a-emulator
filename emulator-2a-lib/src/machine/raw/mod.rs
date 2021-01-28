@@ -105,7 +105,7 @@ impl RawMachine {
         let pending_level_interrupt = None;
         let pending_wait_for_memory = None;
         let bus = Bus::new();
-        let stacksize = Stacksize::_16;
+        let stacksize = Stacksize::default();
         let state = State::Running;
         let alu_output = AluOutput::default();
         let last_bus_read = 0;
@@ -242,11 +242,12 @@ impl RawMachine {
             return false;
         }
         match self.stacksize {
+            Stacksize::_0 => true,
             Stacksize::_16 => sp <= 0xD0 || sp >= 0xDF,
             Stacksize::_32 => sp <= 0xC0 || sp >= 0xCF,
             Stacksize::_48 => sp <= 0xB0 || sp >= 0xBF,
             Stacksize::_64 => sp <= 0xA0 || sp >= 0xAF,
-            Stacksize::NotSet => true,
+            Stacksize::NotSet => unreachable!("BUG: The stacksize must never be UNSET"),
         }
     }
     /// Writes values to the register that were created during the
