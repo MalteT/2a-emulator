@@ -26,6 +26,7 @@ pub use register::{Flags, Register, RegisterNumber};
 /// Using this is recommended over using the [`RawMachine`].
 ///
 /// TODO: Examples
+#[cfg_attr(feature = "wasm", wasm_bindgen::prelude::wasm_bindgen)]
 pub struct Machine {
     /// Underlying oily, rusty, ductaped [`RawMachine`].
     raw: RawMachine,
