@@ -4,6 +4,8 @@ use enum_primitive::{
     enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty, FromPrimitive,
 };
 use log::{trace, warn};
+#[cfg(test)]
+use proptest_derive::Arbitrary;
 
 use std::{f32::consts::FRAC_PI_2, u8};
 
@@ -74,6 +76,7 @@ pub struct Board {
 
 bitflags! {
     /// Digital Analog Status Register
+    #[cfg_attr(test, derive(Arbitrary))]
     pub struct DASR: u8 {
         const J2        = 0b10000000;
         const J1        = 0b01000000;
@@ -88,6 +91,7 @@ bitflags! {
 
 bitflags! {
     /// Digital Analog Interrupt Status Register
+    #[cfg_attr(test, derive(Arbitrary))]
     pub struct DAISR: u8 {
         const INTERRUPT_PENDING   = 0b00001000;
         const INTERRUPT_REQUESTED = 0b00000100;
@@ -98,6 +102,7 @@ bitflags! {
 
 bitflags! {
     /// Digital Analog Interrupt Control Register
+    #[cfg_attr(test, derive(Arbitrary))]
     pub struct DAICR: u8 {
         const IE            = 0b00100000;
         const EDGE          = 0b00010000;
@@ -514,6 +519,28 @@ impl Board {
 #[cfg(test)]
 mod test {
     use super::*;
+    use proptest::prelude::*;
+
+    impl Board {
+        prop_compose! {
+            pub fn arbitrary()(
+                digital_input1 in any::<u8>(),
+                digital_output1 in any::<u8>(),
+                digital_output2 in any::<u8>(),
+                temp in any::<f32>(),
+                dasr in any::<DASR>(),
+                daisr in any::<DAISR>(),
+                daicr in any::<DAICR>(),
+                analog_inputs in any::<[f32; 2]>(),
+                analog_outputs in any::<[f32; 2]>(),
+                fan_rpm in any::<usize>(),
+                uio_dir in any::<[bool; 3]>(),
+            ) -> Board {
+                Board { digital_input1, digital_output1, digital_output2, temp, dasr, daisr, daicr, analog_inputs, analog_outputs, fan_rpm, uio_dir
+                }
+            }
+        }
+    }
 
     #[test]
     fn test_dac_1() {

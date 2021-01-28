@@ -1,6 +1,8 @@
 //! The actual machine and all its components.
 use derive_builder::Builder;
 use log::trace;
+#[cfg(test)]
+use proptest_derive::Arbitrary;
 
 use std::ops::Deref;
 
@@ -342,6 +344,7 @@ pub struct MachineConfig {
 
 /// Possible step modes for execution.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub enum StepMode {
     /// Execute one word per rising clock edge. This is the default.
     Real,
@@ -355,6 +358,19 @@ pub enum StepMode {
 mod test {
     use super::*;
     use crate::{compiler::Translator, parser::AsmParser};
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn step_mode_is_never_reset(starting_step_mode: StepMode) {
+            let mut machine = Machine::new(MachineConfig::default());
+            machine.step_mode = starting_step_mode;
+            machine.cpu_reset();
+            assert_eq!(machine.step_mode(), starting_step_mode);
+            machine.master_reset();
+            assert_eq!(machine.step_mode(), starting_step_mode);
+        }
+    }
 
     #[test]
     fn test_program_loading() {

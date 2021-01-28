@@ -1,3 +1,5 @@
+// XXX: proptest causes issues with clippy
+#![allow(clippy::unit_arg)]
 //! Library for the 2a-emulator
 
 //mod error;
