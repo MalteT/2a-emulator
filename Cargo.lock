@@ -394,7 +394,7 @@ dependencies = [
 
 [[package]]
 name = "emulator-2a-lib"
-version = "6.1.0"
+version = "0.1.0"
 dependencies = [
  "bitflags",
  "colored 2.0.0",

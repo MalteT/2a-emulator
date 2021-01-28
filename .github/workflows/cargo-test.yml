@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - develop
   pull_request:
     branches:
       - main
@@ -30,10 +31,15 @@ jobs:
         with:
           command: test
           args: --all-features
+      # XXX: These are only split because --no-default-features fails on stable
       - uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --no-default-features
+          args: --no-default-features --manifest-path emulator-2a/Cargo.toml
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --no-default-features --manifest-path emulator-2a-lib/Cargo.toml
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
