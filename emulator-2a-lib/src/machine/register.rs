@@ -1,5 +1,7 @@
 use bitflags::bitflags;
 use enum_primitive::{enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty};
+#[cfg(test)]
+use proptest_derive::Arbitrary;
 
 use std::ops::{Index, IndexMut};
 
@@ -31,7 +33,8 @@ use std::ops::{Index, IndexMut};
 ///
 /// Even though the register R4 (flag register) is only using bits 0 to 3, bits 4 to 7 are not
 /// guaranteed to be zero and will be kept by all flag operations.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub struct Register {
     content: [u8; 8],
 }
@@ -41,6 +44,7 @@ enum_from_primitive! {
     ///
     /// This is only useful to index [`Register`].
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[cfg_attr(test, derive(Arbitrary))]
     pub enum RegisterNumber {
         R0 = 0,
         R1,
@@ -381,23 +385,6 @@ impl IndexMut<RegisterNumber> for Register {
     }
 }
 
-impl RegisterNumber {
-    #[cfg(test)]
-    fn strategy() -> impl proptest::strategy::Strategy<Value = RegisterNumber> {
-        use proptest::prelude::*;
-        prop_oneof![
-            Just(RegisterNumber::R0),
-            Just(RegisterNumber::R1),
-            Just(RegisterNumber::R2),
-            Just(RegisterNumber::R3),
-            Just(RegisterNumber::R4),
-            Just(RegisterNumber::R5),
-            Just(RegisterNumber::R6),
-            Just(RegisterNumber::R7),
-        ]
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use proptest::prelude::*;
@@ -406,10 +393,16 @@ mod tests {
 
     proptest! {
         #[test]
-        fn write_to_register_should_persist(number in RegisterNumber::strategy(), val in 0..255_u8) {
+        fn write_to_register_should_persist(number: RegisterNumber, val in 0..255_u8) {
             let mut register = Register::new();
             register.set(number, val);
             assert_eq!(*register.get(number), val);
+        }
+
+        #[test]
+        fn registers_are_reset_correctly(mut registers: Register) {
+            registers.reset();
+            assert_eq!(registers, Register::new());
         }
     }
 

@@ -1,9 +1,12 @@
 use bitflags::bitflags;
+#[cfg(test)]
+use proptest_derive::Arbitrary;
 
 /// The instruction register.
 ///
 /// It stores the currently executed [`Instruction`].
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub struct InstructionRegister {
     content: Instruction,
 }
@@ -51,6 +54,7 @@ impl InstructionRegister {
 
 bitflags! {
     /// A single byte handled by the instruction register.
+    #[cfg_attr(test, derive(Arbitrary))]
     pub struct Instruction: u8 {
         const A8   = 0b10000000;
         const A7   = 0b01000000;
@@ -69,5 +73,19 @@ impl Instruction {
     // TODO: Why this value?
     pub const fn reset() -> Self {
         Instruction::OP01
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn instruction_register_is_reset_correctly(mut register: InstructionRegister) {
+            register.reset();
+            assert_eq!(register, InstructionRegister::new());
+        }
     }
 }

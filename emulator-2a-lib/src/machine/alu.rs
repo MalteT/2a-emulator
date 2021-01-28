@@ -1,5 +1,3 @@
-// XXX: proptest causes issues with clippy
-#![allow(clippy::unit_arg)]
 /// The arithmetic logical unit! Stateless.
 use enum_primitive::{
     enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty, FromPrimitive,
@@ -228,7 +226,7 @@ impl Default for AluSelect {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use proptest::prelude::*;
 

@@ -1,9 +1,15 @@
 /// Everything related to the bus.
 use bitflags::bitflags;
-use log::trace;
-use log::warn;
+use log::{trace, warn};
+#[cfg(test)]
+use proptest::prelude::*;
+#[cfg(test)]
+use proptest_derive::Arbitrary;
 
-use std::fmt;
+use std::{
+    fmt,
+    ops::{Deref, DerefMut},
+};
 
 use super::{Board, Interrupt};
 
@@ -26,7 +32,7 @@ use super::{Board, Interrupt};
 ///
 #[derive(Clone)]
 pub struct Bus {
-    ram: [u8; 0xF0],
+    ram: Ram,
     input_reg: [u8; 4],
     output_reg: [u8; 2],
     micr: MICR,
@@ -39,8 +45,13 @@ pub struct Bus {
     board: Board,
 }
 
+/// The ram component of the [`Bus`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ram([u8; 0xF0]);
+
 /// The interrupt timer.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub struct InterruptTimer {
     enabled: bool,
     div1: usize,
@@ -50,6 +61,7 @@ pub struct InterruptTimer {
 
 bitflags! {
     /// Master Interrupt Control Register
+    #[cfg_attr(test, derive(Arbitrary))]
     struct MICR: u8 {
         const BUS_EDGE_INTERRUPT_ENABLE   = 0b00100000;
         const BUS_LEVEL_INTERRUPT_ENABLE  = 0b00010000;
@@ -62,6 +74,7 @@ bitflags! {
 
 bitflags! {
     /// Master Interrupt Status Register
+    #[cfg_attr(test, derive(Arbitrary))]
     struct MISR: u8 {
         const BUS_INTERRUPT_PENDING          = 0b10000000;
         const UART_INTERUPT_PENDING          = 0b01000000;
@@ -77,6 +90,7 @@ bitflags! {
 bitflags! {
     /// UART Control Register
     /// *This ignores the baudrate.*
+    #[cfg_attr(test, derive(Arbitrary))]
     struct UCR: u8 {
         const INT_ON_RX_READY = 0b10000000;
         const INT_ON_RX_FULL  = 0b01000000;
@@ -88,6 +102,7 @@ bitflags! {
 
 bitflags! {
     /// UART Status Register
+    #[cfg_attr(test, derive(Arbitrary))]
     struct USR: u8 {
         const TX_READY = 0b10000000;
         const TX_EMPTY = 0b01000000;
@@ -104,7 +119,7 @@ impl Bus {
     /// Create a new Bus.
     /// The ram is empty.
     pub const fn new() -> Self {
-        let ram = [0; 0xF0];
+        let ram = Ram::new();
         let input_reg = [0; 4];
         let output_reg = [0; 2];
         let micr = MICR::empty();
@@ -162,12 +177,10 @@ impl Bus {
     /// Reset the bus.
     ///
     /// On top of the [`Machine::cpu_reset`], the following will be reset:
-    ///  - The ram
     ///  - The input register
     ///  - The interrupt timer config
     pub fn master_reset(&mut self) {
         self.cpu_reset();
-        self.reset_ram();
         self.input_reg = [0; 4];
         self.int_timer.reset();
     }
@@ -185,7 +198,7 @@ impl Bus {
     /// assert_eq!(bus.read(0x11), 0);
     /// ```
     pub fn reset_ram(&mut self) {
-        self.ram = [0; 0xF0];
+        self.ram.reset();
     }
 
     /// Write to the bus
@@ -426,6 +439,20 @@ impl Bus {
     }
 }
 
+impl Ram {
+    /// Initialize a new set of Ram.
+    ///
+    /// # Note:
+    /// Do not download RAM!
+    pub const fn new() -> Self {
+        Ram([0; 0xF0])
+    }
+    /// Reset the ram to all zeros.
+    pub fn reset(&mut self) {
+        self.0 = [0; 0xF0]
+    }
+}
+
 impl InterruptTimer {
     /// Create a new, disabled interrupt timer.
     pub const fn new() -> Self {
@@ -450,9 +477,107 @@ impl fmt::Debug for Bus {
     }
 }
 
+impl Deref for Ram {
+    type Target = [u8; 0xF0];
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Ram {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[cfg(test)]
+prop_compose! {
+    fn arbitrary_ram()(num in any::<u8>()) -> Ram {
+        Ram([num; 0xF0])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    impl Bus {
+        prop_compose! {
+            pub fn arbitrary()(
+                ram in arbitrary_ram(),
+                input_reg in any::<[u8; 4]>(),
+                output_reg in any::<[u8; 2]>(),
+                micr in any::<MICR>(),
+                misr in any::<MISR>(),
+                ucr in any::<UCR>(),
+                usr in any::<USR>(),
+                uart_send in any::<u8>(),
+                uart_recv in any::<u8>(),
+                int_timer in any::<InterruptTimer>(),
+                board in Board::arbitrary(),
+            ) -> Bus {
+                Bus { ram, input_reg, output_reg, micr, misr, ucr, usr, uart_send, uart_recv, int_timer, board }
+            }
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn ram_is_reset_correctly(mut bus in Bus::arbitrary()) {
+            bus.reset_ram();
+            assert_eq!(bus.ram, Bus::new().ram);
+        }
+
+        #[test]
+        fn ram_is_untouched_by_cpu_and_master_reset(mut bus in Bus::arbitrary()) {
+            let pristine = bus.clone();
+            bus.cpu_reset();
+            assert_eq!(bus.ram, pristine.ram);
+            bus.master_reset();
+            assert_eq!(bus.ram, pristine.ram);
+        }
+
+        #[test]
+        fn input_registers_are_reset_by_master_reset_only(mut bus in Bus::arbitrary()) {
+            let pristine = bus.clone();
+            bus.cpu_reset();
+            assert_eq!(bus.input_reg, pristine.input_reg);
+            bus.master_reset();
+            assert_eq!(bus.input_reg, Bus::new().input_reg);
+        }
+
+        #[test]
+        fn output_registers_are_reset_by_cpu_reset(mut bus in Bus::arbitrary()) {
+            let pristine = bus.clone();
+            bus.cpu_reset();
+            assert_eq!(bus.output_reg, Bus::new().output_reg);
+            // Let's make sure the master reset does that aswell
+            bus = pristine;
+            bus.master_reset();
+            assert_eq!(bus.output_reg, Bus::new().output_reg);
+        }
+
+        #[test]
+        fn micr_is_reset_by_cpu_reset(mut bus in Bus::arbitrary()) {
+            bus.cpu_reset();
+            assert_eq!(bus.micr, Bus::new().micr);
+        }
+
+        #[test]
+        fn ucr_is_reset_by_cpu_reset(mut bus in Bus::arbitrary()) {
+            bus.cpu_reset();
+            assert_eq!(bus.ucr, Bus::new().ucr);
+        }
+
+        #[test]
+        fn interrupt_timer_settings_are_reset_by_master_reset_only(mut bus in Bus::arbitrary()) {
+            let pristine = bus.clone();
+            bus.cpu_reset();
+            assert_eq!(bus.int_timer, pristine.int_timer);
+            bus.master_reset();
+            assert_eq!(bus.int_timer, Bus::new().int_timer);
+        }
+    }
 
     #[test]
     fn test_bus_ram() {

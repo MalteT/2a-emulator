@@ -1,5 +1,7 @@
 //! Everything needed to operate the microprogram ram.
 use bitflags::bitflags;
+#[cfg(test)]
+use proptest_derive::Arbitrary;
 
 use std::ops::Index;
 
@@ -7,7 +9,8 @@ use std::ops::Index;
 ///
 /// Containing all microprogram words used by the
 /// Minirechner 2a as defined in the documentation.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub struct MicroprogramRam {
     /// Current index into the [`Self::CONTENT`].
     current_index: usize,
@@ -128,5 +131,19 @@ impl Index<usize> for MicroprogramRam {
     type Output = Word;
     fn index(&self, index: usize) -> &Word {
         &Self::CONTENT[index]
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn microprogram_resets_correctly(mut ram: MicroprogramRam) {
+            ram.reset();
+            assert_eq!(ram, MicroprogramRam::new());
+        }
     }
 }
