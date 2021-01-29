@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc cf669b5713cdc6bf76fb90d54214c7d6fcb8b2e1cd342c69f5ef5edbed0c6a3c # shrinks to mut board = Board { digital_input1: 0, digital_output1: 0, digital_output2: 0, temp: -1888.4464, dasr: (empty), daisr: (empty), daicr: (empty), analog_inputs: [0.0, 0.0], analog_outputs: [0.0, 0.0], fan_rpm: 0, uio_dir: [false, false, false] }

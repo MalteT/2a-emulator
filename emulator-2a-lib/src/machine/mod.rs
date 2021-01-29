@@ -17,7 +17,7 @@ mod register;
 use crate::{compiler::ByteCode, parser::Stacksize};
 pub use alu::{AluInput, AluOutput, AluSelect};
 pub use board::{Board, InterruptSource, DAICR, DAISR, DASR};
-pub use bus::Bus;
+pub use bus::{Bus, MISR};
 pub use instruction::{Instruction, InstructionRegister};
 pub use microprogram_ram::{MicroprogramRam, Word};
 pub(crate) use raw::Interrupt;
@@ -405,5 +405,16 @@ mod test {
 
         let program_asm_no_set = &["#! mrasm", "*STACKSIZE NOSET"].join("\n");
         load_verify(program_asm_no_set, Stacksize::_64);
+    }
+
+    #[test]
+    fn misr_is_set_correctly_by_key_interrupt() {
+        let mut machine = Machine::new(MachineConfig::default());
+        machine.raw_mut().bus_mut().write(0xF9, 0b0000_0001);
+        let misr = machine.bus().read(0xF9);
+        assert_eq!(misr & 0b0000_0001, 0b0000_0000);
+        machine.trigger_key_interrupt();
+        let misr = machine.bus().read(0xF9);
+        assert_eq!(misr & 0b0000_0001, 0b0000_0001);
     }
 }

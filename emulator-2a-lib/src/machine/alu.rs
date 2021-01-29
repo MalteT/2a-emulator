@@ -2,6 +2,8 @@
 use enum_primitive::{
     enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty, FromPrimitive,
 };
+#[cfg(test)]
+use proptest_derive::Arbitrary;
 
 enum_from_primitive! {
     /// A list containing all functions understood by the alu.
@@ -108,7 +110,8 @@ impl AluInput {
 /// assert_eq!(output.zero_out(), false);
 /// assert_eq!(output.negative_out(), false);
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub struct AluOutput {
     /// Main output of the last operation.
     output: u8,

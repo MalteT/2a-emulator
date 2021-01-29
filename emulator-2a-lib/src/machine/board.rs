@@ -449,7 +449,6 @@ impl Board {
         self.digital_output1 = 0;
         self.digital_output2 = 0;
         self.analog_outputs = [0.0; 2];
-        self.temp = 0.0;
         self.daicr = DAICR::empty();
         self.fan_rpm = 0;
         self.uio_dir = [false; 3];
@@ -540,6 +539,61 @@ mod test {
                 }
             }
         }
+    }
+
+    proptest! {
+        #[test]
+        fn digital_input_is_never_reset(mut board in Board::arbitrary()) {
+            let pristine = board.clone();
+            board.master_reset();
+            assert_eq!(board.digital_input1, pristine.digital_input1);
+        }
+
+        #[test]
+        fn analog_inputs_are_never_reset(mut board in Board::arbitrary()) {
+            let pristine = board.clone();
+            board.master_reset();
+            assert!((board.analog_inputs[0] - pristine.analog_inputs[0]).abs() < f32::EPSILON);
+            assert!((board.analog_inputs[1] - pristine.analog_inputs[1]).abs() < f32::EPSILON);
+        }
+
+        #[test]
+        fn digital_outputs_are_reset_correctly(mut board in Board::arbitrary()) {
+            board.master_reset();
+            assert_eq!(board.digital_output1, Board::new().digital_output1);
+            assert_eq!(board.digital_output2, Board::new().digital_output2);
+        }
+
+        #[test]
+        fn analog_outputs_are_reset_correctly(mut board in Board::arbitrary()) {
+            board.master_reset();
+            assert!((board.analog_outputs[0] - Board::new().analog_outputs[0]).abs() < f32::EPSILON);
+            assert!((board.analog_outputs[1] - Board::new().analog_outputs[1]).abs() < f32::EPSILON);
+        }
+
+        #[test]
+        fn universal_io_direction_is_reset_correctly(mut board in Board::arbitrary()) {
+            board.master_reset();
+            assert_eq!(board.uio_dir, Board::new().uio_dir);
+        }
+
+        #[test]
+        fn temperature_is_never_reset(mut board in Board::arbitrary()) {
+            let pristine = board.clone();
+            board.master_reset();
+            assert!((board.temp - pristine.temp).abs() < f32::EPSILON);
+        }
+
+        #[test]
+        fn daicr_is_reset_correctly(mut board in Board::arbitrary()) {
+            board.master_reset();
+            assert_eq!(board.daicr, Board::new().daicr);
+        }
+    }
+
+    #[test]
+    fn temperature_is_initiated_with_zero() {
+        assert!(Board::new().temp == 0.0);
     }
 
     #[test]
