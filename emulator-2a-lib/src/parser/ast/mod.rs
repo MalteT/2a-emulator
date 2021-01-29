@@ -1,3 +1,6 @@
+#[cfg(test)]
+use proptest_derive::Arbitrary;
+
 pub type Comment = String;
 pub type Label = String;
 
@@ -45,6 +48,7 @@ pub struct RegisterDDI(pub Register);
 
 /// The different stack sizes the Stack may have.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub enum Stacksize {
     /// Disable the lower bound of the stack. This allows the stack
     /// to grow infinitely (or until it overwrites your program or wraps at 0).

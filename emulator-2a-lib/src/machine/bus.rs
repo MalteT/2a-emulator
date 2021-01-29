@@ -75,7 +75,7 @@ bitflags! {
 bitflags! {
     /// Master Interrupt Status Register
     #[cfg_attr(test, derive(Arbitrary))]
-    struct MISR: u8 {
+    pub struct MISR: u8 {
         const BUS_INTERRUPT_PENDING          = 0b10000000;
         const UART_INTERUPT_PENDING          = 0b01000000;
         const TIMER_INTERRUPT_PENDING        = 0b00100000;
@@ -176,7 +176,7 @@ impl Bus {
 
     /// Reset the bus.
     ///
-    /// On top of the [`Machine::cpu_reset`], the following will be reset:
+    /// On top of the [`Bus::cpu_reset`], the following will be reset:
     ///  - The input register
     ///  - The interrupt timer config
     pub fn master_reset(&mut self) {
@@ -199,6 +199,11 @@ impl Bus {
     /// ```
     pub fn reset_ram(&mut self) {
         self.ram.reset();
+    }
+
+    /// Get mutable access to the Master Interrupt Status Register.
+    pub(crate) fn misr_mut(&mut self) -> &mut MISR {
+        &mut self.misr
     }
 
     /// Write to the bus

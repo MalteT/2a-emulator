@@ -1,6 +1,8 @@
 //! The actual emulated machine.
 
 use log::{trace, warn};
+#[cfg(test)]
+use proptest_derive::Arbitrary;
 
 mod signals;
 
@@ -8,22 +10,26 @@ use super::{
     AluInput, AluOutput, Bus, Instruction, InstructionRegister, MicroprogramRam, Register,
     RegisterNumber, Word,
 };
-use crate::parser::Stacksize;
+use crate::{machine::MISR, parser::Stacksize};
 pub use signals::Signals;
 
 /// A marker for an Interrupt.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub struct Interrupt;
 
 /// A waiting memory action.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub struct MemoryWait;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub struct FlagWrite;
 
 /// State of the machine.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub enum State {
     /// Machine stopped regularly.
     Stopped,
@@ -33,7 +39,7 @@ pub enum State {
     Running,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RawMachine {
     /// Keeping track of the address and content of the microprogram ram.
     microprogram_ram: MicroprogramRam,
@@ -161,7 +167,13 @@ impl RawMachine {
         if self.bus.is_key_edge_int_enabled() {
             trace!("Key edge interrupt triggered.");
             self.pending_edge_interrupt = Some(Interrupt);
+            self.bus_mut()
+                .misr_mut()
+                .insert(MISR::KEY_INTERRUPT_PENDING);
         }
+        self.bus_mut()
+            .misr_mut()
+            .insert(MISR::KEY_INTERRUPT_REQUEST_ACTIVE);
     }
 
     /// Trigger the `CONTINUE` key.
@@ -242,7 +254,7 @@ impl RawMachine {
 
     /// Reset the machine.
     ///
-    /// On top of the [`Machine::cpu_reset`], the following will be reset:
+    /// On top of the [`RawMachine::cpu_reset`], the following will be reset:
     ///  - The input register
     ///  - The raw
     ///  - The interrupt timer configuration
@@ -456,6 +468,130 @@ impl<'a> MachineAfterAluCalculations<'a> {
                 trace!("Generating artificial wait signal");
                 machine.pending_wait_for_memory = Some(MemoryWait);
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    impl RawMachine {
+        prop_compose! {
+            pub fn arbitrary()(
+                microprogram_ram in any::<MicroprogramRam>(),
+                register in any::<Register>(),
+                instruction_register in any::<InstructionRegister>(),
+                bus in Bus::arbitrary(),
+                pending_register_write in any::<Option<RegisterNumber>>(),
+                pending_flag_write in any::<Option<FlagWrite>>(),
+                pending_edge_interrupt in any::<Option<Interrupt>>(),
+                pending_level_interrupt in any::<Option<Interrupt>>(),
+                state in any::<State>(),
+                pending_wait_for_memory in any::<Option<MemoryWait>>(),
+                alu_output in any::<AluOutput>(),
+                stacksize in any::<Stacksize>(),
+                last_bus_read in any::<u8>(),
+            ) -> Self {
+                RawMachine {
+                    microprogram_ram,
+                    register,
+                    instruction_register,
+                    bus,
+                    pending_register_write,
+                    pending_flag_write,
+                    pending_edge_interrupt,
+                    pending_level_interrupt,
+                    state,
+                    pending_wait_for_memory,
+                    alu_output,
+                    stacksize,
+                    last_bus_read
+                }
+            }
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn pending_register_write_is_cleared_during_reset(mut machine in RawMachine::arbitrary()) {
+            let pristine = machine.clone();
+            machine.cpu_reset();
+            assert_eq!(
+                machine.pending_register_write,
+                RawMachine::new().pending_register_write
+            );
+            // Let's make sure it works for the master reset aswell
+            machine = pristine;
+            machine.master_reset();
+            assert_eq!(
+                machine.pending_register_write,
+                RawMachine::new().pending_register_write
+            );
+        }
+
+        #[test]
+        fn pending_flag_write_is_cleared_during_reset(mut machine in RawMachine::arbitrary()) {
+            machine.cpu_reset();
+            assert_eq!(
+                machine.pending_flag_write,
+                RawMachine::new().pending_flag_write
+            );
+        }
+
+        #[test]
+        fn pending_edge_interrupt_is_cleared_during_reset(mut machine in RawMachine::arbitrary()) {
+            machine.cpu_reset();
+            assert_eq!(
+                machine.pending_edge_interrupt,
+                RawMachine::new().pending_edge_interrupt
+            );
+        }
+
+        #[test]
+        fn pending_wait_for_memory_is_cleared_during_reset(mut machine in RawMachine::arbitrary()) {
+            machine.cpu_reset();
+            assert_eq!(
+                machine.pending_wait_for_memory,
+                RawMachine::new().pending_wait_for_memory
+            );
+        }
+
+        #[test]
+        fn state_is_reset_correctly(mut machine in RawMachine::arbitrary()) {
+            machine.cpu_reset();
+            assert_eq!(
+                machine.state,
+                RawMachine::new().state
+            );
+        }
+
+        #[test]
+        fn alu_output_is_reset_correctly(mut machine in RawMachine::arbitrary()) {
+            machine.cpu_reset();
+            assert_eq!(
+                machine.alu_output,
+                RawMachine::new().alu_output
+            );
+        }
+
+        #[test]
+        fn last_bus_read_is_reset_correctly(mut machine in RawMachine::arbitrary()) {
+            machine.cpu_reset();
+            assert_eq!(
+                machine.last_bus_read,
+                RawMachine::new().last_bus_read
+            );
+        }
+
+        #[test]
+        fn stacksize_is_never_reset(mut machine in RawMachine::arbitrary()) {
+            let pristine = machine.clone();
+            machine.cpu_reset();
+            assert_eq!(machine.stacksize, pristine.stacksize);
+            machine.master_reset();
+            assert_eq!(machine.stacksize, pristine.stacksize);
         }
     }
 }
