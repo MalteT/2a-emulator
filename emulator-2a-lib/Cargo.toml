@@ -30,8 +30,10 @@ wasm-bindgen = { version = "0.2", optional = true }
 [dev-dependencies]
 proptest = "0.10.0"
 proptest-derive = "0.2.0"
-pprof = { version = "0.3", features = [ "flamegraph" ] }
 criterion = "0.3"
+
+[target.'cfg(unix)'.dev-dependencies]
+pprof = { version = "0.3", features = [ "flamegraph" ] }
 
 [features]
 default = []
