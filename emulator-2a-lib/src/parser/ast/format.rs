@@ -203,7 +203,7 @@ impl fmt::Display for Asm {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     macro_rules! s {

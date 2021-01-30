@@ -516,7 +516,7 @@ impl Board {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use proptest::prelude::*;
 
