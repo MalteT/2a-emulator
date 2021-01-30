@@ -135,7 +135,7 @@ impl Index<usize> for MicroprogramRam {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use proptest::prelude::*;
 

@@ -355,7 +355,7 @@ pub enum StepMode {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
     use crate::{compiler::Translator, parser::AsmParser};
     use proptest::prelude::*;
