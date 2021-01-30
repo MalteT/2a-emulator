@@ -133,6 +133,7 @@ mod tests {
     fn basic_runner_functions_work() {
         let program = r#"#! mrasm
                 INC R0
+                MOV (0xFE), R0
             LOOP:
                 JR LOOP
         "#;
