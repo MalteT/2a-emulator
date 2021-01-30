@@ -3,3 +3,6 @@ members = [
     "emulator-2a",
     "emulator-2a-lib",
 ]
+
+[profile.release]
+lto = true
