@@ -5,6 +5,7 @@ use emulator_2a_lib::{
     parser::AsmParser,
 };
 
+#[cfg(unix)]
 mod perf;
 
 const PROGRAM: &str = r#"#! mrasm
@@ -33,11 +34,24 @@ pub fn run_program(program: &str) {
     }
 }
 
-criterion_main!(benches);
+#[cfg(unix)]
+criterion_main!(benches_unix);
 
+#[cfg(not(unix))]
+criterion_main!(benches_unix);
+
+#[cfg(unix)]
 criterion_group! {
-    name = benches;
+    name = benches_unix;
     // This can be any expression that returns a `Criterion` object.
     config = Criterion::default().with_profiler(perf::FlamegraphProfiler::new(100));
+    targets = simple_move
+}
+
+#[cfg(not(blub))]
+criterion_group! {
+    name = benches_other;
+    // This can be any expression that returns a `Criterion` object.
+    config = Criterion::default();
     targets = simple_move
 }
