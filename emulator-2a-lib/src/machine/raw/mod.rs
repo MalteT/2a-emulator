@@ -203,28 +203,6 @@ impl RawMachine {
         self.microprogram_ram.get_word().contains(Word::MAC3)
     }
 
-    /// Reset the machine.
-    ///
-    /// - Clear all registers.
-    /// - Load the default instruction into the instruction register.
-    /// - Clear microprogram ram outputs.
-    ///
-    /// It does *not*:
-    /// - Delete the memory (or anything on the bus).
-    #[deprecated = "use [`Machine::cpu_reset`] or [`Machine::master_reset`]"]
-    pub fn reset(&mut self) {
-        self.microprogram_ram.reset();
-        self.register.reset();
-        self.instruction_register.reset();
-        self.bus.cpu_reset();
-        self.pending_register_write = None;
-        self.pending_flag_write = None;
-        self.state = State::Running;
-        self.pending_wait_for_memory = None;
-        self.alu_output = AluOutput::default();
-        self.last_bus_read = 0;
-    }
-
     /// Reset the program execution.
     ///
     /// This resets:
@@ -236,7 +214,6 @@ impl RawMachine {
     ///  - The UCR
     ///  - Edge interrupts
     ///  - The machine state back to Running
-    /// TODO: Implementation
     pub fn cpu_reset(&mut self) {
         self.microprogram_ram.reset();
         self.register.reset();
@@ -249,7 +226,6 @@ impl RawMachine {
         self.alu_output = AluOutput::default();
         self.last_bus_read = 0;
         self.bus.cpu_reset();
-        // ...
     }
 
     /// Reset the machine.
@@ -258,11 +234,10 @@ impl RawMachine {
     ///  - The input register
     ///  - The raw
     ///  - The interrupt timer configuration
-    /// TODO: Implementation
+    ///  - Additional settings and outputs of the [`Board`]
     pub fn master_reset(&mut self) {
         self.cpu_reset();
         self.bus.master_reset();
-        // ...
     }
 
     /// Emulate a rising CLK edge.

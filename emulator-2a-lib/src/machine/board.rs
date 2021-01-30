@@ -7,7 +7,7 @@ use log::{trace, warn};
 #[cfg(test)]
 use proptest_derive::Arbitrary;
 
-use std::{f32::consts::FRAC_PI_2, u8};
+use std::u8;
 
 const MAX_FAN_RPM: usize = 4200;
 
@@ -450,22 +450,6 @@ impl Board {
         self.digital_output2 = 0;
         self.analog_outputs = [0.0; 2];
         self.daicr = DAICR::empty();
-        self.fan_rpm = 0;
-        self.uio_dir = [false; 3];
-        // self.dasr = DASR::J2;
-        // self.daisr = DAISR::empty();
-    }
-
-    /// Reset the board.
-    #[deprecated = "Renamed to [`Board::master_reset`]"]
-    pub fn reset(&mut self) {
-        self.digital_output1 = 0;
-        self.digital_output2 = 0;
-        self.temp = FRAC_PI_2;
-        self.dasr = DASR::J2;
-        self.daisr = DAISR::empty();
-        self.daicr = DAICR::empty();
-        self.analog_outputs = [0.0; 2];
         self.fan_rpm = 0;
         self.uio_dir = [false; 3];
     }
