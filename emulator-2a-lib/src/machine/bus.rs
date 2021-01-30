@@ -144,23 +144,6 @@ impl Bus {
             board,
         }
     }
-    /// Reset the bus.
-    ///
-    /// # Note
-    ///
-    /// Resets:
-    /// - The output register.
-    /// - The external board.
-    /// - MICR.
-    /// - MISR.
-    /// - *Not* the input register nor the ram.
-    #[deprecated = "use [`Machine::cpu_reset`] or [`Machine::master_reset`]"]
-    pub fn reset(&mut self) {
-        self.output_reg = [0; 2];
-        self.board.master_reset();
-        self.micr = MICR::empty();
-        self.misr = MISR::empty();
-    }
 
     /// Reset the program execution on the bus.
     ///
@@ -202,6 +185,7 @@ impl Bus {
     }
 
     /// Get mutable access to the Master Interrupt Status Register.
+    /// TODO: Find better solution than this (public? private?)
     pub(crate) fn misr_mut(&mut self) -> &mut MISR {
         &mut self.misr
     }

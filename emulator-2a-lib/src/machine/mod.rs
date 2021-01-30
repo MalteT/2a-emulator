@@ -263,33 +263,14 @@ impl Machine {
         }
     }
 
-    /// Reset the machine.
-    #[deprecated = "use [`Machine::cpu_reset`] or [`Machine::master_reset`]"]
-    pub fn reset(&mut self) {
-        self.raw_mut().cpu_reset()
-    }
-
     /// Reset the program execution.
-    ///
-    /// This resets:
-    ///  - The program execution
-    ///  - The CPU registers
-    ///  - The instruction register
-    ///  - The output register
-    ///  - The MICR
-    ///  - The UCR
-    ///  - Edge interrupts
-    ///  - The machine state back to Running
+    /// See [`RawMachine::cpu_reset`].
     pub fn cpu_reset(&mut self) {
         self.raw_mut().cpu_reset();
     }
 
     /// Reset the machine.
-    ///
-    /// On top of the [`Machine::cpu_reset`], the following will be reset:
-    ///  - The input register
-    ///  - The raw
-    ///  - The interrupt timer configuration
+    /// See [`RawMachine::master_reset`].
     pub fn master_reset(&mut self) {
         self.raw_mut().master_reset();
     }
