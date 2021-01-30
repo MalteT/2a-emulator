@@ -61,6 +61,3 @@ interactive-tui = ["tui", "rustyline", "nom", "scopeguard", "unicode-width"]
 # The std::fmt::Display implementation defaults to Display::to_utf8_string
 # instead of Display::to_ascii_string
 utf8 = []
-
-[profile.release]
-lto = true
