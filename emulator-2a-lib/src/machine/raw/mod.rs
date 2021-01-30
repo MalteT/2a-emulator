@@ -39,7 +39,7 @@ pub enum State {
     Running,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RawMachine {
     /// Keeping track of the address and content of the microprogram ram.
     microprogram_ram: MicroprogramRam,
@@ -234,7 +234,7 @@ impl RawMachine {
     ///  - The input register
     ///  - The raw
     ///  - The interrupt timer configuration
-    ///  - Additional settings and outputs of the [`Board`]
+    ///  - Additional settings and outputs of the [`Board`][emulator-2a-lib::machine::Board]
     pub fn master_reset(&mut self) {
         self.cpu_reset();
         self.bus.master_reset();

@@ -39,7 +39,7 @@ const MAX_FAN_RPM: usize = 4200;
 ///      ┃         ┗━━━━━━━━━━━━━━━━━━━━━━━┫ P-DO2
 ///      ┇                                   42
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Board {
     /// The 8-bit input port.
     digital_input1: u8,

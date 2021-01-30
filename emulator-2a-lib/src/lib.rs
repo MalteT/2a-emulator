@@ -7,3 +7,4 @@
 pub mod compiler;
 pub mod machine;
 pub mod parser;
+pub mod runner;

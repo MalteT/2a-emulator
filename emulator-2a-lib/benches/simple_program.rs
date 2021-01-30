@@ -1,5 +1,9 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use emulator_2a_lib::{compiler::Translator, parser::AsmParser, machine::{Machine, MachineConfig, State}};
+use emulator_2a_lib::{
+    compiler::Translator,
+    machine::{Machine, MachineConfig, State},
+    parser::AsmParser,
+};
 
 mod perf;
 
@@ -14,7 +18,9 @@ pub fn simple_move(c: &mut Criterion) {
     let parsed = AsmParser::parse(PROGRAM).expect("Program not parseable");
     let bytecode = Translator::compile(&parsed);
     machine.load(bytecode);
-    c.bench_function("run simple program", |b| b.iter(|| run_program(black_box(PROGRAM))));
+    c.bench_function("run simple program", |b| {
+        b.iter(|| run_program(black_box(PROGRAM)))
+    });
 }
 
 pub fn run_program(program: &str) {
@@ -29,7 +35,7 @@ pub fn run_program(program: &str) {
 
 criterion_main!(benches);
 
-criterion_group!{
+criterion_group! {
     name = benches;
     // This can be any expression that returns a `Criterion` object.
     config = Criterion::default().with_profiler(perf::FlamegraphProfiler::new(100));

@@ -30,7 +30,7 @@ use super::{Board, Interrupt};
 /// | `FC - FD` | Interrupt timer                   | `_w` |
 /// | `FE - FF` | Output register                   | `_w` |
 ///
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Bus {
     ram: Ram,
     input_reg: [u8; 4],

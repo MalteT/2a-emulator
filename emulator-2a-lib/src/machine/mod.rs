@@ -30,6 +30,7 @@ pub use register::{Flags, Register, RegisterNumber};
 ///
 /// TODO: Examples
 #[cfg_attr(feature = "wasm", wasm_bindgen::prelude::wasm_bindgen)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Machine {
     /// Underlying oily, rusty, ductaped [`RawMachine`].
     raw: RawMachine,
