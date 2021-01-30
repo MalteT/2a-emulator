@@ -28,7 +28,33 @@ pub use register::{Flags, Register, RegisterNumber};
 ///
 /// Using this is recommended over using the [`RawMachine`].
 ///
-/// TODO: Examples
+/// ```
+/// # use emulator_2a_lib::{
+/// #   machine::{Machine, MachineConfig, RegisterNumber, StepMode},
+/// #   parser::AsmParser,
+/// #   compiler::Translator,
+/// # };
+/// // Init machine and load a program
+/// let mut machine = Machine::new(MachineConfig::default());
+/// let parsed = AsmParser::parse(r#"#! mrasm
+///     .ORG 0
+/// LOOP:
+///     INC R0
+///     ST (0xFF), R0
+///     JR LOOP
+/// "#).expect("Parsing failed!");
+/// let bytecode = Translator::compile(&parsed);
+/// machine.load(bytecode);
+/// // Step over one instruction at a time
+/// machine.set_step_mode(StepMode::Assembly);
+/// // Execute 3 steps
+/// for _ in 0..3 {
+///     machine.trigger_key_clock();
+/// }
+///
+/// assert_eq!(machine.bus().output_ff(), 1);
+/// assert_eq!(machine.registers().get(RegisterNumber::R0), &1);
+/// ```
 #[cfg_attr(feature = "wasm", wasm_bindgen::prelude::wasm_bindgen)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Machine {
