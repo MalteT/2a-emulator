@@ -26,8 +26,6 @@ pub struct Supervisor {
     clk_auto_run_mode: bool,
     /// Asm step mode for emulation.
     clk_asm_step_mode: bool,
-    /// Path to the currently executed program.
-    program_path: Option<PathBuf>,
     /// Time between two rising clock edges.
     clk_period: Duration,
     /// Frequency measurement utility.
@@ -82,14 +80,12 @@ impl Supervisor {
         let machine = Machine::new(conf.into());
         let clk_auto_run_mode = false;
         let clk_asm_step_mode = false;
-        let program_path = None;
         let clk_period = DEFAULT_CLK_PERIOD;
         let freq_measurements = FreqMeasurements::new();
         Supervisor {
             machine,
             clk_auto_run_mode,
             clk_asm_step_mode,
-            program_path,
             clk_period,
             freq_measurements,
         }
@@ -107,7 +103,6 @@ impl Supervisor {
         let mut sv = Supervisor::new(conf);
         sv.toggle_auto_run_mode();
         if let Some((path, asm)) = param.program {
-            sv.program_path = Some(path.clone());
             let bytecode = Translator::compile(&asm);
             sv.machine.load(bytecode);
             fs.program = Some((path, asm));
