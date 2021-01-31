@@ -38,7 +38,7 @@ pub fn run_program(program: &str) {
 criterion_main!(benches_unix);
 
 #[cfg(not(unix))]
-criterion_main!(benches_unix);
+criterion_main!(benches_other);
 
 #[cfg(unix)]
 criterion_group! {
@@ -48,7 +48,7 @@ criterion_group! {
     targets = simple_move
 }
 
-#[cfg(not(blub))]
+#[cfg(not(unix))]
 criterion_group! {
     name = benches_other;
     // This can be any expression that returns a `Criterion` object.
