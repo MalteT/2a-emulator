@@ -1,4 +1,7 @@
-use emulator_2a_lib::machine::{MachineConfig, State};
+use emulator_2a_lib::{
+    machine::{MachineConfig, State},
+    runner::{RunExpectations, RunExpectationsBuilder},
+};
 use structopt::StructOpt;
 
 use std::{num::ParseIntError, path::PathBuf};
@@ -52,7 +55,7 @@ pub struct RunArgs {
     pub verify: Option<RunVerifySubcommand>,
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Clone, StructOpt)]
 pub enum RunVerifySubcommand {
     /// Verify the machine state after emulation has finished.
     ///
@@ -64,7 +67,7 @@ pub enum RunVerifySubcommand {
     Verify(RunVerifyArgs),
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Clone, StructOpt)]
 pub struct RunVerifyArgs {
     /// The expected machine state after emulation.
     ///
@@ -227,6 +230,24 @@ impl From<InitialMachineConfiguration> for MachineConfig {
             universal_input_output2: init.uio2,
             universal_input_output3: init.uio3,
         }
+    }
+}
+
+impl From<RunVerifyArgs> for RunExpectations {
+    fn from(args: RunVerifyArgs) -> Self {
+        let mut expectations = RunExpectationsBuilder::default();
+        if let Some(state) = args.state {
+            expectations.expect_state(state);
+        }
+        if let Some(output_fe) = args.fe {
+            expectations.expect_output_fe(output_fe);
+        }
+        if let Some(output_ff) = args.ff {
+            expectations.expect_output_ff(output_ff);
+        }
+        expectations
+            .build()
+            .expect("BUG: Couldn't create expectations")
     }
 }
 

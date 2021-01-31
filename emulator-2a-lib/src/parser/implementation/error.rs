@@ -1,15 +1,15 @@
-use failure::Fail;
 use pest::error::Error as PestError;
+use thiserror::Error;
 
 use std::fmt;
 
 use super::Rule;
 
 /// Possible failures while parsing assembly.
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum ParserError {
     /// Some syntax violation occured.
-    InvalidSyntax(#[fail(reason)] PestError<Rule>),
+    InvalidSyntax(#[source] PestError<Rule>),
     /// An undefined Label was referenced.
     UndefinedLabels(Vec<String>),
     /// More than 40 Labels have been used.

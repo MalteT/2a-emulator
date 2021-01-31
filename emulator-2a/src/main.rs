@@ -296,8 +296,7 @@ fn main(args: Args) {
 }
 
 fn run_runner(args: &RunArgs) -> Result<(), Error> {
-    let run = runner::Runner::with_args(args)?;
-    run.run()
+    runner::execute_runner_with_args_and_print_results(args)
 }
 
 fn run_tests(args: &TestArgs) -> Result<(), Error> {

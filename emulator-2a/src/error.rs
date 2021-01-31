@@ -2,81 +2,44 @@
 //!
 //! This module defines the error type used through-out the program.
 
-use emulator_2a_lib::parser::ParserError;
-use failure::Fail;
+use emulator_2a_lib::{parser::ParserError, runner::VerificationError};
 use pest::error::Error as PestError;
+use thiserror::Error;
 
-use std::fmt;
 use std::io::Error as IOError;
 
 use crate::testing::Rule as TestRule;
 
-#[derive(Fail, Debug)]
+#[derive(Error, Debug)]
 /// THE error type.
 pub enum Error {
     /// Thrown when the validation of the ASM source file failes.
-    ValidationFailed(#[cause] ParserError),
+    #[error("{_0}")]
+    ValidationFailed(#[from] ParserError),
     /// Thrown when, due to IO failure, no ASM source file could be opened.
-    OpeningSourceFileFailed(#[cause] IOError),
+    #[error("The source file could not be opened!:\n{_0}")]
+    OpeningSourceFileFailed(#[from] IOError),
     /// Thrown when a test file failed to parse.
-    TestFileParsingError(#[cause] PestError<TestRule>),
+    #[error("{_0}")]
+    TestFileParsingError(#[from] PestError<TestRule>),
     /// Thrown when a test failes.
+    #[error("Test {_0:?} failed: {_1}")]
     TestFailed(String, String),
     /// Initialization of tui failed.
     #[cfg(feature = "interactive-tui")]
-    TuiInitializationFailed(#[cause] IOError),
+    #[error("Tui initialization failed: {_0}")]
+    TuiInitializationFailed(#[source] IOError),
     /// Crossterm backend initialization failed.
     #[cfg(feature = "interactive-tui")]
-    CrosstermInitializationFailed(#[cause] crossterm::ErrorKind),
+    #[error("Crossterm initialization failed: {_0}")]
+    CrosstermInitializationFailed(#[source] crossterm::ErrorKind),
     /// Crossterm backend exit failed.
     #[cfg(feature = "interactive-tui")]
-    CrosstermExitFailed(#[cause] crossterm::ErrorKind),
+    #[error("Crossterm exit failed: {_0}")]
+    CrosstermExitFailed(#[source] crossterm::ErrorKind),
     /// Verification of a run failed. The first field is an explanation.
-    RunVerificationFailed(String),
-}
-
-impl From<IOError> for Error {
-    fn from(ioe: IOError) -> Self {
-        Error::OpeningSourceFileFailed(ioe)
-    }
-}
-
-impl From<ParserError> for Error {
-    fn from(pe: ParserError) -> Self {
-        Error::ValidationFailed(pe)
-    }
-}
-
-impl From<PestError<TestRule>> for Error {
-    fn from(pe: PestError<TestRule>) -> Self {
-        Error::TestFileParsingError(pe)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::ValidationFailed(pe) => write!(f, "{}", pe),
-            Error::OpeningSourceFileFailed(ioe) => {
-                write!(f, "The source file could not be opened!:\n{}", ioe)
-            }
-            Error::TestFileParsingError(pe) => write!(f, "{}", pe),
-            Error::TestFailed(n, r) => write!(f, "Test {:?} failed: {}", n, r),
-            #[cfg(feature = "interactive-tui")]
-            Error::TuiInitializationFailed(ioe) => write!(f, "Tui init failed: {}", ioe),
-            #[cfg(feature = "interactive-tui")]
-            Error::CrosstermInitializationFailed(cek) => {
-                write!(f, "Crossterm init failed: {}", cek)
-            }
-            #[cfg(feature = "interactive-tui")]
-            Error::CrosstermExitFailed(cek) => write!(f, "Crossterm exit failed: {}", cek),
-            Error::RunVerificationFailed(reason) => write!(
-                f,
-                "Verification failed: {:?} did not match expectations",
-                reason
-            ),
-        }
-    }
+    #[error("Verification failed: {_0}")]
+    RunVerificationFailed(#[from] VerificationError),
 }
 
 impl Error {

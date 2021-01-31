@@ -365,8 +365,15 @@ pub enum StepMode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{compiler::Translator, parser::AsmParser};
+    use crate::{
+        compiler::Translator,
+        parser::AsmParser,
+        runner::{RunExpectationsBuilder, RunnerConfigBuilder},
+    };
+
     use proptest::prelude::*;
+
+    use std::fs::read_to_string;
 
     proptest! {
         #[test]
@@ -377,6 +384,87 @@ mod tests {
             assert_eq!(machine.step_mode(), starting_step_mode);
             machine.master_reset();
             assert_eq!(machine.step_mode(), starting_step_mode);
+        }
+    }
+
+    macro_rules! run {
+        {
+            path = $path:literal;
+            config = $with:expr;
+            expect = $expectation:expr;
+        } => {
+            let program = read_to_string($path).expect("Failed to read program");
+            let expectation = $expectation.build().expect("Failed to create expectations");
+            let runner = $with.with_program(&program).build().expect("RunConfig creation failed");
+            let result = runner.run().expect("Failed to parse program");
+            expectation.verify(&result).unwrap();
+        }
+    }
+
+    #[test]
+    fn stacksize_default_limit_works() {
+        run! {
+            path = "../testing/programs/01-stacksize-16.asm";
+            config = RunnerConfigBuilder::default().with_max_cycles(1_000);
+            expect = RunExpectationsBuilder::default()
+                .expect_state(State::ErrorStopped)
+                .expect_output_ff(16);
+        }
+    }
+
+    #[test]
+    fn stacksize_limit_no_set_works() {
+        run! {
+            path = "../testing/programs/06-stacksize-noset.asm";
+            config = RunnerConfigBuilder::default().with_max_cycles(1_000);
+            expect = RunExpectationsBuilder::default()
+                .expect_state(State::ErrorStopped)
+                .expect_output_ff(16);
+        }
+    }
+
+    #[test]
+    fn stacksize_limit_32_works() {
+        run! {
+            path = "../testing/programs/02-stacksize-32.asm";
+            config = RunnerConfigBuilder::default().with_max_cycles(1_000);
+            expect = RunExpectationsBuilder::default()
+                .expect_state(State::ErrorStopped)
+                .expect_output_ff(32);
+        }
+    }
+
+    #[test]
+    fn stacksize_limit_48_works() {
+        run! {
+            path = "../testing/programs/03-stacksize-48.asm";
+            config = RunnerConfigBuilder::default().with_max_cycles(10_000);
+            expect = RunExpectationsBuilder::default()
+                .expect_state(State::ErrorStopped)
+                .expect_output_ff(48);
+        }
+    }
+
+    #[test]
+    fn stacksize_limit_64_works() {
+        run! {
+            path = "../testing/programs/04-stacksize-64.asm";
+            config = RunnerConfigBuilder::default().with_max_cycles(10_000);
+            expect = RunExpectationsBuilder::default()
+                .expect_state(State::ErrorStopped)
+                .expect_output_ff(64);
+        }
+    }
+
+    #[test]
+    fn stacksize_limit_0_works() {
+        // The limit is rather arbitrary here
+        run! {
+            path = "../testing/programs/05-stacksize-0.asm";
+            config = RunnerConfigBuilder::default().with_max_cycles(10_000);
+            expect = RunExpectationsBuilder::default()
+                .expect_state(State::ErrorStopped)
+                .expect_output_ff(229);
         }
     }
 

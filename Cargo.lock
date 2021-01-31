@@ -553,6 +553,7 @@ dependencies = [
  "rustyline",
  "scopeguard",
  "structopt",
+ "thiserror",
  "tui",
  "unicode-width",
 ]
