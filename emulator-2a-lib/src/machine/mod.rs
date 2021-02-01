@@ -469,6 +469,19 @@ mod tests {
     }
 
     #[test]
+    fn key_edge_interrupts_work() {
+        run! {
+            path = "../testing/programs/12-simple-key-interrupt-check.asm";
+            config = RunnerConfigBuilder::default()
+                .with_max_cycles(1_000)
+                .with_interrupts([500]);
+            expect = RunExpectationsBuilder::default()
+                .expect_state(State::ErrorStopped)
+                .expect_output_ff(1);
+        }
+    }
+
+    #[test]
     fn test_program_loading() {
         let mut machine = Machine::new(MachineConfig::default());
         let prog = &["#! mrasm", ".DB 42"].join("\n");
