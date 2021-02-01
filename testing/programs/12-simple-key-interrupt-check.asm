@@ -16,4 +16,4 @@ LOOP:
     JR LOOP
 
 ISR:
-    ST (0xFF), 1
+    MOV (0xFF), 1

@@ -6,6 +6,7 @@ use crate::machine::{AluSelect, Flags, Instruction, Interrupt, RegisterNumber, W
 /// The collection of all relevant internal signals with
 /// simplified methods that all return [`bool`]s to easily
 /// work with the current internal state.
+#[derive(Debug)]
 pub struct Signals<'a> {
     word: &'a Word,
     instruction: &'a Instruction,
@@ -243,28 +244,29 @@ impl<'a> Signals<'a> {
         match (self.mac1(), self.mac0(), self.na0()) {
             (false, false, false) => false,
             (false, false, true) => true,
-            (false, true, false) => self.al1(),
+            (false, true, false) => self.address_logic_3(),
             (false, true, true) => self.carry_flag(),
             (true, false, false) => self.carry_out(),
             (true, false, true) => self.zero_out(),
             (true, true, false) => self.negative_out(),
-            (true, true, true) => self.il2(),
+            (true, true, true) => self.address_logic_2(),
         }
     }
     /// Get the output of the address logic xor AL1.
-    pub fn al1(&self) -> bool {
+    pub fn address_logic_3(&self) -> bool {
         self.op10() ^ self.am2()
     }
     /// Get the output of the interrupt logic and IL2.
-    pub fn il2(&self) -> bool {
-        self.interrupt_enable_flag() && self.interrupt_logic_1()
+    pub fn address_logic_2(&self) -> bool {
+        self.interrupt_enable_flag() && self.address_logic_1()
     }
     /// Get the output of the interrupt logic or IL1.
-    pub fn interrupt_logic_1(&self) -> bool {
+    pub fn address_logic_1(&self) -> bool {
+        trace!("Interrupt FF: {:?}", self.interrupt_flipflop_1());
         self.interrupt_flipflop_1() || self.level_interrupt()
     }
     /// Get the output of the interrupt logic and IL3.
-    pub fn interrupt_logic_3(&self) -> bool {
+    pub fn interrupt_logic_1(&self) -> bool {
         self.interrupt_flipflop_1() && self.mac1() && self.mac0() && self.na0()
     }
 }

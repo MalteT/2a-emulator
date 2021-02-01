@@ -356,14 +356,15 @@ impl<'a> MachineAfterInterruptFetching<'a> {
     pub fn update_word(self) -> MachineAfterWordUpdate<'a> {
         let machine = self.0;
         let next_mp_ram_addr = machine.signals().next_microprogram_address();
-        trace!("New MP_RAM address: {}", next_mp_ram_addr);
-        machine.microprogram_ram.set_address(next_mp_ram_addr);
         trace!("New word: {:?}", machine.microprogram_ram.get_word());
         // Clearing edge interrupt if used
-        if machine.signals().interrupt_logic_3() {
+        if machine.signals().interrupt_logic_1() {
             trace!("Clearing edge interrupt");
             machine.pending_edge_interrupt = None;
         }
+        // Do not update MP_RAM address before interrupt clear check
+        trace!("New MP_RAM address: {}", next_mp_ram_addr);
+        machine.microprogram_ram.set_address(next_mp_ram_addr);
         MachineAfterWordUpdate(machine)
     }
 }

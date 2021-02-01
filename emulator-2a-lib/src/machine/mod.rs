@@ -375,18 +375,6 @@ mod tests {
 
     use std::fs::read_to_string;
 
-    proptest! {
-        #[test]
-        fn step_mode_is_never_reset(starting_step_mode: StepMode) {
-            let mut machine = Machine::new(MachineConfig::default());
-            machine.step_mode = starting_step_mode;
-            machine.cpu_reset();
-            assert_eq!(machine.step_mode(), starting_step_mode);
-            machine.master_reset();
-            assert_eq!(machine.step_mode(), starting_step_mode);
-        }
-    }
-
     macro_rules! run {
         {
             path = $path:literal;
@@ -398,6 +386,34 @@ mod tests {
             let runner = $with.with_program(&program).build().expect("RunConfig creation failed");
             let result = runner.run().expect("Failed to parse program");
             expectation.verify(&result).unwrap();
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn step_mode_is_never_reset(starting_step_mode: StepMode) {
+            let mut machine = Machine::new(MachineConfig::default());
+            machine.step_mode = starting_step_mode;
+            machine.cpu_reset();
+            assert_eq!(machine.step_mode(), starting_step_mode);
+            machine.master_reset();
+            assert_eq!(machine.step_mode(), starting_step_mode);
+        }
+
+        #[test]
+        fn key_edge_interrupts_work(interrupt_cycle in 50_usize..=100) {
+            // To make sure, that the interrupt firing works independent of the cycle, fuzz!
+            // The setup takes about 40 cycles, fire the interrupt in
+            // the upcoming 50-100 cycles and leave 50 cycles for the ISR
+            run! {
+                path = "../testing/programs/12-simple-key-interrupt-check.asm";
+                config = RunnerConfigBuilder::default()
+                    .with_max_cycles(150)
+                    .with_interrupts([interrupt_cycle]);
+                expect = RunExpectationsBuilder::default()
+                    .expect_state(State::ErrorStopped)
+                    .expect_output_ff(1);
+            }
         }
     }
 
@@ -465,19 +481,6 @@ mod tests {
             expect = RunExpectationsBuilder::default()
                 .expect_state(State::ErrorStopped)
                 .expect_output_ff(229);
-        }
-    }
-
-    #[test]
-    fn key_edge_interrupts_work() {
-        run! {
-            path = "../testing/programs/12-simple-key-interrupt-check.asm";
-            config = RunnerConfigBuilder::default()
-                .with_max_cycles(1_000)
-                .with_interrupts([500]);
-            expect = RunExpectationsBuilder::default()
-                .expect_state(State::ErrorStopped)
-                .expect_output_ff(1);
         }
     }
 
