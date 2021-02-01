@@ -23,6 +23,9 @@ pub struct RunnerConfig<'a> {
     pub machine_config: MachineConfig,
     /// Program to run on the machine.
     pub program: &'a str,
+    /// A list of cycles at which to trigger a key edge interrupt.
+    #[builder(default, setter(into))]
+    pub interrupts: Vec<usize>,
     /// Prevent the manual creation of this struct for the purpose of extension
     #[builder(setter(skip), default)]
     _phantom: PhantomData<u8>,
@@ -80,9 +83,15 @@ impl<'a> RunnerConfig<'a> {
         let before_emulation = Instant::now();
         let mut emulated_cycles = 0;
         // RUN!
-        for _ in 0..self.max_cycles {
+        while emulated_cycles < self.max_cycles {
+            // Prerequisites for the cycle
+            if self.interrupts.contains(&emulated_cycles) {
+                machine.trigger_key_interrupt();
+            }
+            // Trigger the next cycle
             machine.trigger_key_clock();
             emulated_cycles += 1;
+            // Bail if possible
             if machine.state() != State::Running {
                 break;
             }

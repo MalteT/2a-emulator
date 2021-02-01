@@ -164,8 +164,9 @@ impl RawMachine {
 
     /// Trigger a key edge interrupt.
     pub fn trigger_key_edge_interrupt(&mut self) {
+        trace!("Key edge interrupt fired, checking control registers..");
         if self.bus.is_key_edge_int_enabled() {
-            trace!("Key edge interrupt triggered.");
+            trace!("Key edge interrupt triggered successfully.");
             self.pending_edge_interrupt = Some(Interrupt);
             self.bus_mut()
                 .misr_mut()
