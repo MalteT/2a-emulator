@@ -262,7 +262,6 @@ impl<'a> Signals<'a> {
     }
     /// Get the output of the interrupt logic or IL1.
     pub fn address_logic_1(&self) -> bool {
-        trace!("Interrupt FF: {:?}", self.interrupt_flipflop_1());
         self.interrupt_flipflop_1() || self.level_interrupt()
     }
     /// Get the output of the interrupt logic and IL3.
