@@ -280,6 +280,7 @@ impl Machine {
     pub fn load(&mut self, program: ByteCode) {
         trace!("Loading new program");
         self.master_reset();
+        self.raw_mut().bus_mut().reset_ram();
         trace!("Loading bytes into memory");
         program.bytes().enumerate().for_each(|(address, byte)| {
             self.raw_mut().bus_mut().memory_mut()[address] = *byte;
@@ -415,6 +416,31 @@ mod tests {
                     .expect_output_ff(1);
             }
         }
+    }
+
+    #[test]
+    fn ram_is_reset_on_program_load() {
+        let mut machine = Machine::new(MachineConfig::default());
+        // This takes up some bytes
+        let program_1 = r#"#! mrasm
+        LOOP:
+            INC R0
+            JR LOOP
+        "#;
+        // This will only be one byte, thus overwriting only the INC R0
+        let program_2 = r#"#! mrasm
+            NOP
+        "#;
+        let asm = AsmParser::parse(program_1).unwrap();
+        let bytes = Translator::compile(&asm);
+        machine.load(bytes);
+        // Second byte is non-zero
+        assert_ne!(machine.bus().read(1), 0);
+        let asm = AsmParser::parse(program_2).unwrap();
+        let bytes = Translator::compile(&asm);
+        machine.load(bytes);
+        // Second byte should be zero again
+        assert_eq!(machine.bus().read(1), 0);
     }
 
     #[test]

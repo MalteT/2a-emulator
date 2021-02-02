@@ -529,7 +529,7 @@ checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 
 [[package]]
 name = "emulator-2a"
-version = "7.0.0"
+version = "7.0.1"
 dependencies = [
  "bitflags",
  "colored 1.9.3",
@@ -559,7 +559,7 @@ dependencies = [
 
 [[package]]
 name = "emulator-2a-lib"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "bitflags",
  "colored 2.0.0",
