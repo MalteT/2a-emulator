@@ -95,10 +95,11 @@ Most commands are self-explanatory and the included command completion should
 serve as an inline documentation. For those seeking a more explicit explanation,
 here is a list with commands that the input field will understand:
 
-- `load`*`PATH`* will load the program given by `PATH`. The file is opened and
+- `load` *`PATH`* will load the program given by `PATH`. The file is opened and
   the syntax verified. It will then be compiled to byte code and loaded into the
   main memory.
-- `set`*`VAL`* will update an internal variable. Boolean variables can be changed
+- `next` *`<N>`* will run *`N`* cycles of the currently loaded program. If *`N`* is omitted, one is assumed. This will respect the current step mode.
+- `set` *`VAL`* will update an internal variable. Boolean variables can be changed
   with `set BOOL_VAR`. Non-boolean variables need a more explicit syntax of
   `set NON_BOOL_VAR = VALUE`.
 

@@ -67,6 +67,8 @@ pub enum Command<'a> {
     SetUIO3(bool),
     /// Show the machine part .0.
     Show(Part),
+    /// Execute the next N cycles.
+    Next(usize),
     /// Quit the program.
     Quit,
 }

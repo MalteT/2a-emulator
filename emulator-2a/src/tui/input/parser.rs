@@ -33,6 +33,10 @@ fn nr_dec(input: &str) -> IResult<&str, u8> {
     map_res(digit1, |nr| u8::from_str_radix(nr, 10))(input)
 }
 
+fn nr_dec_usize(input: &str) -> IResult<&str, usize> {
+    map_res(digit1, |nr| usize::from_str_radix(nr, 10))(input)
+}
+
 fn ws_opt(input: &str) -> IResult<&str, Option<&str>> {
     opt(ws)(input)
 }
@@ -162,6 +166,14 @@ fn cmd_quit(input: &str) -> IResult<&str, Command> {
     value(Command::Quit, alt((quit, exit)))(input)
 }
 
+/// `next N`
+fn cmd_next(input: &str) -> IResult<&str, Command> {
+    let next = tag_no_case("next");
+    map(preceded(next, opt(preceded(ws, nr_dec_usize))), |nr| {
+        Command::Next(nr.unwrap_or(1))
+    })(input)
+}
+
 pub fn parse_cmd(input: &str) -> IResult<&str, Command> {
     let cmd = alt((
         cmd_load_prgm,
@@ -172,6 +184,7 @@ pub fn parse_cmd(input: &str) -> IResult<&str, Command> {
         cmd_set_jx,
         cmd_set_uiox,
         cmd_show,
+        cmd_next,
         cmd_quit,
     ));
     complete(delimited(ws_opt, cmd, ws_opt))(input)
@@ -246,6 +259,18 @@ mod tests {
         assert_eq!(parse("unset J2"), Ok(("", SetJ2(false))));
         assert_eq!(parse("set j2 = true"), Ok((" = true", SetJ2(true))));
         assert!(parse("I2").is_err());
+    }
+
+    #[test]
+    fn cmd_next_works() {
+        let parse = cmd_next;
+        use Command::*;
+
+        assert_eq!(parse("next"), Ok(("", Next(1))));
+        assert_eq!(parse("next "), Ok((" ", Next(1))));
+        assert_eq!(parse("next 10"), Ok(("", Next(10))));
+        assert_eq!(parse("next\t123456789"), Ok(("", Next(123456789))));
+        assert_eq!(parse("next  42x"), Ok(("x", Next(42))));
     }
 
     #[test]

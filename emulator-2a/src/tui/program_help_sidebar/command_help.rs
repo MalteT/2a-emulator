@@ -9,6 +9,7 @@ const COMMAND_HELP_DEFAULT: &[(&str, &str)] = &[
     ("set …", "Change a settings"),
     ("unset …", "Unset a bool setting"),
     ("show …", "Select part to display"),
+    ("next <N>", "Run N cycles"),
     ("quit", "Exit the program"),
 ];
 const COMMAND_HELP_SET: &[(&str, &str)] = &[
@@ -38,6 +39,7 @@ const COMMAND_HELP_SHOW: &[(&str, &str)] = &[
     ("register", "Show the registers"),
 ];
 const COMMAND_HELP_LOAD: &[(&str, &str)] = &[("PATH", "Path to the program")];
+const COMMAND_HELP_NEXT: &[(&str, &str)] = &[("<N>", "Optional number of cycles")];
 
 /// Help widget that shows input completions.
 ///
@@ -66,6 +68,8 @@ impl<'a> CommandHelpWidget<'a> {
             COMMAND_HELP_UNSET.len()
         } else if input.starts_with("show ") {
             COMMAND_HELP_SHOW.len()
+        } else if input.starts_with("next ") {
+            COMMAND_HELP_NEXT.len()
         } else {
             COMMAND_HELP_DEFAULT.len()
         };
@@ -100,6 +104,8 @@ impl<'a> Widget for CommandHelpWidget<'a> {
             COMMAND_HELP_UNSET
         } else if input.starts_with("show ") {
             COMMAND_HELP_SHOW
+        } else if input.starts_with("next ") {
+            COMMAND_HELP_NEXT
         } else {
             COMMAND_HELP_DEFAULT
         };

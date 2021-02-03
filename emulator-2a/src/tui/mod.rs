@@ -238,6 +238,11 @@ impl Tui {
                 Command::SetUIO2(val) => self.machine.set_universal_input_output2(val),
                 Command::SetUIO3(val) => self.machine.set_universal_input_output3(val),
                 Command::Show(part) => self.machine.show(part),
+                Command::Next(cycles) => {
+                    for _ in 0..cycles {
+                        self.machine.trigger_key_clock()
+                    }
+                }
                 Command::Quit => return true,
             }
         } else {
