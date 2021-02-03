@@ -168,10 +168,12 @@ impl RawMachine {
         if self.bus.is_key_edge_int_enabled() {
             trace!("Key edge interrupt triggered successfully.");
             self.pending_edge_interrupt = Some(Interrupt);
+            // TODO: I don't actually know when this needs setting. See #34
             self.bus_mut()
                 .misr_mut()
                 .insert(MISR::KEY_INTERRUPT_PENDING);
         }
+        // TODO: I don't actually know when this needs setting. See #34
         self.bus_mut()
             .misr_mut()
             .insert(MISR::KEY_INTERRUPT_REQUEST_ACTIVE);
@@ -327,6 +329,18 @@ impl<'a> MachineAfterRegWrite<'a> {
             } else if machine.last_bus_read == 0x01 {
                 warn!("Read 0x01 instruction. Halting.");
                 machine.state = State::Stopped;
+            } else if machine.last_bus_read == 0b0010_1100 {
+                // We need to clear some MISR flags once the program returns from interrupt
+                trace!("RETI detected. Removing MISR flags");
+                // TODO: I don't actually know when this needs setting. See #34
+                machine
+                    .bus_mut()
+                    .misr_mut()
+                    .remove(MISR::KEY_INTERRUPT_PENDING);
+                machine
+                    .bus_mut()
+                    .misr_mut()
+                    .remove(MISR::KEY_INTERRUPT_REQUEST_ACTIVE);
             }
             machine.instruction_register.set_raw(machine.last_bus_read);
             trace!("Next instruction: {:?}", machine.instruction_register);

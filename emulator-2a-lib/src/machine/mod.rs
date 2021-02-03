@@ -386,7 +386,9 @@ mod tests {
             let expectation = $expectation.build().expect("Failed to create expectations");
             let runner = $with.with_program(&program).build().expect("RunConfig creation failed");
             let result = runner.run().expect("Failed to parse program");
-            expectation.verify(&result).unwrap();
+            if let Err(why) = expectation.verify(&result) {
+                panic!(" -> Test failed: {}", why)
+            }
         }
     }
 
@@ -414,6 +416,18 @@ mod tests {
                 expect = RunExpectationsBuilder::default()
                     .expect_state(State::ErrorStopped)
                     .expect_output_ff(1);
+            }
+        }
+
+        #[test]
+        fn key_interrupt_is_set_in_misr_correctly(interrupt_cycle in 500_usize..=550) {
+            run! {
+                path = "../testing/programs/13-misr-testing-during-key-interrupts.asm";
+                config = RunnerConfigBuilder::default()
+                    .with_max_cycles(1000)
+                    .with_interrupts([interrupt_cycle]);
+                expect = RunExpectationsBuilder::default()
+                    .expect_output_ff(0);
             }
         }
     }
