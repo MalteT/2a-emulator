@@ -131,8 +131,8 @@ impl Tui {
                     // Quit
                     break 'outer;
                 }
-                if self.machine.step_mode() == StepMode::Real {
-                    thread::sleep(10 * ONE_MILLISECOND);
+                if self.machine.auto_run_mode {
+                    thread::sleep(ONE_MILLISECOND);
                 }
             }
         }
