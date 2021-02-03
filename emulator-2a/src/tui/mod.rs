@@ -28,7 +28,11 @@ mod program_help_sidebar;
 pub mod show_widgets;
 mod supervisor_wrapper;
 
-use crate::{args::InteractiveArgs, error::Error, helpers};
+use crate::{
+    args::InteractiveArgs,
+    error::Error,
+    helpers::{self, dur_sub},
+};
 pub use board_info_sidebar::BoardInfoSidebarWidget;
 use events::Events;
 use input::{Command, InputRegister, InputState};
@@ -39,8 +43,9 @@ pub use supervisor_wrapper::{MachineState, MachineWidget, Part};
 pub type Backend = CrosstermBackend<Stdout>;
 type AbortEmulation = bool;
 
-const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(1_000_000 / 60);
-const ONE_MILLISECOND: Duration = Duration::from_millis(1);
+const FRAMES_PER_SECOND: u64 = 24;
+const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(1_000_000 / FRAMES_PER_SECOND);
+//const CYCLES_PER_SECOND: u64 = 7_372_800;
 
 /// The Terminal User Interface (TUI)
 pub struct Tui {
@@ -110,30 +115,31 @@ impl Tui {
         // Prepare for main loop
         let mut last_draw;
         // Loop until exit is requested
-        'outer: loop {
+        loop {
+            last_draw = Instant::now();
+            // Update interface state
+            self.maintain();
+            // Handle one event and exit if necessary
+            if self.handle_event() {
+                trace!("Quitting application");
+                // Quit
+                break;
+            }
             // Next draw of the machine
             backend.draw(|mut f| {
                 let area = f.size();
                 f.render_stateful_widget(Interface, area, &mut self);
             })?;
-            last_draw = Instant::now();
-            // Loop until the next draw is necessary
-            while last_draw.elapsed() < DURATION_BETWEEN_FRAMES {
-                // Let the machine do some work
-                if self.machine.auto_run_mode {
-                    self.machine.trigger_key_clock();
+            // Wait or calculate, depending on auto_run_mode
+            if self.machine.auto_run_mode {
+                // Do some calculations between frames
+                while last_draw.elapsed() < DURATION_BETWEEN_FRAMES {
+                    // Let the machine do some work
+                    self.machine.next_cycle();
                 }
-                // Update interface state
-                self.maintain();
-                // Handle event
-                if self.handle_event() {
-                    trace!("Quitting application");
-                    // Quit
-                    break 'outer;
-                }
-                if self.machine.auto_run_mode {
-                    thread::sleep(ONE_MILLISECOND);
-                }
+                thread::sleep(dur_sub(DURATION_BETWEEN_FRAMES, last_draw.elapsed()));
+            } else if last_draw.elapsed() < DURATION_BETWEEN_FRAMES {
+                thread::sleep(DURATION_BETWEEN_FRAMES - last_draw.elapsed());
             }
         }
         backend.clear()?;
@@ -185,7 +191,7 @@ impl Tui {
                 match event.code {
                     Enter => {
                         if self.input_field.is_empty() {
-                            self.machine.trigger_key_clock();
+                            self.machine.next_cycle();
                             self.keybinding_state.clk_pressed();
                             false
                         } else {
@@ -240,7 +246,7 @@ impl Tui {
                 Command::Show(part) => self.machine.show(part),
                 Command::Next(cycles) => {
                     for _ in 0..cycles {
-                        self.machine.trigger_key_clock()
+                        self.machine.next_cycle()
                     }
                 }
                 Command::Quit => return true,

@@ -3,8 +3,7 @@
 use colored::Colorize;
 use emulator_2a_lib::parser::{Asm, AsmParser};
 
-use std::fs::read_to_string;
-use std::path::PathBuf;
+use std::{fs::read_to_string, path::PathBuf, time::Duration};
 
 use crate::error::Error;
 
@@ -28,6 +27,15 @@ where
         path.to_string_lossy().bright_green()
     );
     Ok(())
+}
+
+/// Copy of [`Duration::checked_sub`]
+// XXX: Remove once the above is stable.
+pub fn dur_sub(lhs: Duration, rhs: Duration) -> Duration {
+    match lhs.checked_sub(rhs) {
+        Some(res) => res,
+        None => Duration::from_nanos(0),
+    }
 }
 
 /// Read the given path to valid [`Asm`] or fail.
