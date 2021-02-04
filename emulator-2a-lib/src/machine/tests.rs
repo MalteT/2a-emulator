@@ -160,6 +160,19 @@ fn define_byte_instruction_works() {
 }
 
 #[test]
+fn equ_instruction_works() {
+    run! {
+        path = "../testing/programs/14-use-equ-instruction.asm";
+        config = RunnerConfigBuilder::default()
+            .with_max_cycles(1000);
+        expect = RunExpectationsBuilder::default()
+            .expect_output_ff(42)
+            .expect_output_fe(42)
+            .expect_state(State::ErrorStopped);
+    }
+}
+
+#[test]
 fn ram_is_reset_on_program_load() {
     let mut machine = Machine::new(MachineConfig::default());
     // This takes up some bytes

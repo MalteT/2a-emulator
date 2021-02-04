@@ -380,7 +380,7 @@ fn parse_instruction_equ(equ: Pair<Rule>) -> Instruction {
     let (_, label, _, constant) = inner_tuple! { equ;
         sep_ip      => ignore;
         raw_label   => parse_raw_label;
-        sep_pp      => ignore;
+        sep_ip      => ignore;
         constant    => parse_constant;
     };
     Instruction::AsmEquals(label, constant)

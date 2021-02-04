@@ -53,7 +53,8 @@ destination   =  { register | registerdi | registerddi | memory }
 org           =  { ^".ORG"       ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
 byte          =  { ^".BYTE"      ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
 db            =  { ^".DB"        ~ sep_ip ~ constant       ~ ( sep_pp ~ constant )*        }
-equ           =  { ^".EQU"       ~ sep_ip ~ raw_label      ~   sep_pp ~ constant           }
+// The .EQU doesn't need commas!
+equ           =  { ^".EQU"       ~ sep_ip ~ raw_label      ~   sep_ip ~ constant           }
 stacksize     =  { ^"*STACKSIZE" ~ sep_ip ~ raw_stacksize  }
 // Arithmetic operations
 clr           =  { ^"CLR" ~ sep_ip ~ register }
