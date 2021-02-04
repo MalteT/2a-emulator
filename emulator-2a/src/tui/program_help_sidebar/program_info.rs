@@ -57,7 +57,7 @@ impl<'a> ProgramInfoWidget<'a> {
             .and_then(|path| path.file_name())
             .map(|file_name| file_name.to_string_lossy())
             .unwrap_or(Cow::Borrowed(""));
-        let spaced = SpacedStr::from(INFO_PROGRAM.0, &name);
+        let spaced = SpacedStr::from(INFO_PROGRAM.0, &name).right_style(&helpers::BOLD);
         spaced.render(area, buf)
     }
     fn render_freq(&self, area: Rect, buf: &mut Buffer) {
