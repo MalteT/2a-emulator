@@ -44,6 +44,16 @@ macro_rules! load {
     }
 }
 
+macro_rules! verify_ram {
+    { $machine:expr, $bytes:expr } => {
+        let bytes: &[u8] = $bytes;
+        for (idx, byte) in bytes.iter().enumerate() {
+            dbg!(idx, byte);
+            assert_eq!($machine.bus().read(idx as u8), *byte, "Byte mismatch at position: {}", idx)
+        }
+    }
+}
+
 proptest! {
     #[test]
     fn step_mode_is_never_reset(starting_step_mode: StepMode) {
@@ -117,14 +127,8 @@ fn org_assembly_instruction_works() {
         "#
     };
     // The first byte has to be zero, since we start an ORG 1
-    assert_eq!(machine.bus().read(0), 0);
     // The next two byte are the STOP instructions
-    assert_eq!(machine.bus().read(1), 1);
-    assert_eq!(machine.bus().read(2), 1);
-    // Skip one
-    assert_eq!(machine.bus().read(3), 0);
-    assert_eq!(machine.bus().read(4), 0x42);
-    assert_eq!(machine.bus().read(5), 0);
+    verify_ram!(machine, &[0, 1, 1, 0, 0x42, 0]);
 }
 
 #[test]
@@ -139,15 +143,20 @@ fn byte_assembly_instruction_works() {
             STOP
         "#
     };
-    assert_eq!(machine.bus().read(0), 0);
-    assert_eq!(machine.bus().read(1), 0);
-    assert_eq!(machine.bus().read(2), 1);
-    assert_eq!(machine.bus().read(3), 0);
-    assert_eq!(machine.bus().read(4), 0);
-    assert_eq!(machine.bus().read(5), 0x57);
-    assert_eq!(machine.bus().read(6), 0);
-    assert_eq!(machine.bus().read(7), 1);
-    assert_eq!(machine.bus().read(8), 0);
+    verify_ram!(machine, &[0, 0, 1, 0, 0, 0x57, 0, 1, 0]);
+}
+
+#[test]
+fn define_byte_instruction_works() {
+    let machine = load! {
+        r#"#! mrasm
+            .ORG 1
+            .DB 1, 2, 3, 4, 5, 6, 7, 8
+            STOP
+            .DB 0x99
+        "#
+    };
+    verify_ram!(machine, &[0, 1, 2, 3, 4, 5, 6, 7, 8, 1, 0x99]);
 }
 
 #[test]
