@@ -128,6 +128,29 @@ fn org_assembly_instruction_works() {
 }
 
 #[test]
+fn byte_assembly_instruction_works() {
+    let machine = load! {
+        r#"#! mrasm
+            .BYTE 2
+            STOP
+            .BYTE 2
+            .DB 0x57
+            .BYTE 1
+            STOP
+        "#
+    };
+    assert_eq!(machine.bus().read(0), 0);
+    assert_eq!(machine.bus().read(1), 0);
+    assert_eq!(machine.bus().read(2), 1);
+    assert_eq!(machine.bus().read(3), 0);
+    assert_eq!(machine.bus().read(4), 0);
+    assert_eq!(machine.bus().read(5), 0x57);
+    assert_eq!(machine.bus().read(6), 0);
+    assert_eq!(machine.bus().read(7), 1);
+    assert_eq!(machine.bus().read(8), 0);
+}
+
+#[test]
 fn ram_is_reset_on_program_load() {
     let mut machine = Machine::new(MachineConfig::default());
     // This takes up some bytes
