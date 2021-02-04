@@ -44,8 +44,8 @@ pub type Backend = CrosstermBackend<Stdout>;
 type AbortEmulation = bool;
 
 const FRAMES_PER_SECOND: u64 = 24;
+const CYCLES_PER_SECOND: u64 = 7_372_800;
 const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(1_000_000 / FRAMES_PER_SECOND);
-//const CYCLES_PER_SECOND: u64 = 7_372_800;
 
 /// The Terminal User Interface (TUI)
 pub struct Tui {
@@ -64,6 +64,8 @@ pub struct Tui {
     /// State for the
     /// [`ProgramDisplayWidget`](program_help_sidebar::KeybindingHelpWidget).
     program_display_state: ProgramDisplayState,
+    /// Measured frequency derived in the main loop
+    measured_freq: f32,
 }
 
 impl Tui {
@@ -74,12 +76,14 @@ impl Tui {
         let input_field = InputState::new();
         let keybinding_state = KeybindingHelpState::init();
         let program_display_state = ProgramDisplayState::empty();
+        let measured_freq = 0.0;
         Tui {
             program_display_state,
             keybinding_state,
             machine,
             events,
             input_field,
+            measured_freq,
         }
     }
     /// Create a new TUI from the given command line arguments
@@ -116,6 +120,7 @@ impl Tui {
         let mut last_draw;
         // Loop until exit is requested
         loop {
+            let mut executed_cycles = 0;
             last_draw = Instant::now();
             // Update interface state
             self.maintain();
@@ -133,14 +138,19 @@ impl Tui {
             // Wait or calculate, depending on auto_run_mode
             if self.machine.auto_run_mode {
                 // Do some calculations between frames
-                while last_draw.elapsed() < DURATION_BETWEEN_FRAMES {
+                while last_draw.elapsed() < DURATION_BETWEEN_FRAMES
+                    && executed_cycles < CYCLES_PER_SECOND / FRAMES_PER_SECOND
+                {
                     // Let the machine do some work
-                    self.machine.next_cycle();
+                    self.machine.trigger_key_clock();
+                    executed_cycles += 1;
                 }
                 thread::sleep(dur_sub(DURATION_BETWEEN_FRAMES, last_draw.elapsed()));
             } else if last_draw.elapsed() < DURATION_BETWEEN_FRAMES {
                 thread::sleep(DURATION_BETWEEN_FRAMES - last_draw.elapsed());
             }
+            self.measured_freq =
+                1e6 * executed_cycles as f32 / last_draw.elapsed().as_micros() as f32;
         }
         backend.clear()?;
         backend.show_cursor()?;
@@ -191,7 +201,7 @@ impl Tui {
                 match event.code {
                     Enter => {
                         if self.input_field.is_empty() {
-                            self.machine.next_cycle();
+                            self.machine.trigger_key_clock();
                             self.keybinding_state.clk_pressed();
                             false
                         } else {
@@ -246,7 +256,7 @@ impl Tui {
                 Command::Show(part) => self.machine.show(part),
                 Command::Next(cycles) => {
                     for _ in 0..cycles {
-                        self.machine.next_cycle()
+                        self.machine.trigger_key_clock()
                     }
                 }
                 Command::Quit => return true,

@@ -12,7 +12,6 @@ use tui::{
 use std::{
     ops::{Deref, DerefMut},
     path::PathBuf,
-    time::{Duration, Instant},
 };
 
 use crate::{
@@ -34,9 +33,6 @@ const INPUT_REGISTER_WIDGET_HEIGHT: u16 = 3;
 const BOARD_INFO_SIDEBAR_WIDGET_WIDTH: u16 = 20;
 const SHOW_PART_START_Y_OFFSET: u16 =
     INPUT_REGISTER_WIDGET_HEIGHT + OUTPUT_REGISTER_WIDGET_HEIGHT + 2 * ONE_SPACE;
-
-const NUMBER_OF_MEASUREMENTS: usize = 30;
-const DEFAULT_CLK_FREQUENCY: f32 = 7.3728e6;
 
 /// Widget for drawing the machine.
 ///
@@ -75,18 +71,6 @@ pub struct MachineState {
     pub auto_run_mode: bool,
     /// Currenly active program.
     program: Option<PathBuf>,
-    /// Frequency measurement utility.
-    freq_measurements: FreqMeasurements,
-}
-
-/// Helper struct for frequency measurements.
-struct FreqMeasurements {
-    /// The index of the oldest measurement.
-    oldest_index: usize,
-    /// The measurements.
-    measurements: [f32; NUMBER_OF_MEASUREMENTS],
-    /// Last time a clock occured.
-    last_clk: Instant,
 }
 
 /// Displayable parts.
@@ -111,7 +95,6 @@ impl MachineState {
             draw_counter: 0,
             auto_run_mode: false,
             program: None,
-            freq_measurements: FreqMeasurements::new(),
         }
     }
     /// Select another part for display.
@@ -138,55 +121,6 @@ impl MachineState {
 
     pub fn program_path(&self) -> Option<&PathBuf> {
         self.program.as_ref()
-    }
-
-    pub fn get_frequency(&self) -> f32 {
-        DEFAULT_CLK_FREQUENCY
-    }
-
-    pub fn get_measured_frequency(&self) -> f32 {
-        if self.auto_run_mode {
-            self.freq_measurements.get_average()
-        } else {
-            0.0
-        }
-    }
-
-    pub fn next_cycle(&mut self) {
-        self.freq_measurements.add_diff();
-        self.trigger_key_clock();
-    }
-}
-
-impl FreqMeasurements {
-    /// Create a new empty measurement.
-    pub fn new() -> Self {
-        let oldest_index = 0;
-        let measurements = [0.0; NUMBER_OF_MEASUREMENTS];
-        let last_clk = Instant::now();
-        FreqMeasurements {
-            oldest_index,
-            measurements,
-            last_clk,
-        }
-    }
-    /// Add a new measurement, deleting the oldest.
-    /// The method returns the time since the last measurement.
-    pub fn add_diff(&mut self) -> Duration {
-        let clk_now = Instant::now();
-        let time_since_last_measurement = clk_now - self.last_clk;
-        let measurement = 1_000_000_000.0 / time_since_last_measurement.as_nanos() as f32;
-        self.measurements[self.oldest_index] = measurement;
-        self.oldest_index += 1;
-        self.oldest_index %= NUMBER_OF_MEASUREMENTS;
-        self.last_clk = clk_now;
-        time_since_last_measurement
-    }
-    /// Return the average over the measured data.
-    /// This is biased if less then NUMBER_OF_MEASUREMENTS have been pushed.
-    pub fn get_average(&self) -> f32 {
-        let sum: f32 = self.measurements.iter().sum();
-        sum / NUMBER_OF_MEASUREMENTS as f32
     }
 }
 
