@@ -21,6 +21,7 @@
 //!
 //! ```
 use colored::Colorize;
+use log::error;
 
 use std::{collections::HashMap, fmt, ops::Deref, rc::Rc};
 
@@ -113,8 +114,24 @@ impl Translator {
         use Instruction::*;
         let bols = match inst.clone() {
             AsmOrigin(addr) => {
-                self.next_addr = addr;
-                vec![]
+                // XXX: This can only skip bytes atm, no fancy
+                // XXX: messing with your programs yet!
+                // XXX: Prevent the usage of negativ skips to prevent diverging
+                // XXX: from the real machine.
+                if addr < self.next_addr {
+                    error! {
+                        "Compiler detected a problematic .ORG instruction!\nThe instruction: `{}` will cause the real machine to behave differently, since the .ORG instruction would point to an existing byte in the program. This is probably unintentional, please use an address larger than {}, to not overwrite your own program.\n\n -> Example: .ORG {}\n\n", inst, self.next_addr, self.next_addr + 5
+                    }
+                    panic!("Compilation aborted")
+                }
+                // Insert blanks
+                let mut skips = vec![];
+                if addr > self.next_addr {
+                    for _skip in 0..(addr - self.next_addr) {
+                        skips.push(Byte(0x00));
+                    }
+                }
+                skips
             }
             AsmByte(nr) => {
                 self.next_addr += nr;

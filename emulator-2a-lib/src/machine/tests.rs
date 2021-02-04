@@ -84,6 +84,27 @@ proptest! {
     }
 }
 
+// XXX: Not supported yet
+// #[test]
+// fn org_assembly_instruction_works() {
+//     let machine = load! {
+//         r#"#! mrasm
+//             .ORG 1
+//             STOP
+//             STOP
+//             .ORG 2
+//             .DB 0x42
+//         "#
+//     };
+//     // The first byte has to be zero, since we start an ORG 1
+//     assert_eq!(machine.bus().read(0), 0);
+//     // The next byte is the STOP instruction
+//     assert_eq!(machine.bus().read(1), 1);
+//     // The last step was overwritten by the .DB
+//     assert_eq!(machine.bus().read(2), 0x42);
+//     assert_eq!(machine.bus().read(3), 0);
+// }
+
 #[test]
 fn org_assembly_instruction_works() {
     let machine = load! {
@@ -91,17 +112,19 @@ fn org_assembly_instruction_works() {
             .ORG 1
             STOP
             STOP
-            .ORG 2
+            .ORG 4
             .DB 0x42
         "#
     };
     // The first byte has to be zero, since we start an ORG 1
     assert_eq!(machine.bus().read(0), 0);
-    // The next byte is the STOP instruction
+    // The next two byte are the STOP instructions
     assert_eq!(machine.bus().read(1), 1);
-    // The last step was overwritten by the .DB
-    assert_eq!(machine.bus().read(2), 0x42);
+    assert_eq!(machine.bus().read(2), 1);
+    // Skip one
     assert_eq!(machine.bus().read(3), 0);
+    assert_eq!(machine.bus().read(4), 0x42);
+    assert_eq!(machine.bus().read(5), 0);
 }
 
 #[test]
