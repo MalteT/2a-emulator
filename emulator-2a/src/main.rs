@@ -20,7 +20,6 @@
 //!     - [Commands](#commands)
 //!   - [`run`ning programs](#running-programs)
 //!   - [`verify`ing programs](#verifying-programs)
-//!   - [`test`ing programs](#testing-programs)
 //! - [Compilation flags](#compilation-flags)
 //! - [Implementation & Contribution](#implementation--contribution)
 //!
@@ -93,10 +92,10 @@
 //! serve as an inline documentation. For those seeking a more explicit explanation,
 //! here is a list with commands that the input field will understand:
 //!
-//! - `load`*`PATH`* will load the program given by `PATH`. The file is opened and
+//! - `load` *`PATH`* will load the program given by `PATH`. The file is opened and
 //!   the syntax verified. It will then be compiled to byte code and loaded into the
 //!   main memory.
-//! - `set`*`VAL`* will update an internal variable. Boolean variables can be changed
+//! - `set` *`VAL`* will update an internal variable. Boolean variables can be changed
 //!   with `set BOOL_VAR`. Non-boolean variables need a more explicit syntax of
 //!   `set NON_BOOL_VAR = VALUE`.
 //!
@@ -123,9 +122,9 @@
 //!   - `I1`/`I2 =`*`voltage`* updates the voltage at the analog input pin on the
 //!     MR2DA2 extension board. `voltage` is clamped between `0.0` and `5.0` Volts.
 //!
-//! - `unset`*`VAL`* will set a boolean variable to `false`. See `set` for a list of
+//! - `unset` *`VAL`* will set a boolean variable to `false`. See `set` for a list of
 //!   boolean variables.
-//! - `show`*`PART`* selects a part to be displayed beneath the main I/O registers.
+//! - `show` *`PART`* selects a part to be displayed beneath the main I/O registers.
 //!   Selectable parts are:
 //!
 //!   - `register`, the default part which is the register block containing the eight
@@ -222,13 +221,6 @@
 //! failed. This can be used to build more complex verifications using shell scripts.
 //!
 //! **See `2a-emulator run verify --help` for a full list of options.**
-//!
-//! ### `test`ing programs
-//!
-//! There is a `test` subcommand available at the moment, which will hopefully be
-//! replaced by the `verify` subcommand soon. But if you want to learn more about
-//! it, have a look at `2a-emulator test --help` and go through the test examples
-//! in `./program_tests`.
 //!
 //! ## Compilation flags
 //!

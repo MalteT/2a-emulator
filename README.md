@@ -22,7 +22,6 @@ is versatile enough to test solutions.
     - [Commands](#commands)
   - [`run`ning programs](#running-programs)
   - [`verify`ing programs](#verifying-programs)
-  - [`test`ing programs](#testing-programs)
 - [Compilation flags](#compilation-flags)
 - [Implementation & Contribution](#implementation--contribution)
 
@@ -98,7 +97,6 @@ here is a list with commands that the input field will understand:
 - `load` *`PATH`* will load the program given by `PATH`. The file is opened and
   the syntax verified. It will then be compiled to byte code and loaded into the
   main memory.
-- `next` *`<N>`* will run *`N`* cycles of the currently loaded program. If *`N`* is omitted, one is assumed. This will respect the current step mode.
 - `set` *`VAL`* will update an internal variable. Boolean variables can be changed
   with `set BOOL_VAR`. Non-boolean variables need a more explicit syntax of
   `set NON_BOOL_VAR = VALUE`.
@@ -126,9 +124,9 @@ here is a list with commands that the input field will understand:
   - `I1`/`I2 =`*`voltage`* updates the voltage at the analog input pin on the
     MR2DA2 extension board. `voltage` is clamped between `0.0` and `5.0` Volts.
 
-- `unset`*`VAL`* will set a boolean variable to `false`. See `set` for a list of
+- `unset` *`VAL`* will set a boolean variable to `false`. See `set` for a list of
   boolean variables.
-- `show`*`PART`* selects a part to be displayed beneath the main I/O registers.
+- `show` *`PART`* selects a part to be displayed beneath the main I/O registers.
   Selectable parts are:
 
   - `register`, the default part which is the register block containing the eight
@@ -226,13 +224,6 @@ failed. This can be used to build more complex verifications using shell scripts
 
 **See `2a-emulator run verify --help` for a full list of options.**
 
-#### `test`ing programs
-
-There is a `test` subcommand available at the moment, which will hopefully be
-replaced by the `verify` subcommand soon. But if you want to learn more about
-it, have a look at `2a-emulator test --help` and go through the test examples
-in `./program_tests`.
-
 ### Compilation flags
 
 The following feature flags can be used to influence the generated binary.
@@ -253,6 +244,6 @@ The binary is based on the `emulator-2a-lib` library, that is contained in this 
 **Contributions are very welcome!** Additionally, other frontends could be added. I.e. a web-based
 emulator is planned and might be added in the future.
 
-Current version: 7.0.1
+Current version: 8.0.0
 
 License: GPL-3.0
