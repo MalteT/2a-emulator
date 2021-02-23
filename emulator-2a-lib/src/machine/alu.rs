@@ -9,7 +9,7 @@ enum_from_primitive! {
     /// A list containing all functions understood by the alu.
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-    #[allow(clippy::upper_case_acronyms)]
+    #[cfg_attr(feature = "nightly", allow(clippy::upper_case_acronyms))]
     pub enum AluSelect {
         /// Add A and B but keep the carry_in or set it if the sum exceeds 8 bits.
         ADDH  = 0b0000,

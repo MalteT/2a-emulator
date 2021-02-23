@@ -1,5 +1,5 @@
 // XXX: #[derive(Parser)] causes issue, silence them for now
-#![allow(clippy::upper_case_acronyms)]
+#![cfg_attr(feature = "nightly", allow(clippy::upper_case_acronyms))]
 //! # Minirechner 2a assembly parsing
 //!
 //! For a complete reference of the assembly syntax
