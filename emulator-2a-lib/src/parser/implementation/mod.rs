@@ -1,3 +1,5 @@
+// XXX: #[derive(Parser)] causes issue, silence them for now
+#![allow(clippy::upper_case_acronyms)]
 //! # Minirechner 2a assembly parsing
 //!
 //! For a complete reference of the assembly syntax
@@ -58,7 +60,7 @@ macro_rules! inner_tuple {
                         #[allow(unreachable_patterns)]
                         match inner.as_rule() {
                             $($expected)|+ => $function(inner),
-                            _ => panic!(e2)
+                            _ => panic!("{}", e2)
                         }
                     }
                 ),*
@@ -508,7 +510,7 @@ fn parse_source(source: Pair<Rule>) -> Source {
     }
 }
 /// Parse a `registerdi` rule into a [`RegisterDI`].
-fn parse_register_di(registerdi: Pair<Rule>) -> RegisterDI {
+fn parse_register_di(registerdi: Pair<Rule>) -> RegisterDi {
     let (_, register, _, _) = inner_tuple! { registerdi;
         oparen      => ignore;
         register    => parse_register;
@@ -518,7 +520,7 @@ fn parse_register_di(registerdi: Pair<Rule>) -> RegisterDI {
     register.into()
 }
 /// Parse a `registerddi` rule into a [`RegisterDDI`].
-fn parse_register_ddi(registerddi: Pair<Rule>) -> RegisterDDI {
+fn parse_register_ddi(registerddi: Pair<Rule>) -> RegisterDdi {
     let (_, register, _) = inner_tuple! { registerddi;
         oparen      => ignore;
         registerdi  => parse_register_di;

@@ -18,15 +18,15 @@ impl From<Register> for Source {
     }
 }
 
-impl From<RegisterDI> for Source {
-    fn from(registerdi: RegisterDI) -> Self {
-        Source::RegisterDI(registerdi)
+impl From<RegisterDi> for Source {
+    fn from(registerdi: RegisterDi) -> Self {
+        Source::RegisterDi(registerdi)
     }
 }
 
-impl From<RegisterDDI> for Source {
-    fn from(registerddi: RegisterDDI) -> Self {
-        Source::RegisterDDI(registerddi)
+impl From<RegisterDdi> for Source {
+    fn from(registerddi: RegisterDdi) -> Self {
+        Source::RegisterDdi(registerddi)
     }
 }
 
@@ -48,15 +48,15 @@ impl From<Register> for Destination {
     }
 }
 
-impl From<RegisterDI> for Destination {
-    fn from(registerdi: RegisterDI) -> Self {
-        Destination::RegisterDI(registerdi)
+impl From<RegisterDi> for Destination {
+    fn from(registerdi: RegisterDi) -> Self {
+        Destination::RegisterDi(registerdi)
     }
 }
 
-impl From<RegisterDDI> for Destination {
-    fn from(registerddi: RegisterDDI) -> Self {
-        Destination::RegisterDDI(registerddi)
+impl From<RegisterDdi> for Destination {
+    fn from(registerddi: RegisterDdi) -> Self {
+        Destination::RegisterDdi(registerddi)
     }
 }
 
@@ -66,21 +66,21 @@ impl From<MemAddress> for Destination {
     }
 }
 
-impl From<Register> for RegisterDI {
+impl From<Register> for RegisterDi {
     fn from(register: Register) -> Self {
-        RegisterDI(register)
+        RegisterDi(register)
     }
 }
 
-impl From<Register> for RegisterDDI {
+impl From<Register> for RegisterDdi {
     fn from(register: Register) -> Self {
-        RegisterDDI(register)
+        RegisterDdi(register)
     }
 }
 
-impl From<RegisterDI> for RegisterDDI {
-    fn from(registerdi: RegisterDI) -> Self {
-        RegisterDDI(registerdi.0)
+impl From<RegisterDi> for RegisterDdi {
+    fn from(registerdi: RegisterDi) -> Self {
+        RegisterDdi(registerdi.0)
     }
 }
 

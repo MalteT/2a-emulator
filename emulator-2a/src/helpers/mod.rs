@@ -3,7 +3,9 @@
 use colored::Colorize;
 use emulator_2a_lib::parser::{Asm, AsmParser};
 
-use std::{fs::read_to_string, path::PathBuf, time::Duration};
+#[cfg(feature = "interactive-tui")]
+use std::time::Duration;
+use std::{fs::read_to_string, path::PathBuf};
 
 use crate::error::Error;
 

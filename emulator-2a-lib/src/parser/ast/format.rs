@@ -126,8 +126,8 @@ impl fmt::Display for Source {
             Source::Register(reg) => write!(f, "{}", reg),
             Source::MemAddress(mem) => write!(f, "{}", mem),
             Source::Constant(c) => write!(f, "{}", c),
-            Source::RegisterDI(reg) => write!(f, "{}", reg),
-            Source::RegisterDDI(reg) => write!(f, "{}", reg),
+            Source::RegisterDi(reg) => write!(f, "{}", reg),
+            Source::RegisterDdi(reg) => write!(f, "{}", reg),
         }
     }
 }
@@ -137,19 +137,19 @@ impl fmt::Display for Destination {
         match self {
             Destination::Register(reg) => write!(f, "{}", reg),
             Destination::MemAddress(mem) => write!(f, "{}", mem),
-            Destination::RegisterDI(reg) => write!(f, "{}", reg),
-            Destination::RegisterDDI(reg) => write!(f, "{}", reg),
+            Destination::RegisterDi(reg) => write!(f, "{}", reg),
+            Destination::RegisterDdi(reg) => write!(f, "{}", reg),
         }
     }
 }
 
-impl fmt::Display for RegisterDI {
+impl fmt::Display for RegisterDi {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({}+)", self.0)
     }
 }
 
-impl fmt::Display for RegisterDDI {
+impl fmt::Display for RegisterDdi {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "(({}+))", self.0)
     }

@@ -56,9 +56,9 @@ pub enum VerificationError {
     #[error("State == {found:?} != {expected:?}")]
     StateMismatch { expected: State, found: State },
     #[error("Output Register FE == {found} != {expected}")]
-    OutputFEMismatch { expected: u8, found: u8 },
+    OutputFeMismatch { expected: u8, found: u8 },
     #[error("Output Register FF == {found} != {expected}")]
-    OutputFFMismatch { expected: u8, found: u8 },
+    OutputFfMismatch { expected: u8, found: u8 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Builder)]
@@ -123,14 +123,14 @@ impl RunExpectations {
         } else if self.output_fe.is_some()
             && self.output_fe != Some(result.machine.bus().output_fe())
         {
-            Err(VerificationError::OutputFEMismatch {
+            Err(VerificationError::OutputFeMismatch {
                 expected: self.output_fe.unwrap(),
                 found: result.machine.bus().output_fe(),
             })
         } else if self.output_ff.is_some()
             && self.output_ff != Some(result.machine.bus().output_ff())
         {
-            Err(VerificationError::OutputFFMismatch {
+            Err(VerificationError::OutputFfMismatch {
                 expected: self.output_ff.unwrap(),
                 found: result.machine.bus().output_ff(),
             })

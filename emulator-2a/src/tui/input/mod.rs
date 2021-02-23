@@ -34,10 +34,10 @@ pub struct InputState {
 /// Possible input registers
 #[derive(Debug, Clone, PartialEq, Hash, Copy, Eq)]
 pub enum InputRegister {
-    FC,
-    FD,
-    FE,
-    FF,
+    Fc,
+    Fd,
+    Fe,
+    Ff,
 }
 
 /// Possible commands to enter in the input
@@ -48,9 +48,9 @@ pub enum Command<'a> {
     /// Set the input register .0 to the value .1.
     SetInputReg(InputRegister, u8),
     /// Set the IRG to value .0.
-    SetIRG(u8),
+    SetIrg(u8),
     /// Set the TEMP value to value .0.
-    SetTEMP(f32),
+    SetTemp(f32),
     /// Set the I1 to value .0.
     SetI1(f32),
     /// Set the I2 to value .0.
@@ -60,11 +60,11 @@ pub enum Command<'a> {
     /// Set the J2 to value .0.
     SetJ2(bool),
     /// Set the UIO1 to value .0.
-    SetUIO1(bool),
+    SetUio1(bool),
     /// Set the UIO2 to value .0.
-    SetUIO2(bool),
+    SetUio2(bool),
     /// Set the UIO3 to value .0.
-    SetUIO3(bool),
+    SetUio3(bool),
     /// Show the machine part .0.
     Show(Part),
     /// Execute the next N cycles.

@@ -240,19 +240,19 @@ impl Tui {
                         Err(e) => warn!("Failed to run program: {}", e),
                     }
                 }
-                Command::SetInputReg(InputRegister::FC, val) => self.machine.set_input_fc(val),
-                Command::SetInputReg(InputRegister::FD, val) => self.machine.set_input_fd(val),
-                Command::SetInputReg(InputRegister::FE, val) => self.machine.set_input_fe(val),
-                Command::SetInputReg(InputRegister::FF, val) => self.machine.set_input_ff(val),
-                Command::SetIRG(val) => self.machine.set_digital_input1(val),
-                Command::SetTEMP(val) => self.machine.set_temp(val),
+                Command::SetInputReg(InputRegister::Fc, val) => self.machine.set_input_fc(val),
+                Command::SetInputReg(InputRegister::Fd, val) => self.machine.set_input_fd(val),
+                Command::SetInputReg(InputRegister::Fe, val) => self.machine.set_input_fe(val),
+                Command::SetInputReg(InputRegister::Ff, val) => self.machine.set_input_ff(val),
+                Command::SetIrg(val) => self.machine.set_digital_input1(val),
+                Command::SetTemp(val) => self.machine.set_temp(val),
                 Command::SetI1(val) => self.machine.set_analog_input1(val),
                 Command::SetI2(val) => self.machine.set_analog_input2(val),
                 Command::SetJ1(val) => self.machine.set_jumper1(val),
                 Command::SetJ2(val) => self.machine.set_jumper2(val),
-                Command::SetUIO1(val) => self.machine.set_universal_input_output1(val),
-                Command::SetUIO2(val) => self.machine.set_universal_input_output2(val),
-                Command::SetUIO3(val) => self.machine.set_universal_input_output3(val),
+                Command::SetUio1(val) => self.machine.set_universal_input_output1(val),
+                Command::SetUio2(val) => self.machine.set_universal_input_output2(val),
+                Command::SetUio3(val) => self.machine.set_universal_input_output3(val),
                 Command::Show(part) => self.machine.show(part),
                 Command::Next(cycles) => {
                     for _ in 0..cycles {

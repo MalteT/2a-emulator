@@ -27,7 +27,7 @@ use std::{collections::HashMap, fmt, ops::Deref, rc::Rc};
 
 use crate::parser::{
     Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Register,
-    RegisterDDI, RegisterDI, Source, Stacksize,
+    RegisterDdi, RegisterDi, Source, Stacksize,
 };
 
 /// An either type for [`u8`]/[`Label`].
@@ -340,8 +340,8 @@ fn reg_to_u8(reg: Register) -> u8 {
 fn source_addr_mode(src: &Source) -> u8 {
     match src {
         Source::Register(_) => 0b00,
-        Source::Constant(_) | Source::RegisterDI(_) => 0b10,
-        Source::RegisterDDI(_) => 0b11,
+        Source::Constant(_) | Source::RegisterDi(_) => 0b10,
+        Source::RegisterDdi(_) => 0b11,
         Source::MemAddress(ref mem) => match mem {
             MemAddress::Register(_) => 0b01,
             MemAddress::Constant(_) => 0b11,
@@ -353,8 +353,8 @@ fn source_addr_mode(src: &Source) -> u8 {
 fn source_register(src: &Source) -> u8 {
     match src {
         Source::Register(reg)
-        | Source::RegisterDI(RegisterDI(reg))
-        | Source::RegisterDDI(RegisterDDI(reg)) => reg_to_u8(*reg),
+        | Source::RegisterDi(RegisterDi(reg))
+        | Source::RegisterDdi(RegisterDdi(reg)) => reg_to_u8(*reg),
         Source::Constant(_) => 0b11,
         Source::MemAddress(ref mem) => match mem {
             MemAddress::Register(reg) => reg_to_u8(*reg),
@@ -367,8 +367,8 @@ fn source_register(src: &Source) -> u8 {
 fn destination_addr_mode(dst: &Destination) -> u8 {
     match dst {
         Destination::Register(_) => 0b00,
-        Destination::RegisterDI(_) => 0b10,
-        Destination::RegisterDDI(_) => 0b11,
+        Destination::RegisterDi(_) => 0b10,
+        Destination::RegisterDdi(_) => 0b11,
         Destination::MemAddress(ref mem) => match mem {
             MemAddress::Register(_) => 0b01,
             MemAddress::Constant(_) => 0b11,
@@ -380,8 +380,8 @@ fn destination_addr_mode(dst: &Destination) -> u8 {
 fn destination_register(dst: &Destination) -> u8 {
     match dst {
         Destination::Register(reg)
-        | Destination::RegisterDI(RegisterDI(reg))
-        | Destination::RegisterDDI(RegisterDDI(reg)) => reg_to_u8(*reg),
+        | Destination::RegisterDi(RegisterDi(reg))
+        | Destination::RegisterDdi(RegisterDdi(reg)) => reg_to_u8(*reg),
         Destination::MemAddress(ref mem) => match mem {
             MemAddress::Register(reg) => reg_to_u8(*reg),
             MemAddress::Constant(_) => 0b11,

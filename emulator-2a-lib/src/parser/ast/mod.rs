@@ -25,8 +25,8 @@ pub enum Source {
     Register(Register),
     MemAddress(MemAddress),
     Constant(Constant),
-    RegisterDI(RegisterDI),
-    RegisterDDI(RegisterDDI),
+    RegisterDi(RegisterDi),
+    RegisterDdi(RegisterDdi),
 }
 
 /// A general destination.
@@ -34,17 +34,17 @@ pub enum Source {
 pub enum Destination {
     Register(Register),
     MemAddress(MemAddress),
-    RegisterDI(RegisterDI),
-    RegisterDDI(RegisterDDI),
+    RegisterDi(RegisterDi),
+    RegisterDdi(RegisterDdi),
 }
 
 /// A dereferenced, post-incremented register.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RegisterDI(pub Register);
+pub struct RegisterDi(pub Register);
 
 /// A double dereferenced, post-incremented register.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RegisterDDI(pub Register);
+pub struct RegisterDdi(pub Register);
 
 /// The different stack sizes the Stack may have.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
