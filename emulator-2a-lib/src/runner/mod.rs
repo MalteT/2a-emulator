@@ -26,6 +26,9 @@ pub struct RunnerConfig<'a> {
     /// A list of cycles at which to trigger a key edge interrupt.
     #[builder(default, setter(into))]
     pub interrupts: Vec<usize>,
+    /// A list of cycles at which to trigger a cpu reset.
+    #[builder(default, setter(into))]
+    pub resets: Vec<usize>,
     /// Prevent the manual creation of this struct for the purpose of extension
     #[builder(setter(skip), default)]
     _phantom: PhantomData<u8>,
@@ -87,6 +90,9 @@ impl<'a> RunnerConfig<'a> {
             // Prerequisites for the cycle
             if self.interrupts.contains(&emulated_cycles) {
                 machine.trigger_key_interrupt();
+            }
+            if self.resets.contains(&emulated_cycles) {
+                machine.cpu_reset();
             }
             // Trigger the next cycle
             machine.trigger_key_clock();
@@ -155,6 +161,85 @@ mod tests {
         let expectations = RunExpectationsBuilder::default()
             .expect_state(State::Running)
             .expect_output_fe(1)
+            .build()
+            .unwrap();
+        expectations.verify(&res).expect("Verification failed");
+    }
+
+    #[test]
+    fn runner_resets_work_correctly() {
+        let program = r#"#! mrasm
+            LOOP:
+                INC R0
+                ST (0xFF), R0
+                JR LOOP
+        "#;
+        let config = RunnerConfigBuilder::default()
+            .with_max_cycles(17) // One iteration
+            .with_program(program)
+            .build()
+            .unwrap();
+        let res = config.run().expect("Parsing failed");
+        let expectations = RunExpectationsBuilder::default()
+            .expect_state(State::Running)
+            .expect_output_ff(1)
+            .build()
+            .unwrap();
+        expectations.verify(&res).expect("Verification failed");
+        let config = RunnerConfigBuilder::default()
+            .with_max_cycles(34) // Two iterations
+            .with_program(program)
+            .build()
+            .unwrap();
+        let res = config.run().expect("Parsing failed");
+        let expectations = RunExpectationsBuilder::default()
+            .expect_state(State::Running)
+            .expect_output_ff(2)
+            .build()
+            .unwrap();
+        expectations.verify(&res).expect("Verification failed");
+        // Now for the test
+        let config = RunnerConfigBuilder::default()
+            .with_max_cycles(10_000) // Forever!
+            .with_resets([9_966]) // But we reset the machine at the right moment
+            .with_program(program)
+            .build()
+            .unwrap();
+        let res = config.run().expect("Parsing failed");
+        let expectations = RunExpectationsBuilder::default()
+            .expect_state(State::Running)
+            .expect_output_ff(2)
+            .build()
+            .unwrap();
+        expectations.verify(&res).expect("Verification failed");
+    }
+
+    #[test]
+    fn runner_interrupts_work_correctly() {
+        let program = r#"#! mrasm
+                JR MAIN         ; 4-5 cycles
+                JR ISR
+            MAIN:
+                LDSP 0xEF       ; 5-9 cycles
+                BITS (0xF9), 1  ; 8-17 cycles
+                EI              ; 4 cycles (total: 21-35 cycles setup)
+            LOOP:
+                INC R0          ; 3 cycles
+                JR LOOP         ; 4-5 cycles
+            ISR:
+                ST (0xFF), R0
+                STOP
+        "#;
+        let config = RunnerConfigBuilder::default()
+            .with_max_cycles(10_000)
+            .with_program(program)
+            .with_interrupts([5_000])
+            .build()
+            .unwrap();
+        let res = config.run().expect("Parsing failed");
+        let expectations = RunExpectationsBuilder::default()
+            .expect_state(State::Stopped)
+            .expect_output_ff(110) // This is just a guess..
             .build()
             .unwrap();
         expectations.verify(&res).expect("Verification failed");
