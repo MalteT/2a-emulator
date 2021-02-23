@@ -31,6 +31,7 @@ where
 
 /// Copy of [`Duration::checked_sub`]
 // XXX: Remove once the above is stable.
+#[cfg(feature = "interactive-tui")]
 pub fn dur_sub(lhs: Duration, rhs: Duration) -> Duration {
     match lhs.checked_sub(rhs) {
         Some(res) => res,

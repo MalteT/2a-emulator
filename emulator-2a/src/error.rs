@@ -3,12 +3,9 @@
 //! This module defines the error type used through-out the program.
 
 use emulator_2a_lib::{parser::ParserError, runner::VerificationError};
-use pest::error::Error as PestError;
 use thiserror::Error;
 
 use std::io::Error as IOError;
-
-use crate::testing::Rule as TestRule;
 
 #[derive(Error, Debug)]
 /// THE error type.
@@ -19,12 +16,6 @@ pub enum Error {
     /// Thrown when, due to IO failure, no ASM source file could be opened.
     #[error("The source file could not be opened!:\n{_0}")]
     OpeningSourceFileFailed(#[from] IOError),
-    /// Thrown when a test file failed to parse.
-    #[error("{_0}")]
-    TestFileParsingError(#[from] PestError<TestRule>),
-    /// Thrown when a test failes.
-    #[error("Test {_0:?} failed: {_1}")]
-    TestFailed(String, String),
     /// Initialization of tui failed.
     #[cfg(feature = "interactive-tui")]
     #[error("Tui initialization failed: {_0}")]

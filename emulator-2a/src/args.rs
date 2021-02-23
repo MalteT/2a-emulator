@@ -26,8 +26,6 @@ pub enum SubCommand {
     ///
     /// It is sufficient to specify a program and the number of clock cycles.
     Run(RunArgs),
-    /// Run tests against a program.
-    Test(TestArgs),
     /// Verify the given program's syntax.
     Verify(VerifyArgs),
     /// Run an interactive session.
@@ -112,18 +110,6 @@ pub struct RunVerifyArgs {
     #[structopt(long, value_name = "BYTE",
                 parse(try_from_str = parse_u8_auto_radix))]
     pub ff: Option<u8>,
-}
-
-#[derive(Debug, StructOpt)]
-pub struct TestArgs {
-    /// The path to the program to test.
-    ///
-    /// The program will be verified before test execution.
-    #[structopt(name = "PROGRAM")]
-    pub program: PathBuf,
-    /// The path to the test file.
-    #[structopt(name = "TEST")]
-    pub test: PathBuf,
 }
 
 #[derive(Debug, StructOpt)]

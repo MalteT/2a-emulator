@@ -254,13 +254,11 @@ mod args;
 mod error;
 mod helpers;
 mod runner;
-mod supervisor;
-mod testing;
 
 #[cfg(feature = "interactive-tui")]
 mod tui;
 
-use args::{Args, RunArgs, SubCommand, TestArgs, VerifyArgs};
+use args::{Args, RunArgs, SubCommand, VerifyArgs};
 use error::Error;
 
 use colored::Colorize;
@@ -275,7 +273,6 @@ fn main(args: Args) {
     // of the program that is requested.
     let result: Result<(), Error> = match args.subcommand {
         Some(SubCommand::Run(args)) => run_runner(&args),
-        Some(SubCommand::Test(args)) => run_tests(&args),
         Some(SubCommand::Verify(args)) => run_verification(&args),
         #[cfg(feature = "interactive-tui")]
         Some(SubCommand::Interactive(args)) => run_interactive_session(&args),
@@ -297,10 +294,6 @@ fn main(args: Args) {
 
 fn run_runner(args: &RunArgs) -> Result<(), Error> {
     runner::execute_runner_with_args_and_print_results(args)
-}
-
-fn run_tests(args: &TestArgs) -> Result<(), Error> {
-    testing::run_test_with_args(args)
 }
 
 fn run_verification(args: &VerifyArgs) -> Result<(), Error> {
