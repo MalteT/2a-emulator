@@ -19,6 +19,8 @@ pub fn execute_runner_with_args_and_print_results(args: &RunArgs) -> Result<(), 
     let config = RunnerConfigBuilder::default()
         .with_machine_config(args.init.clone().into())
         .with_max_cycles(args.cycles)
+        .with_resets(args.resets.clone())
+        .with_interrupts(args.interrupts.clone())
         .with_program(&program)
         .build()
         .expect("Failed to create RunnerConfig");

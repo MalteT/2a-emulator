@@ -51,6 +51,24 @@ pub struct RunArgs {
     /// i.e. if the machine halts.
     #[structopt(name = "CYCLES")]
     pub cycles: usize,
+    /// Executes a cpu reset before this cycle is executed. Can be issued multiple times.
+    #[structopt(
+        name = "reset",
+        long,
+        value_name = "CYCLE",
+        multiple = true,
+        number_of_values = 1
+    )]
+    pub resets: Vec<usize>,
+    /// Triggers a key edge interrupt before this cycle is executed. Can be issued multiple times.
+    #[structopt(
+        name = "interrupt",
+        long,
+        value_name = "CYCLE",
+        multiple = true,
+        number_of_values = 1
+    )]
+    pub interrupts: Vec<usize>,
     #[structopt(subcommand)]
     pub verify: Option<RunVerifySubcommand>,
 }
