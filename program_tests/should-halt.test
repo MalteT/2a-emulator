@@ -1,4 +1,0 @@
-TEST 'should halt'
-FOR 10000
-EXPECT STOP
-END
