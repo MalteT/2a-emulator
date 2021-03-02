@@ -141,7 +141,7 @@ impl Translator {
                 }
                 ret
             }
-            AsmDefineBytes(mut cs) => cs.drain(..).map(ByteOrLabel::from).collect(),
+            AsmDefineBytes(mut cs) => cs.drain(..).map(ByteOrLabel::Byte).collect(),
             AsmEquals(label, constant) => {
                 // Push Label!
                 self.known_labels.insert(label, constant);

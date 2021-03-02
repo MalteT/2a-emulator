@@ -254,8 +254,8 @@ mod tests {
         s!(Instruction::AsmOrigin(17), ".ORG 17");
         s!(Instruction::AsmByte(0x0A), ".BYTE 10");
         s!(
-            Instruction::AsmDefineBytes(vec![0.into(), 255.into(), 33.into(), 1.into()]),
-            ".DB 0x00, 0xFF, 0x21, 0x01"
+            Instruction::AsmDefineBytes(vec![0, 255, 33, 1]),
+            ".DB 0, 255, 33, 1"
         );
         // TODO: Reimplement .DW
         // s!(

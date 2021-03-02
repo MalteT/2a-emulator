@@ -209,9 +209,6 @@ fn validate_lines(lines: &[Line]) -> Result<(), ParserError> {
                 | Instruction::Jr(label)
                 | Instruction::Call(label) => vec![label.clone()],
                 Instruction::LdConstant(_, c) => const_to_vec(c),
-                Instruction::AsmDefineBytes(constants) => {
-                    constants.iter().map(const_to_vec).flatten().collect()
-                }
                 Instruction::LdMemAddress(_, mem) | Instruction::St(mem, _) => mem_to_vec(mem),
                 Instruction::Dec(src) | Instruction::Ldsp(src) | Instruction::Ldfr(src) => {
                     src_to_vec(src)
@@ -333,6 +330,18 @@ fn parse_instruction_org(org: Pair<Rule>) -> Instruction {
     };
     Instruction::AsmOrigin(number)
 }
+/// Parse a `constant_bhd` rule into a [`u8`].
+fn parse_constant_bhd(constant_bhd: Pair<Rule>) -> u8 {
+    let inner = inner_tuple! { constant_bhd;
+        constant_bin | constant_hex | constant_dec => id;
+    };
+    match inner.as_rule() {
+        Rule::constant_bin => u8::from_str_radix(&inner.as_str()[2..], 2).unwrap(),
+        Rule::constant_hex => u8::from_str_radix(&inner.as_str()[2..], 16).unwrap(),
+        Rule::constant_dec => parse_constant_dec(inner),
+        _ => unreachable!(),
+    }
+}
 /// Parse a `constant` rule into a [`Constant`].
 fn parse_constant(constant: Pair<Rule>) -> Constant {
     let inner = inner_tuple! { constant;
@@ -375,10 +384,9 @@ fn parse_instruction_byte(byte: Pair<Rule>) -> Instruction {
 fn parse_instruction_db(db: Pair<Rule>) -> Instruction {
     let results = db
         .into_inner()
-        .filter(|pair| pair.as_rule() == Rule::constant)
-        .map(parse_constant);
-    let constants = results.collect();
-    Instruction::AsmDefineBytes(constants)
+        .filter(|pair| pair.as_rule() == Rule::constant_bhd)
+        .map(parse_constant_bhd);
+    Instruction::AsmDefineBytes(results.collect())
 }
 /// Parse an `equ` rule into an [`Instruction`].
 fn parse_instruction_equ(equ: Pair<Rule>) -> Instruction {

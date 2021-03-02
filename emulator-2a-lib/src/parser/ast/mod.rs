@@ -95,7 +95,7 @@ pub enum Instruction {
     /// Leave space for n bytes.
     AsmByte(u8),
     /// Define multiple bytes.
-    AsmDefineBytes(Vec<Constant>),
+    AsmDefineBytes(Vec<u8>),
     /// Make label equivalent to constant.
     AsmEquals(Label, u8),
     /// Define stacksize.
