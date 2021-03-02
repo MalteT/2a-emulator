@@ -26,8 +26,8 @@ use log::error;
 use std::{collections::HashMap, fmt, ops::Deref, rc::Rc};
 
 use crate::parser::{
-    Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Register,
-    RegisterDdi, RegisterDi, Source, Stacksize,
+    Asm, Comment, Constant, Destination, Instruction, Label, Line, MemAddress, Programsize,
+    Register, RegisterDdi, RegisterDi, Source, Stacksize,
 };
 
 /// An either type for [`u8`]/[`Label`].
@@ -54,6 +54,8 @@ pub struct ByteCode {
     pub lines: Vec<(Line, Vec<u8>)>,
     /// Stacksize for limiting.
     pub stacksize: Stacksize,
+    /// Programsize for limiting.
+    pub programsize: Programsize,
 }
 
 /// Translator for [`Asm`] -> [`ByteCode`]
@@ -63,6 +65,7 @@ pub struct Translator {
     known_labels: HashMap<Label, u8>,
     bytes: Vec<(Line, Vec<ByteOrLabel>)>,
     stacksize: Stacksize,
+    programsize: Programsize,
 }
 
 impl ByteCode {
@@ -92,6 +95,7 @@ impl Translator {
             known_labels: HashMap::new(),
             next_addr: 0,
             stacksize: Stacksize::default(),
+            programsize: Programsize::default(),
         }
     }
     /// Push a [`Line`] into the translator, adding the translated bytes,
@@ -149,6 +153,10 @@ impl Translator {
             }
             AsmStacksize(ss) => {
                 self.stacksize = ss;
+                vec![]
+            }
+            AsmProgramsize(ps) => {
+                self.programsize = ps;
                 vec![]
             }
             Clr(reg) => {
@@ -245,7 +253,12 @@ impl Translator {
             })
             .collect();
         let stacksize = self.stacksize;
-        ByteCode { lines, stacksize }
+        let programsize = self.programsize;
+        ByteCode {
+            lines,
+            stacksize,
+            programsize,
+        }
     }
 }
 

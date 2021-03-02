@@ -5,7 +5,7 @@ use std::fs::read_to_string;
 use super::*;
 use crate::{
     compiler::Translator,
-    parser::AsmParser,
+    parser::{AsmParser, Programsize},
     runner::{RunExpectationsBuilder, RunnerConfigBuilder},
 };
 
@@ -195,6 +195,24 @@ fn ram_is_reset_on_program_load() {
     machine.load(bytes);
     // Second byte should be zero again
     assert_eq!(machine.bus().read(1), 0);
+}
+
+#[test]
+fn programsize_default_works() {
+    let program = r#"#! mrasm"#;
+    let asm = AsmParser::parse(program).unwrap();
+    let bytes = Translator::compile(&asm);
+    assert_eq!(bytes.programsize, Programsize::Auto);
+}
+
+#[test]
+fn setting_programsize_works() {
+    let program = r#"#! mrasm
+        *PROGRAMSIZE 1
+    "#;
+    let asm = AsmParser::parse(program).unwrap();
+    let bytes = Translator::compile(&asm);
+    assert_eq!(bytes.programsize, Programsize::Size(1));
 }
 
 #[test]

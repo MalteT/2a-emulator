@@ -395,6 +395,16 @@ fn test_stack() {
 }
 
 #[test]
+fn programsize_works() {
+    use Rule::programsize;
+    parse!(programsize, "*PROGRAMSIZE\t0");
+    parse!(programsize, "*PROGRAMSIZE 32");
+    parse!(programsize, "*PRoGRAMSIZE\t autO");
+    parse!(programsize, "*PRoGRAMSIZE  noSET");
+    parse_err!(programsize, "*PRoGRAMSIZEautO");
+}
+
+#[test]
 fn test_inc() {
     use Rule::inc;
     parse!(inc, "INC R0");

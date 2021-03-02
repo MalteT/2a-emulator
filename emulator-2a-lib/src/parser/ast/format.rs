@@ -33,6 +33,16 @@ impl fmt::Display for Stacksize {
     }
 }
 
+impl fmt::Display for Programsize {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Programsize::Auto => write!(f, "AUTO"),
+            Programsize::NotSet => write!(f, "NOSET"),
+            Programsize::Size(n) => write!(f, "{}", n),
+        }
+    }
+}
+
 impl fmt::Display for Register {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -68,6 +78,7 @@ impl fmt::Display for Instruction {
             }
             Instruction::AsmEquals(label, byte) => write!(f, ".EQU {} {}", label, byte),
             Instruction::AsmStacksize(size) => write!(f, "*STACKSIZE {}", size),
+            Instruction::AsmProgramsize(size) => write!(f, "*PROGRAMSIZE {}", size),
             Instruction::Clr(reg) => write!(f, "CLR {}", reg),
             Instruction::Add(reg1, reg2) => write!(f, "ADD {}, {}", reg1, reg2),
             Instruction::Adc(reg1, reg2) => write!(f, "ADC {}, {}", reg1, reg2),

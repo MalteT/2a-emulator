@@ -10,6 +10,9 @@ mod trait_impls;
 /// The default Stacksize. To be used if no `*STACKSIZE n` is given.
 /// Specified in mr2_icd-4.1_asm-1.3.7.pdf.
 const DEFAULT_STACKSIZE: Stacksize = Stacksize::_16;
+/// The default Programsize. Used if no `*PROGRAMSIZE ...` is specified.
+/// Specified in mr2_icd-4.1_asm-1.3.7.pdf.
+const DEFAULT_PROGRAMSIZE: Programsize = Programsize::Auto;
 
 /// A single byte.
 /// Either given by a constant or a label.
@@ -65,6 +68,18 @@ pub enum Stacksize {
     NotSet,
 }
 
+/// The different program restrictions that may be used.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(test, derive(Arbitrary))]
+pub enum Programsize {
+    /// A fixed size of `n` bytes.
+    Size(u8),
+    /// Automatically derive the size from the current program.
+    Auto,
+    /// Do not alter the previous setting.
+    NotSet,
+}
+
 /// Possible register values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Register {
@@ -100,6 +115,8 @@ pub enum Instruction {
     AsmEquals(Label, u8),
     /// Define stacksize.
     AsmStacksize(Stacksize),
+    /// Define programsize.
+    AsmProgramsize(Programsize),
     /// Clear the register.
     Clr(Register),
     /// Add the second register to the first.

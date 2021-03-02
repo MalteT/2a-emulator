@@ -40,6 +40,8 @@ rest          =  { ( !eol ~ ANY )* }
 raw_label     =  { !(^"R"|^"PC"|^"SP") ~ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 // All stacksize values
 raw_stacksize =  { "0" | "16" | "32" | "48" | "64" | ^"NOSET" }
+// All programsize values
+raw_programsize = { constant_dec | ^"AUTO" | ^"NOSET" }
 // Possible register values
 register      =  { ( ^"R" ~ '0'..'3' ) | "PC" }
 // Dereferenced and double dereferenced registers
@@ -51,12 +53,13 @@ memory        =  { oparen ~ (constant | register | raw_label) ~ cparen }
 source        =  { register | registerdi | registerddi | memory | constant }
 destination   =  { register | registerdi | registerddi | memory }
 // Assembler operations
-org           =  { ^".ORG"       ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
-byte          =  { ^".BYTE"      ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
-db            =  { ^".DB"        ~ sep_ip ~ constant_bhd   ~ ( sep_pp ~ constant_bhd )*    }
+org           =  { ^".ORG"         ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
+byte          =  { ^".BYTE"        ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
+db            =  { ^".DB"          ~ sep_ip ~ constant_bhd   ~ ( sep_pp ~ constant_bhd )*    }
 // The .EQU doesn't need commas!
-equ           =  { ^".EQU"       ~ sep_ip ~ raw_label      ~   sep_ip ~ constant_dec       }
-stacksize     =  { ^"*STACKSIZE" ~ sep_ip ~ raw_stacksize  }
+equ           =  { ^".EQU"         ~ sep_ip ~ raw_label      ~   sep_ip ~ constant_dec       }
+stacksize     =  { ^"*STACKSIZE"   ~ sep_ip ~ raw_stacksize   }
+programsize   =  { ^"*PROGRAMSIZE" ~ sep_ip ~ raw_programsize }
 // Arithmetic operations
 clr           =  { ^"CLR" ~ sep_ip ~ register }
 add           =  { ^"ADD" ~ sep_ip ~ register ~ sep_pp ~ register }
@@ -114,7 +117,7 @@ nop           =  { ^"NOP"  }
 ei            =  { ^"EI"   }
 di            =  { ^"DI"   }
 // All possible instructions understood by the assembler
-instruction   =  { org | byte | db | equ | stacksize | clr | add | adc | sub
+instruction   =  { org | byte | db | equ | stacksize | programsize | clr | add | adc | sub
                  | mul | div | inc | dec | neg | and | or | xor | com | bits | bitc
                  | tst | cmp | bitt | lsr | asr | lsl | rrc | rlc | mov | ld_const
                  | ld_memory | st | push | pop | pushf | popf | ldsp | ldfr | jmp

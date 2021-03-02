@@ -265,6 +265,7 @@ fn parse_instruction(instruction: Pair<Rule>) -> Instruction {
         Rule::db => parse_instruction_db(instruction),
         Rule::equ => parse_instruction_equ(instruction),
         Rule::stacksize => parse_instruction_stacksize(instruction),
+        Rule::programsize => parse_instruction_programsize(instruction),
         Rule::clr => parse_instruction_clr(instruction),
         Rule::add => parse_instruction_add(instruction),
         Rule::adc => parse_instruction_adc(instruction),
@@ -417,6 +418,28 @@ fn parse_raw_stacksize(stacksize: Pair<Rule>) -> Stacksize {
         "64" => Stacksize::_64,
         "noset" => Stacksize::NotSet,
         _ => unreachable!(),
+    }
+}
+/// Parse a `programsize` rule into an [`Instruction`].
+fn parse_instruction_programsize(instruction: Pair<Rule>) -> Instruction {
+    let (_, programsize) = inner_tuple! { instruction;
+        sep_ip          => ignore;
+        raw_programsize => parse_raw_programsize;
+    };
+    Instruction::AsmProgramsize(programsize)
+}
+/// Parse a `raw_programsize` rule into a [`Programsize`].
+fn parse_raw_programsize(programsize: Pair<Rule>) -> Programsize {
+    let size = programsize.as_str().to_lowercase();
+    match size.as_str() {
+        "auto" => Programsize::Auto,
+        "noset" => Programsize::NotSet,
+        _ => {
+            let inner = inner_tuple! { programsize;
+                constant_dec => parse_constant_dec;
+            };
+            Programsize::Size(inner)
+        }
     }
 }
 /// Parse a `clr` rule into an [`Instruction`].
