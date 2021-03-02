@@ -142,21 +142,9 @@ impl Translator {
                 ret
             }
             AsmDefineBytes(mut cs) => cs.drain(..).map(ByteOrLabel::from).collect(),
-            AsmEquals(label, c) => {
+            AsmEquals(label, constant) => {
                 // Push Label!
-                match c {
-                    Constant::Label(second_label) => {
-                        error!("BUG: A label must not be used with .EQU");
-                        error!("BUG: You did: .EQU {} {}", label, second_label);
-                        error!("BUG: Use .EQU NAME CONSTANT_BUT_NOT_LABEL");
-                        error!("BUG: This will be fixed in the future, see:");
-                        error!("BUG: https://github.com/MalteT/2a-emulator/issues/39");
-                        panic!("Compilation aborted");
-                    }
-                    Constant::Constant(constant) => {
-                        self.known_labels.insert(label, constant);
-                    }
-                }
+                self.known_labels.insert(label, constant);
                 vec![]
             }
             AsmStacksize(ss) => {

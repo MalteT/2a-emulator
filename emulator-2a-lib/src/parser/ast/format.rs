@@ -268,8 +268,8 @@ mod tests {
         //     ".DW 0x0000, 0xFE01, 0x0021, 0x1000"
         // );
         s!(
-            Instruction::AsmEquals("label".into(), 0xf1.into()),
-            ".EQU label 0xF1"
+            Instruction::AsmEquals("label".into(), 234),
+            ".EQU label 234"
         );
         s!(Instruction::AsmStacksize(Stacksize::_32), "*STACKSIZE 32");
         s!(

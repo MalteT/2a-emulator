@@ -376,9 +376,9 @@ fn test_db() {
 #[test]
 fn test_equ() {
     use Rule::equ;
-    parse!(equ, ".EQU label 0xf");
+    parse!(equ, ".EQU label 15");
     parse!(equ, ".equ test 10");
-    parse!(equ, ".equ _rest 0xff");
+    parse!(equ, ".equ _rest 255");
     parse_err!(equ, ".equ rest, 10");
     parse_err!(equ, ".eq rest 10");
     parse_err!(equ, ".equ 0xff");

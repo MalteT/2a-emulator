@@ -3,8 +3,8 @@
 ; If the .EQU instruction works correctly, this program will set the output
 ; register FF and FE to 42.
 
-.EQU FF         0xFF
-.EQU FE         0xFE
+.EQU FF         255
+.EQU FE         254
 .EQU NUMBER     33
 
     .ORG 0

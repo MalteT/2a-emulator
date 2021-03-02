@@ -345,12 +345,17 @@ fn parse_constant(constant: Pair<Rule>) -> Constant {
         Rule::constant_hex => u8::from_str_radix(&inner.as_str()[2..], 16)
             .map(Constant::Constant)
             .unwrap(),
-        Rule::constant_dec => u8::from_str_radix(&inner.as_str(), 10)
-            .map(Constant::Constant)
-            .unwrap(),
+        Rule::constant_dec => parse_constant_dec(inner).into(),
         Rule::raw_label => Constant::Label(parse_raw_label(inner)),
         _ => unreachable!(),
     }
+}
+/// Parse a `constant_dec` rule into a [`u8`].
+fn parse_constant_dec(constant_dec: Pair<Rule>) -> u8 {
+    constant_dec
+        .as_str()
+        .parse()
+        .expect("Could not parse constant_dec")
 }
 /// Parse a `byte` rule into an [`Instruction`].
 fn parse_instruction_byte(byte: Pair<Rule>) -> Instruction {
@@ -361,7 +366,7 @@ fn parse_instruction_byte(byte: Pair<Rule>) -> Instruction {
     let number = match number.as_rule() {
         Rule::constant_bin => u8::from_str_radix(&number.as_str()[2..], 2).unwrap(),
         Rule::constant_hex => u8::from_str_radix(&number.as_str()[2..], 16).unwrap(),
-        Rule::constant_dec => u8::from_str_radix(&number.as_str(), 10).unwrap(),
+        Rule::constant_dec => parse_constant_dec(number),
         _ => unreachable!(),
     };
     Instruction::AsmByte(number)
@@ -378,10 +383,10 @@ fn parse_instruction_db(db: Pair<Rule>) -> Instruction {
 /// Parse an `equ` rule into an [`Instruction`].
 fn parse_instruction_equ(equ: Pair<Rule>) -> Instruction {
     let (_, label, _, constant) = inner_tuple! { equ;
-        sep_ip      => ignore;
-        raw_label   => parse_raw_label;
-        sep_ip      => ignore;
-        constant    => parse_constant;
+        sep_ip       => ignore;
+        raw_label    => parse_raw_label;
+        sep_ip       => ignore;
+        constant_dec => parse_constant_dec;
     };
     Instruction::AsmEquals(label, constant)
 }

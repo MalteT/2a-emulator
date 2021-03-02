@@ -97,7 +97,7 @@ pub enum Instruction {
     /// Define multiple bytes.
     AsmDefineBytes(Vec<Constant>),
     /// Make label equivalent to constant.
-    AsmEquals(Label, Constant),
+    AsmEquals(Label, u8),
     /// Define stacksize.
     AsmStacksize(Stacksize),
     /// Clear the register.
