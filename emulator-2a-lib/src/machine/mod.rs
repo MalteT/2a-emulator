@@ -16,7 +16,10 @@ mod register;
 #[cfg(test)]
 mod tests;
 
-use crate::{compiler::ByteCode, parser::Stacksize};
+use crate::{
+    compiler::ByteCode,
+    parser::{Programsize, Stacksize},
+};
 pub use alu::{AluInput, AluOutput, AluSelect};
 pub use board::{Board, InterruptSource, DAICR, DAISR, DASR};
 pub use bus::{Bus, MISR};
@@ -279,6 +282,7 @@ impl Machine {
     /// - Reset the machine
     /// - Fill the memory
     /// - Set the maximum stacksize
+    /// - Set the maximum program counter value (the programsize)
     pub fn load(&mut self, program: ByteCode) {
         trace!("Loading new program");
         self.master_reset();
@@ -290,6 +294,18 @@ impl Machine {
         // If the stacksize is NOSET, do not update the stacksize
         if program.stacksize != Stacksize::NotSet {
             self.raw_mut().set_stacksize(program.stacksize);
+        }
+        // If the program size needs updating, do so
+        match program.programsize {
+            Programsize::Size(_) => self.raw_mut().set_programsize(program.programsize),
+            Programsize::Auto => {
+                // Calculate the program size from the amount of bytes in the program
+                let size = program.bytes().fold(0, |sum, _| sum + 1);
+                debug_assert!(size <= 255, "BUG: The program is too large");
+                self.raw_mut()
+                    .set_programsize(Programsize::Size(size as u8));
+            }
+            Programsize::NotSet => {}
         }
     }
 

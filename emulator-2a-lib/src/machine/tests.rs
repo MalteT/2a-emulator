@@ -216,6 +216,45 @@ fn setting_programsize_works() {
 }
 
 #[test]
+fn program_counter_supervision_works_for_default_programsize() {
+    run! {
+        path = "../testing/programs/18-programsize-auto.asm";
+        config = RunnerConfigBuilder::default().with_max_cycles(1_000);
+        expect = RunExpectationsBuilder::default()
+            .expect_state(State::ErrorStopped);
+    }
+}
+
+#[test]
+fn program_counter_supervision_works_for_set_programsize() {
+    run! {
+        path = "../testing/programs/19-programsize-set.asm";
+        config = RunnerConfigBuilder::default().with_max_cycles(1_000);
+        expect = RunExpectationsBuilder::default()
+            .expect_state(State::ErrorStopped);
+    }
+}
+
+#[test]
+fn program_counter_supervision_works_for_value_of_zero() {
+    // Running for 720 cycles is fine
+    run! {
+        path = "../testing/programs/20-programsize-zero.asm";
+        config = RunnerConfigBuilder::default().with_max_cycles(720);
+        expect = RunExpectationsBuilder::default()
+            .expect_state(State::Running);
+    }
+    // Anything above should cause an error
+    // XXX: 722 is probably one cycle too many, see issue #42.
+    run! {
+        path = "../testing/programs/20-programsize-zero.asm";
+        config = RunnerConfigBuilder::default().with_max_cycles(722);
+        expect = RunExpectationsBuilder::default()
+            .expect_state(State::ErrorStopped);
+    }
+}
+
+#[test]
 fn stacksize_default_limit_works() {
     run! {
         path = "../testing/programs/01-stacksize-16.asm";

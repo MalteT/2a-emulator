@@ -10,7 +10,10 @@ use super::{
     AluInput, AluOutput, Bus, Instruction, InstructionRegister, MicroprogramRam, Register,
     RegisterNumber, Word,
 };
-use crate::{machine::MISR, parser::Stacksize};
+use crate::{
+    machine::MISR,
+    parser::{Programsize, Stacksize},
+};
 pub use signals::Signals;
 
 /// A marker for an Interrupt.
@@ -65,6 +68,8 @@ pub struct RawMachine {
     alu_output: AluOutput,
     /// Stacksize, for stacksize supervision.
     stacksize: Stacksize,
+    /// Programsize, for program counter supervision.
+    programsize: Programsize,
     /// Bus content from last cycle
     last_bus_read: u8,
 }
@@ -112,6 +117,7 @@ impl RawMachine {
         let pending_wait_for_memory = None;
         let bus = Bus::new();
         let stacksize = Stacksize::default();
+        let programsize = Programsize::default();
         let state = State::Running;
         let alu_output = AluOutput::default();
         let last_bus_read = 0;
@@ -126,6 +132,7 @@ impl RawMachine {
             pending_register_write,
             pending_flag_write,
             stacksize,
+            programsize,
             pending_edge_interrupt,
             pending_level_interrupt,
             last_bus_read,
@@ -160,6 +167,16 @@ impl RawMachine {
     /// Set the maximum allowed stacksize
     pub fn set_stacksize(&mut self, stacksize: Stacksize) {
         self.stacksize = stacksize
+    }
+
+    /// Get the maximum allowed value for the program counter (PC), the program size.
+    pub const fn programsize(&self) -> Programsize {
+        self.programsize
+    }
+
+    /// Set the maximum allowed program counter value.
+    pub fn set_programsize(&mut self, programsize: Programsize) {
+        self.programsize = programsize
     }
 
     /// Trigger a key edge interrupt.
@@ -280,6 +297,18 @@ impl RawMachine {
             Stacksize::NotSet => unreachable!("BUG: The stacksize must never be UNSET"),
         }
     }
+
+    /// Check the program counter (PC).
+    pub fn is_program_counter_valid(&self) -> bool {
+        let pc = *self.register.get(RegisterNumber::R3);
+        if let Programsize::Size(ref n) = &self.programsize {
+            // XXX: How exactly does the original compare these values?
+            pc <= *n
+        } else {
+            panic!("BUG: The programsize cannot be AUTO or UNSET at this point");
+        }
+    }
+
     /// Writes values to the register that were created during the
     /// last cycle. This writes to the selected register if necessary
     /// and saves the flags, if requested.
@@ -307,6 +336,10 @@ impl RawMachine {
             // Check stackpointer
             if !self.is_stackpointer_valid() {
                 warn!("Stackpointer became invalid");
+                self.state = State::ErrorStopped;
+            }
+            if !self.is_program_counter_valid() {
+                warn!("Program counter became invalid");
                 self.state = State::ErrorStopped;
             }
         }
@@ -483,6 +516,7 @@ mod tests {
                 pending_wait_for_memory in any::<Option<MemoryWait>>(),
                 alu_output in any::<AluOutput>(),
                 stacksize in any::<Stacksize>(),
+                programsize in any::<Programsize>(),
                 last_bus_read in any::<u8>(),
             ) -> Self {
                 RawMachine {
@@ -498,6 +532,7 @@ mod tests {
                     pending_wait_for_memory,
                     alu_output,
                     stacksize,
+                    programsize,
                     last_bus_read
                 }
             }
