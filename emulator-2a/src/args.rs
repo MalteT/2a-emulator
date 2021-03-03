@@ -266,7 +266,7 @@ fn parse_u8_auto_radix(num: &str) -> Result<u8, ParseIntError> {
     } else if let Some(num) = num.strip_prefix("0x") {
         u8::from_str_radix(num, 16)
     } else {
-        u8::from_str_radix(num, 10)
+        num.parse()
     }
 }
 

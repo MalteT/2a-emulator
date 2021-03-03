@@ -78,11 +78,11 @@ impl Tui {
         let program_display_state = ProgramDisplayState::empty();
         let measured_freq = 0.0;
         Tui {
-            program_display_state,
-            keybinding_state,
             machine,
             events,
             input_field,
+            keybinding_state,
+            program_display_state,
             measured_freq,
         }
     }

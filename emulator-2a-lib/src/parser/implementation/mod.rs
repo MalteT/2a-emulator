@@ -111,8 +111,8 @@ impl AsmParser {
         // Do some checks
         validate_lines(&lines)?;
         Ok(Asm {
-            lines,
             comment_after_shebang,
+            lines,
         })
     }
 }
@@ -326,7 +326,7 @@ fn parse_instruction_org(org: Pair<Rule>) -> Instruction {
     let number = match number.as_rule() {
         Rule::constant_bin => u8::from_str_radix(&number.as_str()[2..], 2).unwrap(),
         Rule::constant_hex => u8::from_str_radix(&number.as_str()[2..], 16).unwrap(),
-        Rule::constant_dec => u8::from_str_radix(&number.as_str(), 10).unwrap(),
+        Rule::constant_dec => number.as_str().parse().unwrap(),
         _ => unreachable!(),
     };
     Instruction::AsmOrigin(number)

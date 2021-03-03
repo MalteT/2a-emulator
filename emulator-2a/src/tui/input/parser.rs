@@ -30,11 +30,11 @@ fn nr_bin(input: &str) -> IResult<&str, u8> {
 }
 
 fn nr_dec(input: &str) -> IResult<&str, u8> {
-    map_res(digit1, |nr| u8::from_str_radix(nr, 10))(input)
+    map_res(digit1, |nr: &str| nr.parse())(input)
 }
 
 fn nr_dec_usize(input: &str) -> IResult<&str, usize> {
-    map_res(digit1, |nr| usize::from_str_radix(nr, 10))(input)
+    map_res(digit1, |nr: &str| nr.parse())(input)
 }
 
 fn ws_opt(input: &str) -> IResult<&str, Option<&str>> {
