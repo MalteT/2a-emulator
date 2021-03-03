@@ -2,6 +2,7 @@ use emulator_2a_lib::{
     machine::{MachineConfig, State},
     runner::{RunExpectations, RunExpectationsBuilder},
 };
+use log::Level;
 use structopt::StructOpt;
 
 use std::{num::ParseIntError, path::PathBuf};
@@ -14,6 +15,10 @@ use std::{num::ParseIntError, path::PathBuf};
 pub struct Args {
     #[structopt(subcommand)]
     pub subcommand: Option<SubCommand>,
+    /// Increase verbosity. Can be specified multiple times to select different levels, i.e.
+    /// warn, info, debug, trace. If none is specified, only errors are logged.
+    #[structopt(short, parse(from_occurrences = parse_log_level))]
+    pub verbosity: Level,
 }
 
 #[derive(Debug, StructOpt)]
@@ -271,5 +276,15 @@ fn parse_state(state: &str) -> State {
         "error" => State::ErrorStopped,
         "running" => State::Running,
         _ => unreachable!(),
+    }
+}
+
+fn parse_log_level(occurrences: u64) -> Level {
+    match occurrences {
+        0 => Level::Error,
+        1 => Level::Warn,
+        2 => Level::Info,
+        3 => Level::Debug,
+        _ => Level::Trace,
     }
 }

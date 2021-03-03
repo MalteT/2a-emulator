@@ -255,11 +255,16 @@ use error::Error;
 
 use colored::Colorize;
 
-use std::process;
+use std::{
+    fs::{self, File},
+    path::Path,
+    process,
+};
 
 #[paw::main]
 fn main(args: Args) {
-    pretty_env_logger::init();
+    let temp_path = std::env::temp_dir().join("2a-emulator.log");
+    initialize_logger(&args, &temp_path).expect("Failed to initialize logger");
 
     // Match against the given subcommand and execute the part
     // of the program that is requested.
@@ -267,9 +272,9 @@ fn main(args: Args) {
         Some(SubCommand::Run(args)) => run_runner(&args),
         Some(SubCommand::Verify(args)) => run_verification(&args),
         #[cfg(feature = "interactive-tui")]
-        Some(SubCommand::Interactive(args)) => run_interactive_session(&args),
+        Some(SubCommand::Interactive(args)) => run_interactive_session(&args, &temp_path),
         #[cfg(feature = "interactive-tui")]
-        None => run_interactive_session(&args::InteractiveArgs::default()),
+        None => run_interactive_session(&args::InteractiveArgs::default(), &temp_path),
         #[cfg(not(feature = "interactive-tui"))]
         None => {
             eprintln!("Nothing to do..");
@@ -284,6 +289,36 @@ fn main(args: Args) {
     }
 }
 
+fn initialize_logger(args: &Args, path: &Path) -> Result<(), fern::InitError> {
+    let mut dispatch = fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(args.verbosity.to_level_filter())
+        .chain(File::create(path)?);
+    match args.subcommand {
+        Some(SubCommand::Run(_)) | Some(SubCommand::Verify(_)) => {
+            // If we're not in interactive mode, output to stdout aswell
+            dispatch = dispatch.chain(std::io::stderr())
+        }
+        _ => {
+            // Only output the logs in interactive mode if stderr is not a tty
+            // This way redirecting the output should still work
+            if !atty::is(atty::Stream::Stderr) {
+                dispatch = dispatch.chain(std::io::stderr())
+            }
+        }
+    }
+    dispatch.apply()?;
+    Ok(())
+}
+
 fn run_runner(args: &RunArgs) -> Result<(), Error> {
     runner::execute_runner_with_args_and_print_results(args)
 }
@@ -293,8 +328,13 @@ fn run_verification(args: &VerifyArgs) -> Result<(), Error> {
 }
 
 #[cfg(feature = "interactive-tui")]
-fn run_interactive_session(args: &args::InteractiveArgs) -> Result<(), Error> {
+fn run_interactive_session(args: &args::InteractiveArgs, logfile: &Path) -> Result<(), Error> {
     // TODO: Move verification here!
     tui::Tui::run_with_args(args)?;
+    // If stderr is a tty, then we still own the user his logs
+    if atty::is(atty::Stream::Stderr) {
+        let logs = fs::read_to_string(logfile).expect("Failed to read logfile for outputting");
+        println!("{}", logs);
+    }
     Ok(())
 }
