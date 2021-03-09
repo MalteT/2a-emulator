@@ -22,18 +22,18 @@ constant_bhd  =  { constant_bin | constant_hex | constant_dec }
 constant      =  { constant_bin | constant_hex | constant_dec | raw_label }
 // Explicit words for the range 0 - 65536
 word_bin      =  { "0b" ~ ("0"* ~ ASCII_BIN_DIGIT{1,16} | "0"+) }
-word_hex      =  { "0x" ~ ("0"* ~ ASCII_HEX_DIGIT{1,4} | "0"+) }
+word_hex      =  { "0x" ~ ("0"* ~ ASCII_HEX_DIGIT{1,4}  | "0"+) }
 word_dec      =  { ( "0"* ~ ( ( "6553"                                    ~ '0'..'5' ) |
-                            ( "655"                          ~ '0'..'2' ~ '0'..'9' ) |
-                            ( "65"                ~ '0'..'4' ~ '0'..'9' ~ '0'..'9' ) |
-                            ( "6"      ~ '0'..'4' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ) |
-                            ( '1'..'5' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ) |
-                            (            '1'..'9' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ) |
-                            (                       '1'..'9' ~ '0'..'9' ~ '0'..'9' ) |
-                            (                                  '1'..'9' ~ '0'..'9' ) |
-                            (                                             '1'..'9' ) )
-                   ) | "0"+ }
-word          =  { word_bin | word_hex | word_dec | raw_label }
+                              ( "655"                          ~ '0'..'2' ~ '0'..'9' ) |
+                              ( "65"                ~ '0'..'4' ~ '0'..'9' ~ '0'..'9' ) |
+                              ( "6"      ~ '0'..'4' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ) |
+                              ( '1'..'5' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ) |
+                              (            '1'..'9' ~ '0'..'9' ~ '0'..'9' ~ '0'..'9' ) |
+                              (                       '1'..'9' ~ '0'..'9' ~ '0'..'9' ) |
+                              (                                  '1'..'9' ~ '0'..'9' ) |
+                              (                                             '1'..'9' ) )
+                            ) | "0"+ }
+word_bhd      =  { word_bin | word_hex | word_dec }
 // The rest of a line
 rest          =  { ( !eol ~ ANY )* }
 // A raw label, without a colon
@@ -53,11 +53,12 @@ memory        =  { oparen ~ (constant | register | raw_label) ~ cparen }
 source        =  { register | registerdi | registerddi | memory | constant }
 destination   =  { register | registerdi | registerddi | memory }
 // Assembler operations
-org           =  { ^".ORG"         ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
-byte          =  { ^".BYTE"        ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
-db            =  { ^".DB"          ~ sep_ip ~ constant_bhd   ~ ( sep_pp ~ constant_bhd )*    }
+org           =  { ^".ORG"   ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
+byte          =  { ^".BYTE"  ~ sep_ip ~ ( constant_bin | constant_hex | constant_dec ) }
+db            =  { ^".DB"    ~ sep_ip ~ constant_bhd   ~ ( sep_pp ~ constant_bhd)*     }
+dw            =  { ^".DW"    ~ sep_ip ~ word_bhd       ~ ( sep_pp ~ word_bhd )*        }
 // The .EQU doesn't need commas!
-equ           =  { ^".EQU"         ~ sep_ip ~ raw_label      ~   sep_ip ~ constant_dec       }
+equ           =  { ^".EQU"         ~ sep_ip ~ raw_label ~ sep_ip ~ constant_dec        }
 stacksize     =  { ^"*STACKSIZE"   ~ sep_ip ~ raw_stacksize   }
 programsize   =  { ^"*PROGRAMSIZE" ~ sep_ip ~ raw_programsize }
 // Arithmetic operations
@@ -117,7 +118,7 @@ nop           =  { ^"NOP"  }
 ei            =  { ^"EI"   }
 di            =  { ^"DI"   }
 // All possible instructions understood by the assembler
-instruction   =  { org | byte | db | equ | stacksize | programsize | clr | add | adc | sub
+instruction   =  { org | byte | db | dw | equ | stacksize | programsize | clr | add | adc | sub
                  | mul | div | inc | dec | neg | and | or | xor | com | bits | bitc
                  | tst | cmp | bitt | lsr | asr | lsl | rrc | rlc | mov | ld_const
                  | ld_memory | st | push | pop | pushf | popf | ldsp | ldfr | jmp

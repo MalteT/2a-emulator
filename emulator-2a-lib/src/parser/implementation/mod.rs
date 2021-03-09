@@ -263,6 +263,7 @@ fn parse_instruction(instruction: Pair<Rule>) -> Instruction {
         Rule::org => parse_instruction_org(instruction),
         Rule::byte => parse_instruction_byte(instruction),
         Rule::db => parse_instruction_db(instruction),
+        Rule::dw => parse_instruction_dw(instruction),
         Rule::equ => parse_instruction_equ(instruction),
         Rule::stacksize => parse_instruction_stacksize(instruction),
         Rule::programsize => parse_instruction_programsize(instruction),
@@ -343,6 +344,18 @@ fn parse_constant_bhd(constant_bhd: Pair<Rule>) -> u8 {
         _ => unreachable!(),
     }
 }
+/// Parse a `word_bhd` rule into a [`u16`].
+fn parse_word_bhd(word_bhd: Pair<Rule>) -> u16 {
+    let inner = inner_tuple! { word_bhd;
+        word_bin | word_hex | word_dec => id;
+    };
+    match inner.as_rule() {
+        Rule::constant_bin => u16::from_str_radix(&inner.as_str()[2..], 2).unwrap(),
+        Rule::constant_hex => u16::from_str_radix(&inner.as_str()[2..], 16).unwrap(),
+        Rule::constant_dec => parse_word_dec(inner),
+        _ => unreachable!(),
+    }
+}
 /// Parse a `constant` rule into a [`Constant`].
 fn parse_constant(constant: Pair<Rule>) -> Constant {
     let inner = inner_tuple! { constant;
@@ -367,6 +380,10 @@ fn parse_constant_dec(constant_dec: Pair<Rule>) -> u8 {
         .parse()
         .expect("Could not parse constant_dec")
 }
+/// Parse a `word_dec` rule into a [`u16`].
+fn parse_word_dec(word_dec: Pair<Rule>) -> u16 {
+    word_dec.as_str().parse().expect("Could not parse word_dec")
+}
 /// Parse a `byte` rule into an [`Instruction`].
 fn parse_instruction_byte(byte: Pair<Rule>) -> Instruction {
     let (_, number) = inner_tuple! { byte;
@@ -388,6 +405,14 @@ fn parse_instruction_db(db: Pair<Rule>) -> Instruction {
         .filter(|pair| pair.as_rule() == Rule::constant_bhd)
         .map(parse_constant_bhd);
     Instruction::AsmDefineBytes(results.collect())
+}
+/// Parse a `dw` rule into an [`Instruction`].
+fn parse_instruction_dw(dw: Pair<Rule>) -> Instruction {
+    let results = dw
+        .into_inner()
+        .filter(|pair| pair.as_rule() == Rule::word_bhd)
+        .map(parse_word_bhd);
+    Instruction::AsmDefineWords(results.collect())
 }
 /// Parse an `equ` rule into an [`Instruction`].
 fn parse_instruction_equ(equ: Pair<Rule>) -> Instruction {

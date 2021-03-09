@@ -111,6 +111,8 @@ pub enum Instruction {
     AsmByte(u8),
     /// Define multiple bytes.
     AsmDefineBytes(Vec<u8>),
+    /// Define multiple words.
+    AsmDefineWords(Vec<u16>),
     /// Make label equivalent to constant.
     AsmEquals(Label, u8),
     /// Define stacksize.

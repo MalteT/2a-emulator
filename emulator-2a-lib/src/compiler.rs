@@ -146,6 +146,16 @@ impl Translator {
                 ret
             }
             AsmDefineBytes(mut cs) => cs.drain(..).map(ByteOrLabel::Byte).collect(),
+            AsmDefineWords(mut cs) => cs
+                .drain(..)
+                .map(|word| {
+                    vec![
+                        ByteOrLabel::Byte((word >> 8) as u8),
+                        ByteOrLabel::Byte(word as u8),
+                    ]
+                })
+                .flatten()
+                .collect(),
             AsmEquals(label, constant) => {
                 // Push Label!
                 self.known_labels.insert(label, constant);

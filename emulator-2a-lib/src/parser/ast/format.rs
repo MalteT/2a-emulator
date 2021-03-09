@@ -76,6 +76,14 @@ impl fmt::Display for Instruction {
                 }
                 write!(f, "{}", last.expect("No bytes to define"))
             }
+            Instruction::AsmDefineWords(words) => {
+                write!(f, ".DW ")?;
+                let last = words.last();
+                for word in &words[..words.len() - 1] {
+                    write!(f, "{}, ", word)?;
+                }
+                write!(f, "{}", last.expect("No words to define"))
+            }
             Instruction::AsmEquals(label, byte) => write!(f, ".EQU {} {}", label, byte),
             Instruction::AsmStacksize(size) => write!(f, "*STACKSIZE {}", size),
             Instruction::AsmProgramsize(size) => write!(f, "*PROGRAMSIZE {}", size),

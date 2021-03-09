@@ -1,6 +1,7 @@
 use super::AsmParser;
 use super::Rule;
 use pest::Parser;
+use proptest::prelude::*;
 
 macro_rules! parse {
     ($rule:expr, $val:expr) => {
@@ -30,6 +31,26 @@ macro_rules! parse_err {
             Ok(ref x) => assert_ne!($val, x.as_str(), "{}\n{:#?}", s, res),
         }
     };
+}
+
+// ======================================================================
+
+proptest! {
+    #[test]
+    fn define_word_is_parsed_correctly(word in any::<u32>()) {
+        let dec = format!("{}", word);
+        let bin = format!("0b{:b}", word);
+        let hex_upper = format!("0x{:x}", word);
+        let hex_lower = format!("0x{:X}", word);
+        for val in &[bin, dec, hex_upper, hex_lower] {
+            let inout = format!(".DW {}", val);
+            if word <= 0xFFFF {
+                parse!(Rule::word_bhd, &inout, &inout);
+            } else {
+                parse_err!(Rule::word_bhd, &inout);
+            }
+        }
+    }
 }
 
 // ======================================================================
@@ -199,12 +220,12 @@ fn test_word_dec() {
 }
 
 #[test]
-fn test_word() {
-    use Rule::word;
-    parse!(word, "0xFFFE");
-    parse!(word, "0b1111111111111110");
-    parse!(word, "65535");
-    parse!(word, "label");
+fn test_word_bhd() {
+    use Rule::word_bhd;
+    parse!(word_bhd, "0xFFFE");
+    parse!(word_bhd, "0b1111111111111110");
+    parse!(word_bhd, "65535");
+    parse_err!(word_bhd, "label");
 }
 
 #[test]
