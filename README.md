@@ -244,6 +244,6 @@ The binary is based on the `emulator-2a-lib` library, that is contained in this 
 **Contributions are very welcome!** Additionally, other frontends could be added. I.e. a web-based
 emulator is planned and might be added in the future.
 
-Current version: 8.0.1
+Current version: 8.0.2
 
 License: GPL-3.0
