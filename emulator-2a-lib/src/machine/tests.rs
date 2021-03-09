@@ -26,7 +26,7 @@ macro_rules! run {
 }
 
 macro_rules! compile {
-    { $program:literal } => {
+    { $program:expr } => {
         {
             let asm = AsmParser::parse($program).expect("Failed to parse program");
             Translator::compile(&asm)
@@ -365,4 +365,16 @@ fn misr_is_set_correctly_by_key_interrupt() {
     machine.trigger_key_interrupt();
     let misr = machine.bus().read(0xF9);
     assert_eq!(misr & 0b0000_0001, 0b0000_0001);
+}
+
+#[test]
+fn define_words_equivalent_to_written_program() {
+    let real = read_to_string("../testing/programs/21-simple-counter.asm").unwrap();
+    let fake = read_to_string("../testing/programs/22-simple-counter-manually.asm").unwrap();
+    let real_compiled = compile!(&real);
+    let fake_compiled = compile!(&fake);
+    assert_eq!(
+        real_compiled.bytes().collect::<Vec<_>>(),
+        fake_compiled.bytes().collect::<Vec<_>>()
+    );
 }

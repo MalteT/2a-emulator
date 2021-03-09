@@ -350,9 +350,9 @@ fn parse_word_bhd(word_bhd: Pair<Rule>) -> u16 {
         word_bin | word_hex | word_dec => id;
     };
     match inner.as_rule() {
-        Rule::constant_bin => u16::from_str_radix(&inner.as_str()[2..], 2).unwrap(),
-        Rule::constant_hex => u16::from_str_radix(&inner.as_str()[2..], 16).unwrap(),
-        Rule::constant_dec => parse_word_dec(inner),
+        Rule::word_bin => u16::from_str_radix(&inner.as_str()[2..], 2).unwrap(),
+        Rule::word_hex => u16::from_str_radix(&inner.as_str()[2..], 16).unwrap(),
+        Rule::word_dec => parse_word_dec(inner),
         _ => unreachable!(),
     }
 }
