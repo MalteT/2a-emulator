@@ -45,9 +45,9 @@ proptest! {
         for val in &[bin, dec, hex_upper, hex_lower] {
             let inout = format!(".DW {}", val);
             if word <= 0xFFFF {
-                parse!(Rule::word_bhd, &inout);
+                parse!(Rule::dw, &inout);
             } else {
-                parse_err!(Rule::word_bhd, &inout);
+                parse_err!(Rule::dw, &inout);
             }
         }
     }
