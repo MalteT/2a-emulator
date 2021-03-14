@@ -40,7 +40,7 @@
 //! system and follow the instructions on how to install
 //! [Rust](https://www.rust-lang.org/) using rustup.
 //!
-//! clone this repository and compile and run your own binary using
+//! Clone this repository and compile and run your own binary using
 //! [Cargo](https://github.com/rust-lang/cargo) (which should
 //! have already been installed by rustup):
 //! ```console
@@ -51,7 +51,7 @@
 //! ```console
 //! $ cargo install --git https://github.com/MalteT/2a-emulator
 //! ```
-//! See the [Cargo Manual](https://doc.rust-lang.org/cargo/commands/cargo-install.html?highlight=install#cargo-install) on where the binary is installed to.
+//! See the [Cargo Manual](https://doc.rust-lang.org/cargo/commands/cargo-install.html?highlight=install#cargo-install) on where the binary is installed to. The PATH-variable will probably need some tweaking.
 //!
 //! ## Usage
 //!
@@ -90,7 +90,7 @@
 //!
 //! Most commands are self-explanatory and the included command completion should
 //! serve as an inline documentation. For those seeking a more explicit explanation,
-//! here is a list with commands that the input field will understand:
+//! here is a list of commands that the input field will understand:
 //!
 //! - `load` *`PATH`* will load the program given by `PATH`. The file is opened and
 //!   the syntax verified. It will then be compiled to byte code and loaded into the
@@ -132,12 +132,14 @@
 //!   - `memory`, the main memory which has a size of `0xF0` bytes and can be accessed
 //!     from addresses `0x00` to `0xEF`.
 //!
+//! - `next` *`<N>`* emulates the next `N` cycles. If `N` is omitted, `1` is used. Thus `next`, `next 1` and hitting enter once are equivalent.
+//!
 //! - `quit` which lives up to it's name.
 //!
 //! ### `run`ning programs
 //!
 //! Using `2a-emulator run` it is possible to run assembler programs without
-//! interaction. **This is still in development!**
+//! interaction.
 //!
 //! Consider the following example:
 //!
