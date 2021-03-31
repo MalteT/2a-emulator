@@ -97,6 +97,24 @@ impl MachineState {
             program: None,
         }
     }
+    /// Create a new MachineState with a program.
+    ///
+    /// The difference between this and [`new`] is, that the program will be loaded
+    /// before the configuration is applied. This allows the configuration to apply
+    /// input register values.
+    pub fn new_with_program<P: Into<PathBuf>>(
+        conf: &InitialMachineConfiguration,
+        path: P,
+        program: ByteCode,
+    ) -> Self {
+        MachineState {
+            part: Part::RegisterBlock,
+            machine: Machine::new_with_program(conf.clone().into(), program),
+            draw_counter: 0,
+            auto_run_mode: false,
+            program: Some(path.into()),
+        }
+    }
     /// Select another part for display.
     pub fn show(&mut self, part: Part) {
         self.part = part;

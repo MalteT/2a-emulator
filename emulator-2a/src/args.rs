@@ -88,7 +88,7 @@ pub enum RunVerifySubcommand {
     Verify(RunVerifyArgs),
 }
 
-#[derive(Debug, Clone, StructOpt)]
+#[derive(Debug, Default, Clone, StructOpt)]
 pub struct RunVerifyArgs {
     /// The expected machine state after emulation.
     ///

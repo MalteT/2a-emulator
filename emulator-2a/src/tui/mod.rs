@@ -70,33 +70,37 @@ pub struct Tui {
 
 impl Tui {
     /// Creates a new Tui and shows it.
-    pub fn new(args: &InteractiveArgs) -> Self {
-        let machine = MachineState::new(&args.init);
+    pub fn new(args: &InteractiveArgs) -> Result<Self, Error> {
+        let (machine, program_display_state) = if let Some(path) = args.program.as_ref() {
+            let program = helpers::read_asm_file(&path)?;
+            let bytecode = Translator::compile(&program);
+            (
+                MachineState::new_with_program(&args.init, path, bytecode.clone()),
+                ProgramDisplayState::from_bytecode(&bytecode),
+            )
+        } else {
+            (MachineState::new(&args.init), ProgramDisplayState::empty())
+        };
         let events = Events::new();
         let input_field = InputState::new();
         let keybinding_state = KeybindingHelpState::init();
-        let program_display_state = ProgramDisplayState::empty();
         let measured_freq = 0.0;
-        Tui {
+        Ok(Tui {
             machine,
             events,
             input_field,
             keybinding_state,
             program_display_state,
             measured_freq,
-        }
+        })
     }
     /// Create a new TUI from the given command line arguments
     /// and start it immidiately.
     pub fn run_with_args(args: &InteractiveArgs) -> Result<(), Error> {
-        let tui = Tui::new(args);
-        tui.run(args.program.as_ref())
+        Tui::new(args)?.run()
     }
-    /// Run the main loop using the optional asm program.
-    pub fn run<P>(mut self, path: Option<P>) -> Result<(), Error>
-    where
-        P: Into<PathBuf>,
-    {
+    /// Run the main loop.
+    pub fn run(mut self) -> Result<(), Error> {
         // This tries to clean everything even if the program panics.
         defer! {
             disable_raw_mode().map_err(Error::crossterm_exit).ok();
@@ -112,10 +116,6 @@ impl Tui {
         // Clear the terminal and hide the cursor
         backend.clear()?;
         backend.hide_cursor()?;
-        // Run program if given.
-        if let Some(path) = path {
-            self.load_program(path)?;
-        }
         // Prepare for main loop
         let mut last_draw;
         // Loop until exit is requested

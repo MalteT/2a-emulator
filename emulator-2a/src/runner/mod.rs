@@ -76,3 +76,32 @@ where
         format!("{}", val.to_string().bright_yellow())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::args::{InitialMachineConfiguration, RunVerifyArgs};
+
+    use super::*;
+
+    #[test]
+    fn flags_are_not_ignored_if_program_is_given() {
+        let run_args = RunArgs {
+            init: InitialMachineConfiguration {
+                fc: 1,
+                fd: 2,
+                fe: 3,
+                ff: 4,
+                ..Default::default()
+            },
+            program: "../testing/programs/26-specific-input.asm".into(),
+            cycles: 1000,
+            resets: vec![],
+            interrupts: vec![],
+            verify: Some(RunVerifySubcommand::Verify(RunVerifyArgs {
+                state: Some(State::Running),
+                ..Default::default()
+            })),
+        };
+        execute_runner_with_args_and_print_results(&run_args).unwrap();
+    }
+}

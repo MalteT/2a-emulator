@@ -78,10 +78,9 @@ impl<'a> RunnerConfig<'a> {
     /// This executes the runner and checks all verifications.
     pub fn run(&self) -> Result<RunResults, ParserError> {
         // Prepare the machine
-        let mut machine = Machine::new(self.machine_config.clone());
         let parsed = AsmParser::parse(self.program)?;
         let bytecode = Translator::compile(&parsed);
-        machine.load(bytecode);
+        let mut machine = Machine::new_with_program(self.machine_config.clone(), bytecode);
         // Initialize variables
         let before_emulation = Instant::now();
         let mut emulated_cycles = 0;

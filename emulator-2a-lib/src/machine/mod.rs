@@ -75,20 +75,34 @@ impl Machine {
             raw: RawMachine::new(),
             step_mode: StepMode::Real,
         };
-        m.set_input_fc(config.input_fc);
-        m.set_input_fd(config.input_fd);
-        m.set_input_fe(config.input_fe);
-        m.set_input_ff(config.input_ff);
-        m.set_digital_input1(config.digital_input1);
-        m.set_temp(config.temp);
-        m.set_jumper1(config.jumper1);
-        m.set_jumper2(config.jumper2);
-        m.set_analog_input1(config.analog_input1);
-        m.set_analog_input2(config.analog_input2);
-        m.set_universal_input_output1(config.universal_input_output1);
-        m.set_universal_input_output2(config.universal_input_output2);
-        m.set_universal_input_output3(config.universal_input_output3);
+        m.apply_configuration(config);
         m
+    }
+
+    pub fn new_with_program(config: MachineConfig, program: ByteCode) -> Self {
+        let mut m = Machine {
+            raw: RawMachine::new(),
+            step_mode: StepMode::Real,
+        };
+        m.load(program);
+        m.apply_configuration(config);
+        m
+    }
+
+    fn apply_configuration(&mut self, config: MachineConfig) {
+        self.set_input_fc(config.input_fc);
+        self.set_input_fd(config.input_fd);
+        self.set_input_fe(config.input_fe);
+        self.set_input_ff(config.input_ff);
+        self.set_digital_input1(config.digital_input1);
+        self.set_temp(config.temp);
+        self.set_jumper1(config.jumper1);
+        self.set_jumper2(config.jumper2);
+        self.set_analog_input1(config.analog_input1);
+        self.set_analog_input2(config.analog_input2);
+        self.set_universal_input_output1(config.universal_input_output1);
+        self.set_universal_input_output2(config.universal_input_output2);
+        self.set_universal_input_output3(config.universal_input_output3);
     }
 
     /// Get the currently active [`StepMode`].
