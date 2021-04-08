@@ -305,7 +305,9 @@ impl RawMachine {
             // XXX: How exactly does the original compare these values?
             pc <= *n
         } else {
-            panic!("BUG: The programsize cannot be AUTO or UNSET at this point");
+            trace!("The program size is auto: Assuming that no program has been loaded!");
+            // If no program is loaded, the program counter can only be zero
+            pc == 0
         }
     }
 
