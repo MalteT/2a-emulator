@@ -1,3 +1,5 @@
 target/
 **/*.rs.bk
 release/
+result
+result-lib
