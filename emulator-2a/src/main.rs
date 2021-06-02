@@ -256,9 +256,12 @@ use args::{Args, RunArgs, SubCommand, VerifyArgs};
 use error::Error;
 
 use colored::Colorize;
+use log::error;
+use scopeguard::defer;
 
 use std::{
     fs::{self, File},
+    panic,
     path::Path,
     process,
 };
@@ -267,6 +270,7 @@ use std::{
 fn main(args: Args) {
     let temp_path = std::env::temp_dir().join("2a-emulator.log");
     initialize_logger(&args, &temp_path).expect("Failed to initialize logger");
+    register_panic_logger();
 
     // Match against the given subcommand and execute the part
     // of the program that is requested.
@@ -289,6 +293,25 @@ fn main(args: Args) {
         eprintln!("{}: {}", "Error".red().bold(), e);
         process::exit(1)
     }
+}
+
+fn register_panic_logger() {
+    let default_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |info| {
+        error!("");
+        error!("*** Panic occured! ***");
+        if let Some(loc) = info.location() {
+            error!("{}", loc);
+        }
+        if let Some(s) = info.payload().downcast_ref::<&str>() {
+            error!("Message: {}", s);
+        }
+        if let Some(s) = info.payload().downcast_ref::<String>() {
+            error!("Message: {}", s);
+        }
+        error!("");
+        default_hook(info);
+    }));
 }
 
 fn initialize_logger(args: &Args, path: &Path) -> Result<(), fern::InitError> {
@@ -331,12 +354,15 @@ fn run_verification(args: &VerifyArgs) -> Result<(), Error> {
 
 #[cfg(feature = "interactive-tui")]
 fn run_interactive_session(args: &args::InteractiveArgs, logfile: &Path) -> Result<(), Error> {
+    // Even if the TUI panics, logs should be printed correctly
+    defer! {
+        // If stderr is a tty, then we still owe the user his logs
+        if atty::is(atty::Stream::Stderr) {
+            let logs = fs::read_to_string(logfile).expect("Failed to read logfile for outputting");
+            eprintln!("{}", logs);
+        }
+    }
     // TODO: Move verification here!
     tui::Tui::run_with_args(args)?;
-    // If stderr is a tty, then we still own the user his logs
-    if atty::is(atty::Stream::Stderr) {
-        let logs = fs::read_to_string(logfile).expect("Failed to read logfile for outputting");
-        println!("{}", logs);
-    }
     Ok(())
 }
