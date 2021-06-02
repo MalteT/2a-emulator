@@ -257,7 +257,6 @@ use error::Error;
 
 use colored::Colorize;
 use log::error;
-use scopeguard::defer;
 
 use std::{
     fs::{self, File},
@@ -355,7 +354,7 @@ fn run_verification(args: &VerifyArgs) -> Result<(), Error> {
 #[cfg(feature = "interactive-tui")]
 fn run_interactive_session(args: &args::InteractiveArgs, logfile: &Path) -> Result<(), Error> {
     // Even if the TUI panics, logs should be printed correctly
-    defer! {
+    scopeguard::defer! {
         // If stderr is a tty, then we still owe the user his logs
         if atty::is(atty::Stream::Stderr) {
             let logs = fs::read_to_string(logfile).expect("Failed to read logfile for outputting");
