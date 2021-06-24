@@ -521,7 +521,7 @@ impl fmt::Display for ByteCode {
                 continue;
             }
             let line = format!("; {}", line);
-            let code: Vec<_> = code.iter().map(|c| format!("{:>02X}", c)).collect();
+            let code: Vec<_> = code.iter().map(|c| format!("0x{:>02X}", c)).collect();
             let code_str = format!("{:>width$}", code.join(" "), width = max_width * 3);
             writeln!(f, " {} {}", code_str, line.dimmed())?;
         }
@@ -532,7 +532,7 @@ impl fmt::Display for ByteCode {
 impl fmt::Debug for ByteOrLabel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ByteOrLabel::Byte(b) => write!(f, "Byte({:>02X})", b),
+            ByteOrLabel::Byte(b) => write!(f, "Byte(0x{:>02X})", b),
             ByteOrLabel::Label(l) => write!(f, "Label({})", l),
             ByteOrLabel::LabelFn(l, _) => write!(f, "LabelFn({}, [hidden])", l),
         }
