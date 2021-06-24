@@ -190,7 +190,7 @@ impl Translator {
             Com(reg) => from_base_and_reg(0b0011_0000, reg),
             Bits(dst, src) => from_bases_dst_and_src(0b1111_0000, 0b0101_0000, &dst, &src),
             Bitc(dst, src) => from_bases_dst_and_src(0b1111_0000, 0b0110_0000, &dst, &src),
-            Tst(reg) => from_base_and_reg(0b0110_1000, reg),
+            Tst(reg) => from_base_and_reg(0b0100_1000, reg),
             Cmp(dst, src) => from_bases_dst_and_src(0b1111_0000, 0b0010_0000, &dst, &src),
             Bitt(dst, src) => from_bases_dst_and_src(0b1111_0000, 0b0011_0000, &dst, &src),
             Lsr(reg) => from_base_and_reg(0b0011_1000, reg),

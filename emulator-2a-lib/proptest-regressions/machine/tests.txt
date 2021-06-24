@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 30b06b5c4d744f85cd10b995dffb4fabd8931dc0779590a078159711263a8d92 # shrinks to interrupt_cycle = 50
+cc 4b7337914085c4637a6005a95c3c66f97e1261ab842746f83214e9961e6e5122 # shrinks to reg = R0, reg_val = 128

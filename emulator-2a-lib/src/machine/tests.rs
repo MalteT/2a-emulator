@@ -5,7 +5,7 @@ use std::fs::read_to_string;
 use super::*;
 use crate::{
     compiler::Translator,
-    parser::{AsmParser, Programsize},
+    parser::{self, Asm, AsmParser, Line, Programsize, Register},
     runner::{RunExpectationsBuilder, RunnerConfigBuilder},
 };
 
@@ -92,6 +92,63 @@ proptest! {
                 .expect_output_ff(0);
         }
     }
+
+    #[test]
+    fn tst_only_alters_flag_register(reg: Register, reg_val: u8) {
+        // Initialize everything
+        let asm = Asm {
+            comment_after_shebang: None,
+            lines: vec![ Line::Instruction(parser::Instruction::Tst(reg), None) ],
+        };
+        let compiled = Translator::compile(&asm);
+        let mut machine = Machine::new(MachineConfig::default());
+        machine.load(compiled);
+        // Set the registers to some value
+        machine.raw_mut().registers_mut().set(RegisterNumber::R0, reg_val);
+        machine.raw_mut().registers_mut().set(RegisterNumber::R1, reg_val);
+        machine.raw_mut().registers_mut().set(RegisterNumber::R2, reg_val);
+        // Run the `TST` until we reach the end
+        while machine.state() == State::Running {
+            machine.trigger_key_clock();
+        }
+        // Assert none of the other registers changed
+        assert_eq!(*machine.registers().get(RegisterNumber::R0), reg_val, "R0 changed");
+        assert_eq!(*machine.registers().get(RegisterNumber::R1), reg_val, "R1 changed");
+        assert_eq!(*machine.registers().get(RegisterNumber::R2), reg_val, "R2 changed");
+    }
+
+    #[test]
+    fn tst_sets_flags_correctly(reg: Register, reg_val: u8) {
+        // Initialize everything
+        let asm = Asm {
+            comment_after_shebang: None,
+            lines: vec![ Line::Instruction(parser::Instruction::Tst(reg), None) ],
+        };
+        println!("Program:\n'''\n{}\n'''", asm);
+        let compiled = Translator::compile(&asm);
+        let mut machine = Machine::new(MachineConfig::default());
+        println!("Code:\n'''\n{}\n'''", compiled);
+        machine.load(compiled);
+        // Set some register to some value
+        machine.raw_mut().registers_mut().set(reg.into(), reg_val);
+        println!("Registers: {:#?}", machine.registers());
+        // Run the `TST` until we reach the end
+        while machine.state() == State::Running {
+            machine.trigger_key_clock();
+        }
+        // The following is not useful for R3, since R3 is the PC
+        if reg != Register::R3 {
+            // Assert that the flag register changed to correct values
+            println!("Flags: {:#?}", machine.registers().flags());
+            assert_eq!(machine.registers().carry_flag(), false, "Carry flag wrong");
+            assert_eq!(
+                machine.registers().negative_flag(),
+                reg_val & 0b1000_0000 == 0b1000_0000,
+                "Negative flag wrong"
+            );
+            assert_eq!(machine.registers().zero_flag(), reg_val == 0, "Zero flag wrong");
+        }
+    }
 }
 
 // XXX: Not supported yet
@@ -129,6 +186,38 @@ fn org_assembly_instruction_works() {
     // The first byte has to be zero, since we start an ORG 1
     // The next two byte are the STOP instructions
     verify_ram!(machine, &[0, 1, 1, 0, 0x42, 0]);
+}
+
+#[test]
+fn tst_compiles_correctly() {
+    // TST R0
+    let tst_r0 = load! {
+        r#"#! mrasm
+            TST R0
+        "#
+    };
+    verify_ram!(tst_r0, &[0b0100_1000]);
+    // TST R1
+    let tst_r1 = load! {
+        r#"#! mrasm
+            TST R1
+        "#
+    };
+    verify_ram!(tst_r1, &[0b0100_1001]);
+    // TST R2
+    let tst_r2 = load! {
+        r#"#! mrasm
+            TST R2
+        "#
+    };
+    verify_ram!(tst_r2, &[0b0100_1010]);
+    // TST R3
+    let tst_r3 = load! {
+        r#"#! mrasm
+            TST R3
+        "#
+    };
+    verify_ram!(tst_r3, &[0b0100_1011]);
 }
 
 #[test]

@@ -5,6 +5,8 @@ use proptest_derive::Arbitrary;
 
 use std::ops::{Index, IndexMut};
 
+use crate::parser;
+
 /// The register block.
 /// Containing `R0` through `R7`
 ///
@@ -368,6 +370,17 @@ impl From<RegisterNumber> for usize {
             RegisterNumber::R5 => 5,
             RegisterNumber::R6 => 6,
             RegisterNumber::R7 => 7,
+        }
+    }
+}
+
+impl From<parser::Register> for RegisterNumber {
+    fn from(reg: parser::Register) -> Self {
+        match reg {
+            parser::Register::R0 => RegisterNumber::R0,
+            parser::Register::R1 => RegisterNumber::R1,
+            parser::Register::R2 => RegisterNumber::R2,
+            parser::Register::R3 => RegisterNumber::R3,
         }
     }
 }

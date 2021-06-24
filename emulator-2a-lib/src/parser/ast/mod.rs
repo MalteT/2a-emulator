@@ -82,6 +82,7 @@ pub enum Programsize {
 
 /// Possible register values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(test, derive(Arbitrary))]
 pub enum Register {
     /// Register 0.
     R0,

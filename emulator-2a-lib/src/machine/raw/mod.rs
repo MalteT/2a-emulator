@@ -205,6 +205,11 @@ impl RawMachine {
         }
     }
 
+    /// Get mutable access to the underlying registers.
+    pub fn registers_mut(&mut self) -> &mut Register {
+        &mut self.register
+    }
+
     /// Get mutable access to the underlying bus.
     pub fn bus_mut(&mut self) -> &mut Bus {
         &mut self.bus
