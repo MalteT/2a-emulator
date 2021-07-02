@@ -24,6 +24,7 @@ pub mod display;
 pub mod events;
 pub mod input;
 pub mod interface;
+mod notification;
 mod program_help_sidebar;
 pub mod show_widgets;
 mod supervisor_wrapper;
@@ -37,6 +38,7 @@ pub use board_info_sidebar::BoardInfoSidebarWidget;
 use events::Events;
 use input::{Command, InputRegister, InputState};
 use interface::Interface;
+pub use notification::{NotificationState, NotificationWidget};
 pub use program_help_sidebar::{KeybindingHelpState, ProgramDisplayState, ProgramHelpSidebar};
 pub use supervisor_wrapper::{MachineState, MachineWidget, Part};
 
@@ -66,6 +68,8 @@ pub struct Tui {
     program_display_state: ProgramDisplayState,
     /// Measured frequency derived in the main loop
     measured_freq: f32,
+    /// State for the notification area.
+    notification_state: NotificationState,
 }
 
 impl Tui {
@@ -85,6 +89,7 @@ impl Tui {
         let input_field = InputState::new();
         let keybinding_state = KeybindingHelpState::init();
         let measured_freq = 0.0;
+        let notification_state = NotificationState::empty();
         Ok(Tui {
             machine,
             events,
@@ -92,6 +97,7 @@ impl Tui {
             keybinding_state,
             program_display_state,
             measured_freq,
+            notification_state,
         })
     }
     /// Create a new TUI from the given command line arguments
@@ -164,6 +170,11 @@ impl Tui {
     /// Returns whether to abort emulation or not.
     fn handle_event(&mut self) -> AbortEmulation {
         if let Some(event) = self.events.next_key() {
+            // If some notification exist, clear that
+            if !self.notification_state.is_empty() {
+                self.notification_state.clear();
+                return false;
+            }
             use KeyCode::*;
             trace!("{:?}", event);
             if event.modifiers == Mod::CONTROL {
@@ -237,7 +248,7 @@ impl Tui {
                     let path = path.to_owned();
                     match self.load_program(path) {
                         Ok(()) => {}
-                        Err(e) => warn!("Failed to run program: {}", e),
+                        Err(e) => self.warn_about_failed_load(e),
                     }
                 }
                 Command::SetInputReg(InputRegister::Fc, val) => self.machine.set_input_fc(val),
@@ -263,6 +274,10 @@ impl Tui {
             }
         } else {
             warn!("Invalid input: {:?}", self.input_field.last());
+            self.notification_state.current = self
+                .input_field
+                .last()
+                .map(|text| format!("Invalid input:\n> {}", text));
         }
         false
     }
@@ -288,5 +303,10 @@ impl Tui {
         // Load the program into the machine
         self.machine.load_program(path, bytecode);
         Ok(())
+    }
+    fn warn_about_failed_load(&mut self, error: Error) {
+        warn!("Failed to run program: {}", error);
+        let warning = format!("Failed to load program:\n\n{}", error);
+        self.notification_state.current = Some(warning);
     }
 }

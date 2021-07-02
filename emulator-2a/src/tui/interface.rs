@@ -10,7 +10,7 @@ use tui::{
 
 use crate::{
     helpers,
-    tui::{input::InputWidget, MachineWidget, ProgramHelpSidebar, Tui},
+    tui::{input::InputWidget, MachineWidget, NotificationWidget, ProgramHelpSidebar, Tui},
 };
 
 pub const MINIMUM_ALLOWED_WIDTH: u16 = 76;
@@ -106,12 +106,18 @@ impl StatefulWidget for MainView {
         // Then render the actual input field
         let input_field_area = input_block.inner(input_area);
         InputWidget.render(input_field_area, buf, &mut state.input_field);
-        // Render the rest of the main view, registers and the shown part.
+        // Render the main area
         let main_machine_area = Rect {
             height: area_inside_block.height - INPUT_AREA_HEIGHT,
             ..area_inside_block
         };
-        MachineWidget.render(main_machine_area, buf, &mut state.machine);
+        if !state.notification_state.is_empty() {
+            // If there is a notification show that instead of the default view
+            NotificationWidget.render(main_machine_area, buf, &mut state.notification_state);
+        } else {
+            // Render the rest of the main view, registers and the shown part.
+            MachineWidget.render(main_machine_area, buf, &mut state.machine);
+        }
     }
 }
 
