@@ -502,15 +502,6 @@ impl From<Constant> for ByteOrLabel {
     }
 }
 
-impl From<MemAddress> for ByteOrLabel {
-    fn from(mem: MemAddress) -> Self {
-        match mem {
-            MemAddress::Constant(c) => c.into(),
-            MemAddress::Register(_reg) => unimplemented!("How to make a const from a register"),
-        }
-    }
-}
-
 impl fmt::Display for ByteCode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let max_width = self.lines.iter().map(|(_, bs)| bs.len()).max().unwrap_or(0);
