@@ -1,81 +1,52 @@
 {
-  description = "Emulator for the Minirechner 2a microcomputer";
-
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    pkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     utils.url = "github:numtide/flake-utils";
+    naersk.url = "github:nmattia/naersk";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    crate2nix = {
-      url = "github:kolloch/crate2nix";
-      flake = false;
-    };
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
   };
 
-  outputs = { self, nixpkgs, utils, rust-overlay, crate2nix, ... }:
-    let
-      name = "emulator-2a";
-      binName = "2a-emulator";
-      rustChannel = "nightly";
-    in utils.lib.eachDefaultSystem (system:
+  outputs = { self, utils, naersk, ... }@inputs:
+    utils.lib.eachDefaultSystem (system:
       let
-        # Imports
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [
-            rust-overlay.overlay
-            (self: super: {
-              # Because rust-overlay bundles multiple rust packages into one
-              # derivation, specify that mega-bundle here, so that crate2nix
-              # will use them automatically.
-              rustc = self.rust-bin.${rustChannel}.latest.default;
-              cargo = self.rust-bin.${rustChannel}.latest.default;
-            })
-          ];
+        pname = "2a-emulator";
+
+        overlays = [ inputs.rust-overlay.overlay ];
+        pkgs = import inputs.pkgs { inherit system overlays; };
+
+        # Get the latest rust nightly
+        rust = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
+          toolchain.default.override { extensions = [ "rust-src" ]; });
+
+        # Override the version used in naersk
+        naersk-lib = naersk.lib."${system}".override {
+          cargo = rust;
+          rustc = rust;
         };
-        inherit (import "${crate2nix}/tools.nix" { inherit pkgs; })
-          generatedCargoNix;
-
-        # Create the cargo2nix project
-        project = import (generatedCargoNix {
-          inherit name;
-          src = ./.;
-        }) { inherit pkgs; };
-
-        # Configuration for the non-Rust dependencies
-        buildInputs = with pkgs; [ ];
-        nativeBuildInputs = with pkgs; [ rustc cargo pkgconfig ];
       in rec {
-        packages.${name} = project.workspaceMembers.${name}.build;
-
         # `nix build`
-        defaultPackage = packages.${name};
+        packages.${pname} = naersk-lib.buildPackage {
+          inherit pname;
+          root = ./.;
+        };
+        defaultPackage = packages.${pname};
 
         # `nix run`
-        apps.${name} = utils.lib.mkApp {
-          name = binName;
-          drv = packages.${name};
-        };
-        defaultApp = apps.${name};
+        apps.${pname} = utils.lib.mkApp { drv = packages.${pname}; };
+        defaultApp = apps.${pname};
 
         # `nix develop`
         devShell = pkgs.mkShell {
-          inputsFrom = builtins.attrValues self.packages.${system};
-          buildInputs = buildInputs ++ (with pkgs;
-          # Tools you need for development go here.
-            [
-              nixpkgs-fmt
-              cargo-watch
-              pkgs.rust-bin.${rustChannel}.latest.rust-analysis
-              pkgs.rust-bin.${rustChannel}.latest.rls
-            ]);
-          RUST_SRC_PATH = "${
-              pkgs.rust-bin.${rustChannel}.latest.rust-src
-            }/lib/rustlib/src/rust/library";
+          # supply the specific rust version
+          nativeBuildInputs = [ rust pkgs.cargo-readme ];
+          RUST_SRC_PATH = "${rust}";
+        };
+
+        # `nix check`
+        checks.${pname} = naersk-lib.buildPackage {
+          inherit pname;
+          root = ./.;
+          doCheck = true;
         };
       });
 }
-
