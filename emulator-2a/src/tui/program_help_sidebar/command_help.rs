@@ -37,6 +37,7 @@ const COMMAND_HELP_UNSET: &[(&str, &str)] = &[
 const COMMAND_HELP_SHOW: &[(&str, &str)] = &[
     ("memory", "Show the main memory"),
     ("register", "Show the registers"),
+    ("address logic", "Show address logic"),
 ];
 const COMMAND_HELP_LOAD: &[(&str, &str)] = &[("PATH", "Path to the program")];
 const COMMAND_HELP_NEXT: &[(&str, &str)] = &[("<N>", "Optional number of cycles")];

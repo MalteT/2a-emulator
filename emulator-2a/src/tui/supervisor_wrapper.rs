@@ -24,6 +24,8 @@ use crate::{
     },
 };
 
+use super::show_widgets::AddressLogicWidget;
+
 const ONE_SPACE: u16 = 1;
 const BYTE_WIDTH: u16 = 8;
 const OUTPUT_REGISTER_WIDGET_WIDTH: u16 = 2 * BYTE_WIDTH + ONE_SPACE;
@@ -81,6 +83,7 @@ pub struct MachineState {
 pub enum Part {
     RegisterBlock,
     Memory,
+    AddressLogic,
 }
 
 impl MachineState {
@@ -300,6 +303,9 @@ impl StatefulWidget for MachineWidget {
             Part::RegisterBlock => {
                 let registers = state.machine.registers();
                 RegisterBlockWidget(registers).render(show_area, buf)
+            }
+            Part::AddressLogic => {
+                AddressLogicWidget.render(show_area, buf, &mut state.machine);
             }
         }
 

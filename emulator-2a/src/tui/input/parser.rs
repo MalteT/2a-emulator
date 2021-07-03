@@ -60,7 +60,8 @@ fn eq_ws(input: &str) -> IResult<&str, &str> {
 fn parse_part(input: &str) -> IResult<&str, Part> {
     let register = value(Part::RegisterBlock, tag_no_case("register"));
     let memory = value(Part::Memory, tag_no_case("memory"));
-    alt((register, memory))(input)
+    let address_logic = value(Part::AddressLogic, tag_no_case("address logic"));
+    alt((register, memory, address_logic))(input)
 }
 
 /// `load path/to/program`
