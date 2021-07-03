@@ -89,7 +89,16 @@ lazy_static! {
 /// IFF1╶┄┨●≥1┃         MAC0╶┘│
 ///       ┗━━━┛           NA0╶┘
 /// ```
-pub struct AddressLogicWidget;
+pub struct AddressLogicWidget(PhantomData<bool>);
+
+impl AddressLogicWidget {
+    pub fn wrapped() -> MinimumSize<Self> {
+        MinimumSize {
+            minimum_area: (MINIMUM_ALLOWED_WIDTH, MINIMUM_ALLOWED_HEIGHT),
+            inner: AddressLogicWidget(PhantomData),
+        }
+    }
+}
 
 impl StatefulWidget for AddressLogicWidget {
     type State = Machine;

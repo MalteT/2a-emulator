@@ -1,7 +1,7 @@
 //! Everything related to drawing the [`MemoryWidget`].
 use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 
-use crate::helpers;
+use crate::{helpers, tui::wrapper_widgets::MinimumSize};
 
 const MINIMUM_ALLOWED_WIDTH_FOR_MEMORY_DISPLAY: u16 = 50;
 const MINIMUM_ALLOWED_HEIGHT_FOR_MEMORY_DISPLAY: u16 = 17;
@@ -31,7 +31,19 @@ const MINIMUM_ALLOWED_HEIGHT_FOR_MEMORY_DISPLAY: u16 = 17;
 /// D_ 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 /// E_ 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 /// ```
-pub struct MemoryWidget<'a>(pub &'a [u8; 0xF0]);
+pub struct MemoryWidget<'a>(&'a [u8; 0xF0]);
+
+impl<'a> MemoryWidget<'a> {
+    pub fn wrapped(memory: &'a [u8; 0xF0]) -> MinimumSize<Self> {
+        MinimumSize {
+            minimum_area: (
+                MINIMUM_ALLOWED_WIDTH_FOR_MEMORY_DISPLAY,
+                MINIMUM_ALLOWED_HEIGHT_FOR_MEMORY_DISPLAY,
+            ),
+            inner: MemoryWidget(memory),
+        }
+    }
+}
 
 impl Widget for MemoryWidget<'_> {
     fn render(self, mut area: Rect, buf: &mut Buffer) {
@@ -39,49 +51,32 @@ impl Widget for MemoryWidget<'_> {
         buf.set_string(area.left(), area.top(), "Memory:", *helpers::DIMMED);
         area.y += 1;
         area.height -= 1;
-        // Make sure, that we have enough space!
-        if area.width < MINIMUM_ALLOWED_WIDTH_FOR_MEMORY_DISPLAY {
-            buf.set_string(
-                area.left(),
-                area.top() + 1,
-                "Display width too small!",
-                *helpers::RED_BOLD,
-            );
-        } else if area.height < MINIMUM_ALLOWED_HEIGHT_FOR_MEMORY_DISPLAY {
-            buf.set_string(
-                area.left(),
-                area.top() + 1,
-                "Display height too small!",
-                *helpers::RED_BOLD,
-            );
-        } else {
-            for hex in 0..0x10_u8 {
-                // Top row of annotations
-                let area_x = area.left() + 3 + hex as u16 * 3;
-                buf.set_string(area_x, area.top(), format!("_{:X}", hex), *helpers::DIMMED);
-            }
-            for hex in 0..0xF_u8 {
-                // Left row of annotations
-                let area_y = area.top() + 1 + hex as u16;
-                buf.set_string(area.left(), area_y, format!("{:X}_", hex), *helpers::DIMMED);
-            }
-            area.x += 3;
-            area.y += 1;
-            area.width -= 3;
-            area.height -= 1;
-            // Iterate over the memory
-            for (index, content) in self.0.iter().enumerate() {
-                // Draw non-empty cells bold
-                let style = if *content == 0 {
-                    Style::default()
-                } else {
-                    *helpers::BOLD
-                };
-                let cell = hex_str(content);
-                let x_pos = area.left() + (index as u16 % 0x10) * 3;
-                let y_pos = area.top() + index as u16 / 0x10;
-                buf.set_string(x_pos, y_pos, &cell, style)
-            }
+        for hex in 0..0x10_u8 {
+            // Top row of annotations
+            let area_x = area.left() + 3 + hex as u16 * 3;
+            buf.set_string(area_x, area.top(), format!("_{:X}", hex), *helpers::DIMMED);
+        }
+        for hex in 0..0xF_u8 {
+            // Left row of annotations
+            let area_y = area.top() + 1 + hex as u16;
+            buf.set_string(area.left(), area_y, format!("{:X}_", hex), *helpers::DIMMED);
+        }
+        area.x += 3;
+        area.y += 1;
+        area.width -= 3;
+        area.height -= 1;
+        // Iterate over the memory
+        for (index, content) in self.0.iter().enumerate() {
+            // Draw non-empty cells bold
+            let style = if *content == 0 {
+                Style::default()
+            } else {
+                *helpers::BOLD
+            };
+            let cell = hex_str(content);
+            let x_pos = area.left() + (index as u16 % 0x10) * 3;
+            let y_pos = area.top() + index as u16 / 0x10;
+            buf.set_string(x_pos, y_pos, &cell, style)
         }
     }
 }

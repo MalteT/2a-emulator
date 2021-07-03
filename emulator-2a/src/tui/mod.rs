@@ -28,6 +28,7 @@ mod notification;
 mod program_help_sidebar;
 pub mod show_widgets;
 mod supervisor_wrapper;
+mod wrapper_widgets;
 
 use crate::{
     args::InteractiveArgs,

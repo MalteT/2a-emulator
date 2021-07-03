@@ -298,14 +298,14 @@ impl StatefulWidget for MachineWidget {
         match state.part {
             Part::Memory => {
                 let memory = state.machine.bus().memory();
-                MemoryWidget(memory).render(show_area, buf)
+                MemoryWidget::wrapped(memory).render(show_area, buf)
             }
             Part::RegisterBlock => {
                 let registers = state.machine.registers();
                 RegisterBlockWidget(registers).render(show_area, buf)
             }
             Part::AddressLogic => {
-                AddressLogicWidget.render(show_area, buf, &mut state.machine);
+                AddressLogicWidget::wrapped().render(show_area, buf, &mut state.machine);
             }
         }
 
