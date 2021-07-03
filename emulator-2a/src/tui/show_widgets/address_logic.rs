@@ -8,7 +8,7 @@ use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget};
 use crate::{helpers::YELLOW, tui::wrapper_widgets::MinimumSize};
 
 /// Base string for the widget.
-const WIDGET_BASE: &'static str = r#"
+const WIDGET_BASE: &str = r#"
 Address Logic:                         ┏
                       Instruction Reg╶┄┨◌◌◌◌ A8..A5
                                    NA4╶┨◌ A4
@@ -31,7 +31,7 @@ const MINIMUM_ALLOWED_WIDTH: u16 = 50;
 const MINIMUM_ALLOWED_HEIGHT: u16 = 16;
 
 /// Relative locations in the [`WIDGET_BASE`] with names.
-const DOT_POSITIONS: [(&'static str, u16, u16); 24] = [
+const DOT_POSITIONS: [(&str, u16, u16); 24] = [
     ("a8", 40, 1),
     ("a7", 41, 1),
     ("a6", 42, 1),
