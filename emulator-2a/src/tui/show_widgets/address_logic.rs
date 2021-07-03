@@ -1,59 +1,61 @@
 use emulator_2a_lib::machine::Machine;
 use lazy_static::lazy_static;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, marker::PhantomData};
 
 use tui::{buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget};
 
-use crate::helpers::YELLOW;
+use crate::{helpers::YELLOW, tui::wrapper_widgets::MinimumSize};
 
 /// Base string for the widget.
 const WIDGET_BASE: &'static str = r#"
-Address Logic:                          ┏
-                       Instruction Reg╶┄┨◌◌◌◌ A8..A5
-                                    NA4╶┨◌ A4
-       OP10╶┐                       NA3╶┨◌ A3
-       ┏AM2┓│          ┏AM1┓        NA2╶┨◌ A2
-     1╶┨   ┃│        0╶┨   ┃      ┏AM4┓ ┃
-    CF╶┨◌  ┃│┏AL3┓   1╶┨   ┃  NA1╶┨◌  ┠─┨◌ A1
-    ZF╶┨◌  ┃└┨◌  ┠─────┨   ┃ OP11╶┨◌  ┃ ┃
-    NF╶┨◌  ┠─┨ =1┃  CF╶┨◌  ┃      ┗━┯━┛ ┃
-       ┗┯┯━┛ ┗━━━┛  CO╶┨◌  ┃   MAC2╶┘   ┃
-   OP01╶┘│          ZO╶┨◌  ┃      ┏AM3┓ ┃
-    OP00╶┘  ┏AL2┓   NO╶┨◌  ┠──────┨   ┠─┨◌ A0
-        IEF╶┨◌  ┠──────┨◌  ┃ OP10╶┨◌  ┃ ┗
-      ┏AL1┓┌┨  &┃      ┗┯┯┯┛      ┗━┯━┛
-LINT╶┄┨◌  ┠┘┗━━━┛  MAC1╶┘││    MAC2╶┘
-IFF1╶┄┨◌≥1┃         MAC0╶┘│
-      ┗━━━┛           NA0╶┘
+Address Logic:                         ┏
+                      Instruction Reg╶┄┨◌◌◌◌ A8..A5
+                                   NA4╶┨◌ A4
+      OP10╶┐                       NA3╶┨◌ A3
+      ┏AM2┓│          ┏AM1┓        NA2╶┨◌ A2
+    1╶┨   ┃│        0╶┨   ┃      ┏AM4┓ ┃
+   CF╶┨◌  ┃│┏AL3┓   1╶┨   ┃  NA1╶┨◌  ┠─┨◌ A1
+   ZF╶┨◌  ┃└┨◌  ┠─────┨   ┃ OP11╶┨◌  ┃ ┃
+   NF╶┨◌  ┠─┨ =1┃  CF╶┨◌  ┃      ┗━┯━┛ ┃
+      ┗┯┯━┛ ┗━━━┛  CO╶┨◌  ┃   MAC2╶┘   ┃
+  OP01╶┘│          ZO╶┨◌  ┃      ┏AM3┓ ┃
+   OP00╶┘   ┏AL2┓  NO╶┨◌  ┠──────┨   ┠─┨◌ A0
+        IEF╶┨◌  ┠─────┨◌  ┃ OP10╶┨◌  ┃ ┗
+      ┏AL1┓┌┨  &┃     ┗┯┯┯┛      ┗━┯━┛
+LINT╶┄┨◌  ┠┘┗━━━┛ MAC1╶┘││    MAC2╶┘
+IFF1╶┄┨◌≥1┃        MAC0╶┘│
+      ┗━━━┛          NA0╶┘
       "#;
+const MINIMUM_ALLOWED_WIDTH: u16 = 50;
+const MINIMUM_ALLOWED_HEIGHT: u16 = 16;
 
 /// Relative locations in the [`WIDGET_BASE`] with names.
 const DOT_POSITIONS: [(&'static str, u16, u16); 24] = [
-    ("a8", 41, 1),
-    ("a7", 42, 1),
-    ("a6", 43, 1),
-    ("a5", 44, 1),
-    ("a4", 41, 2),
-    ("a3", 41, 3),
-    ("a2", 41, 4),
-    ("a1", 41, 6),
-    ("a0", 41, 11),
-    ("am1-cf", 24, 8),
-    ("am1-co", 24, 9),
-    ("am1-zo", 24, 10),
-    ("am1-no", 24, 11),
-    ("am1-al2", 24, 12),
-    ("am2-cf", 8, 6),
-    ("am2-zf", 8, 7),
-    ("am2-nf", 8, 8),
-    ("am3-op10", 35, 12),
-    ("am4-na1", 35, 6),
-    ("am4-op11", 35, 7),
+    ("a8", 40, 1),
+    ("a7", 41, 1),
+    ("a6", 42, 1),
+    ("a5", 43, 1),
+    ("a4", 40, 2),
+    ("a3", 40, 3),
+    ("a2", 40, 4),
+    ("a1", 40, 6),
+    ("a0", 40, 11),
+    ("am1-cf", 23, 8),
+    ("am1-co", 23, 9),
+    ("am1-zo", 23, 10),
+    ("am1-no", 23, 11),
+    ("am1-al2", 23, 12),
+    ("am2-cf", 7, 6),
+    ("am2-zf", 7, 7),
+    ("am2-nf", 7, 8),
+    ("am3-op10", 34, 12),
+    ("am4-na1", 34, 6),
+    ("am4-op11", 34, 7),
     ("al1-lint", 7, 14),
     ("al1-iff1", 7, 15),
     ("al2-ief", 13, 12),
-    ("al3-op10", 14, 7),
+    ("al3-op10", 13, 7),
 ];
 
 lazy_static! {
