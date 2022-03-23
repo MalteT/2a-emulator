@@ -4,5 +4,8 @@ members = [
     "emulator-2a-lib",
 ]
 
+[workspace.metadata.nix]
+toolchain = "nightly"
+
 [profile.release]
 lto = true
