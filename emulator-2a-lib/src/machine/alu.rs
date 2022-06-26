@@ -57,7 +57,7 @@ enum_from_primitive! {
 /// assert_eq!(input.input_b(), 20);
 /// assert_eq!(input.carry_in(), true);
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct AluInput {
     /// Main input A.
@@ -209,16 +209,6 @@ impl AluOutput {
     /// bit of the output is set.
     pub const fn negative_out(&self) -> bool {
         self.negative_out
-    }
-}
-
-impl Default for AluInput {
-    fn default() -> Self {
-        AluInput {
-            input_a: 0,
-            input_b: 0,
-            carry_in: false,
-        }
     }
 }
 

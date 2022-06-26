@@ -1,4 +1,5 @@
 use pest::error::Error as PestError;
+use std::fmt::Write;
 use thiserror::Error;
 
 use std::fmt;
@@ -41,16 +42,16 @@ macro_rules! map {
                         let mut s = String::from("Expected ");
                         let positives = positives.clone();
                         if let Some(first_pos) = positives.first() {
-                            s += &format!("{}", first_pos);
+                            write!(s, "{}", first_pos).unwrap();
                         }
                         if positives.len() > 2 {
                             for pos in &positives[1..positives.len() - 1] {
-                                s += &format!(", {}", pos.to_string());
+                                write!(s, ", {}", pos).unwrap();
                             }
                         }
                         if positives.len() > 1 {
                             let last_pos = positives.last().unwrap();
-                            s += &format!(" or {}", last_pos.to_string());
+                            write!(s, " or {}", last_pos).unwrap();
                         }
                         s
                     },

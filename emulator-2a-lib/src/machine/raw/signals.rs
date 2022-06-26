@@ -277,8 +277,8 @@ impl<'a> From<&'a RawMachine> for Signals<'a> {
             carry_out: machine.alu_output.carry_out(),
             zero_out: machine.alu_output.zero_out(),
             negative_out: machine.alu_output.negative_out(),
-            instruction: &machine.instruction_register.get(),
-            word: &machine.microprogram_ram.get_word(),
+            instruction: machine.instruction_register.get(),
+            word: machine.microprogram_ram.get_word(),
             interrupt_flipflop_1: machine.pending_edge_interrupt.as_ref(),
             level_interrupt: machine.pending_level_interrupt.as_ref(),
         }

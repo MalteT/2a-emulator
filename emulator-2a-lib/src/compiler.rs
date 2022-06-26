@@ -74,7 +74,7 @@ impl ByteCode {
     ///
     /// Thus the resulting bytes can be easily written into the program memory.
     pub fn bytes<'a>(&'a self) -> impl Iterator<Item = &u8> + 'a {
-        self.lines.iter().map(|(_, c)| c).flatten()
+        self.lines.iter().flat_map(|(_, c)| c)
     }
 }
 
@@ -148,13 +148,12 @@ impl Translator {
             AsmDefineBytes(mut cs) => cs.drain(..).map(ByteOrLabel::Byte).collect(),
             AsmDefineWords(mut cs) => cs
                 .drain(..)
-                .map(|word| {
+                .flat_map(|word| {
                     vec![
                         ByteOrLabel::Byte((word >> 8) as u8),
                         ByteOrLabel::Byte(word as u8),
                     ]
                 })
-                .flatten()
                 .collect(),
             AsmEquals(label, constant) => {
                 // Push Label!
@@ -245,7 +244,7 @@ impl Translator {
             .map(|(line, mut bols)| {
                 let bytes = bols
                     .drain(..)
-                    .map(|bol| match bol {
+                    .flat_map(|bol| match bol {
                         ByteOrLabel::Byte(byte) => vec![byte],
                         ByteOrLabel::Label(label) => vec![*labels
                             .get(&label)
@@ -257,7 +256,6 @@ impl Translator {
                             vec![f.deref()(b)]
                         }
                     })
-                    .flatten()
                     .collect();
                 (line, bytes)
             })
@@ -408,8 +406,8 @@ fn destination_register(dst: &Destination) -> u8 {
 fn from_bases_dst_and_src(b1: u8, b2: u8, dst: &Destination, src: &Source) -> Vec<ByteOrLabel> {
     use ByteOrLabel::*;
     // Calculate first byte from register and mode
-    let source_addr_mode = source_addr_mode(&src) << 2;
-    let source_register = source_register(&src);
+    let source_addr_mode = source_addr_mode(src) << 2;
+    let source_register = source_register(src);
     let first = b1 + source_addr_mode + source_register;
     let mut ret = vec![Byte(first)];
     // Add another byte if we need a constant or an address
@@ -426,8 +424,8 @@ fn from_bases_dst_and_src(b1: u8, b2: u8, dst: &Destination, src: &Source) -> Ve
     }
     // DESTINATION
     // Calculate first byte from register and mode
-    let destination_addr_mode = destination_addr_mode(&dst) << 2;
-    let destination_register = destination_register(&dst);
+    let destination_addr_mode = destination_addr_mode(dst) << 2;
+    let destination_register = destination_register(dst);
     let third = b2 + destination_addr_mode + destination_register;
     ret.push(Byte(third));
     // Add another byte if we need an address
@@ -452,8 +450,8 @@ fn from_bases_dst_and_src(b1: u8, b2: u8, dst: &Destination, src: &Source) -> Ve
 fn from_bases_and_src(b1: u8, b2: u8, src: &Source) -> Vec<ByteOrLabel> {
     use ByteOrLabel::*;
     // Calculate first byte from register and mode
-    let source_addr_mode = source_addr_mode(&src) << 2;
-    let source_register = source_register(&src);
+    let source_addr_mode = source_addr_mode(src) << 2;
+    let source_register = source_register(src);
     let first = b1 + source_addr_mode + source_register;
     let mut ret = vec![Byte(first)];
     // Add another byte if we need a constant or an address

@@ -26,7 +26,7 @@ pub struct AsmParser;
 ///
 /// # Example
 ///
-/// ```no_run
+/// ```no_check
 /// let (_, label, _, constant) = inner_tuple! { equ;
 ///     sep_ip      => ignore;
 ///     raw_label   => parse_raw_label;
@@ -182,7 +182,7 @@ fn validate_lines(lines: &[Line]) -> Result<(), ParserError> {
     };
     // Function to map a Memory to a vec of labels
     let mem_to_vec = |c: &MemAddress| match c {
-        MemAddress::Constant(c) => const_to_vec(&c),
+        MemAddress::Constant(c) => const_to_vec(c),
         MemAddress::Register(_) => vec![],
     };
     // Function to map a Source to a vec of labels
