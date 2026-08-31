@@ -6,6 +6,30 @@ use proptest_derive::Arbitrary;
 
 use std::ops::Deref;
 
+/// Implement [`proptest::arbitrary::Arbitrary`] for `bitflags` types.
+///
+/// `bitflags` 2 hides the backing integer behind an opaque `InternalBitFlags`
+/// type, so `#[derive(Arbitrary)]` cannot see through it. Generating the
+/// backing integer and truncating to the defined flags is both possible and
+/// more correct: it never produces undefined bits.
+#[cfg(test)]
+macro_rules! impl_arbitrary_for_bitflags {
+    ($($ty:ty => $repr:ty),* $(,)?) => {
+        $(
+            impl proptest::arbitrary::Arbitrary for $ty {
+                type Parameters = ();
+                type Strategy = proptest::strategy::BoxedStrategy<Self>;
+                fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+                    use proptest::strategy::Strategy;
+                    proptest::arbitrary::any::<$repr>()
+                        .prop_map(<$ty>::from_bits_truncate)
+                        .boxed()
+                }
+            }
+        )*
+    };
+}
+
 mod alu;
 mod board;
 mod bus;

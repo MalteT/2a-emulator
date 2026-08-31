@@ -20,6 +20,7 @@ bitflags! {
     /// A Word stored in the microprogram ram
     ///
     /// This defines signal that are used throughout the machine.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Word: u32 {
         const MAC3       = 0b00001000000000000000000000000000;
         const MAC2       = 0b00000100000000000000000000000000;
