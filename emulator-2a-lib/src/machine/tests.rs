@@ -467,3 +467,344 @@ fn define_words_equivalent_to_written_program() {
         fake_compiled.bytes().collect::<Vec<_>>()
     );
 }
+
+/// Run `machine` for at most `limit` cycles or until it stops.
+fn run_until_halt(machine: &mut Machine, limit: usize) -> usize {
+    let mut cycles = 0;
+    for _ in 0..limit {
+        machine.trigger_key_clock();
+        cycles += 1;
+        if machine.state() != State::Running {
+            break;
+        }
+    }
+    cycles
+}
+
+/// A program that jumps into an ISR writing `1` to FF and stopping.
+///
+/// `setup` is spliced in before `EI`, so a test can configure MICR, the
+/// interrupt timer or the MR2DA2 as needed.
+fn isr_program(setup: &str) -> String {
+    format!(
+        "#! mrasm\n    .ORG 0\n    JR MAIN\n    JR ISR\nMAIN:\n    LDSP 0xEF\n{}    EI\nLOOP:\n    JR LOOP\nISR:\n    MOV (0xFF), 1\n    STOP\n",
+        setup
+    )
+}
+
+#[test]
+fn timer_edge_interrupt_fires() {
+    // div3 = 50, div2 = 1, div1 = 1  =>  a period of 50 clock cycles.
+    let program = isr_program(
+        "    MOV (0xFC), 50\n    MOV (0xFD), 0\n    MOV (0xFD), 0x90\n    MOV (0xF9), 2\n",
+    );
+    let mut machine = Machine::new_with_program(MachineConfig::default(), compile!(&program));
+    run_until_halt(&mut machine, 10_000);
+    assert_eq!(
+        machine.state(),
+        State::Stopped,
+        "the timer interrupt never reached the ISR"
+    );
+    assert_eq!(machine.bus().output_ff(), 1);
+}
+
+#[test]
+fn timer_does_not_fire_when_its_micr_bit_is_clear() {
+    // Same timer setup, but MICR leaves the timer interrupt disabled.
+    let program = isr_program(
+        "    MOV (0xFC), 50\n    MOV (0xFD), 0\n    MOV (0xFD), 0x90\n    MOV (0xF9), 0\n",
+    );
+    let mut machine = Machine::new_with_program(MachineConfig::default(), compile!(&program));
+    run_until_halt(&mut machine, 10_000);
+    assert_eq!(machine.state(), State::Running);
+    assert_eq!(machine.bus().output_ff(), 0);
+}
+
+#[test]
+fn minibus_edge_interrupt_from_uio1_fires() {
+    // MICR bit 5 enables bus edge interrupts. Writing 0b11xxxxxx to 0xF2
+    // loads the DAICR: IE | EDGE | source 001 (UIO1), rising edge.
+    let program = isr_program("    MOV (0xF9), 0x20\n    MOV (0xF2), 0xF1\n");
+    let mut machine = Machine::new_with_program(MachineConfig::default(), compile!(&program));
+    // Let the setup run, then produce a rising edge on UIO1.
+    for _ in 0..200 {
+        machine.trigger_key_clock();
+    }
+    assert_eq!(machine.state(), State::Running, "setup should not halt");
+    machine.set_universal_input_output1(true);
+    run_until_halt(&mut machine, 10_000);
+    assert_eq!(
+        machine.state(),
+        State::Stopped,
+        "the UIO1 edge never reached the ISR"
+    );
+    assert_eq!(machine.bus().output_ff(), 1);
+}
+
+#[test]
+fn minibus_level_interrupt_from_uio1_fires() {
+    // MICR bit 4 enables bus level interrupts. DAICR: IE | source 001,
+    // EDGE clear => level mode.
+    let program = isr_program("    MOV (0xF9), 0x10\n    MOV (0xF2), 0xE1\n");
+    let mut machine = Machine::new_with_program(MachineConfig::default(), compile!(&program));
+    for _ in 0..200 {
+        machine.trigger_key_clock();
+    }
+    assert_eq!(machine.state(), State::Running, "setup should not halt");
+    machine.set_universal_input_output1(true);
+    run_until_halt(&mut machine, 10_000);
+    assert_eq!(
+        machine.state(),
+        State::Stopped,
+        "the UIO1 level never reached the ISR"
+    );
+    assert_eq!(machine.bus().output_ff(), 1);
+}
+
+#[test]
+fn minibus_interrupt_does_not_fire_without_its_micr_bit() {
+    // DAICR is configured, but the MICR gate stays closed.
+    let program = isr_program("    MOV (0xF9), 0\n    MOV (0xF2), 0xF1\n");
+    let mut machine = Machine::new_with_program(MachineConfig::default(), compile!(&program));
+    for _ in 0..200 {
+        machine.trigger_key_clock();
+    }
+    machine.set_universal_input_output1(true);
+    run_until_halt(&mut machine, 5_000);
+    assert_eq!(machine.state(), State::Running);
+    assert_eq!(machine.bus().output_ff(), 0);
+}
+
+#[test]
+fn interrupt_timer_counts_every_clock_including_wait_states() {
+    // A period of 100 cycles must elapse after exactly 100 clock edges,
+    // regardless of what the CPU is doing meanwhile.
+    let mut machine = Machine::new(MachineConfig::default());
+    let bus = machine.raw_mut().bus_mut();
+    bus.write(0xFC, 100); // div3 low
+    bus.write(0xFD, 0); // div3 high
+    bus.write(0xFD, 0x90); // enable, div1 = 1, div2 = 1
+    bus.write(0xF9, 0b0000_0010); // MICR: timer edge interrupt enable
+    for _ in 0..99 {
+        machine.raw_mut().bus_mut().tick_timer();
+    }
+    assert!(
+        machine.raw_mut().bus_mut().take_edge_interrupt().is_none(),
+        "timer fired before its period elapsed"
+    );
+    machine.raw_mut().bus_mut().tick_timer();
+    assert!(
+        machine.raw_mut().bus_mut().take_edge_interrupt().is_some(),
+        "timer did not fire after exactly 100 ticks"
+    );
+}
+
+#[test]
+fn interrupt_timer_divisor_three_spans_a_full_16_bits() {
+    // 0xFC fills bits 7..0 and 0xFD (top bit clear) fills bits 15..8.
+    // The two halves must not overlap.
+    let mut machine = Machine::new(MachineConfig::default());
+    let bus = machine.raw_mut().bus_mut();
+    bus.write(0xFC, 0xFF);
+    bus.write(0xFD, 0x01); // upper half = 1  =>  div3 = 0x01FF = 511
+    bus.write(0xFD, 0x90); // enable, div1 = 1, div2 = 1
+    bus.write(0xF9, 0b0000_0010); // MICR: timer edge interrupt enable
+    for _ in 0..510 {
+        machine.raw_mut().bus_mut().tick_timer();
+    }
+    assert!(machine.raw_mut().bus_mut().take_edge_interrupt().is_none());
+    machine.raw_mut().bus_mut().tick_timer();
+    assert!(
+        machine.raw_mut().bus_mut().take_edge_interrupt().is_some(),
+        "div3 did not resolve to 511; the two halves probably overlap"
+    );
+}
+
+#[test]
+fn byte_directive_does_not_shift_following_labels() {
+    // `.BYTE 3` emits three bytes, so TARGET sits at address 5 (right after
+    // the two-byte CALL and the three reserved bytes).
+    let bytecode = compile!("#! mrasm\n    CALL TARGET\n    .BYTE 3\nTARGET:\n    NOP\n");
+    let bytes: Vec<u8> = bytecode.bytes().copied().collect();
+    assert_eq!(bytes, vec![0x28, 0x05, 0x00, 0x00, 0x00, 0x02]);
+}
+
+#[test]
+fn labels_are_matched_case_insensitively() {
+    // The parser compares label names case-insensitively, so the compiler
+    // has to agree with it.
+    let mixed = compile!("#! mrasm\nTarget:\n    JR tARGET\n");
+    let plain = compile!("#! mrasm\nTARGET:\n    JR TARGET\n");
+    let mixed: Vec<u8> = mixed.bytes().copied().collect();
+    let plain: Vec<u8> = plain.bytes().copied().collect();
+    assert_eq!(mixed, plain);
+    assert_eq!(mixed, vec![0x20, 0xFE]);
+}
+
+#[test]
+fn equ_constants_are_also_case_insensitive() {
+    let bytecode = compile!("#! mrasm\n    .EQU Answer 42\n    LD R0, aNsWeR\n");
+    let bytes: Vec<u8> = bytecode.bytes().copied().collect();
+    assert_eq!(bytes, vec![0xFB, 42, 0x10]);
+}
+
+#[test]
+fn fan_period_falls_as_the_fan_speeds_up() {
+    let mut machine = Machine::new(MachineConfig::default());
+    // A stopped fan reports the longest period.
+    machine.raw_mut().bus_mut().write(0xF0, 0);
+    assert_eq!(machine.bus().read(0xF2), 255);
+    // Full scale (2.55 V) reports the shortest.
+    machine.raw_mut().bus_mut().write(0xF0, 255);
+    assert_eq!(machine.bus().read(0xF2), 0);
+    // And it decreases monotonically in between.
+    let mut last = 256u16;
+    for value in [0u8, 51, 128, 200, 255] {
+        machine.raw_mut().bus_mut().write(0xF0, value);
+        let period = machine.bus().read(0xF2) as u16;
+        assert!(
+            period < last,
+            "period did not decrease at ORG1 = {}: {} !< {}",
+            value,
+            period,
+            last
+        );
+        last = period;
+    }
+}
+
+/// Drive UIO1 as a square wave and return the value of the output register FF.
+///
+/// `half` is the number of clock cycles each phase is held for. The machine is
+/// given `warmup` cycles first so that the program's setup can finish.
+fn count_square_wave(program: &str, edges: usize, half: usize, warmup: usize) -> u8 {
+    let mut machine = Machine::new_with_program(MachineConfig::default(), compile!(program));
+    for _ in 0..warmup {
+        machine.trigger_key_clock();
+    }
+    assert_eq!(
+        machine.state(),
+        State::Running,
+        "the program halted during setup"
+    );
+    for _ in 0..edges {
+        machine.set_universal_input_output1(true);
+        for _ in 0..half {
+            machine.trigger_key_clock();
+        }
+        machine.set_universal_input_output1(false);
+        for _ in 0..half {
+            machine.trigger_key_clock();
+        }
+    }
+    machine.bus().output_ff()
+}
+
+/// Counts rising edges on UIO1 with a minibus edge interrupt.
+const EDGE_COUNTER: &str = "#! mrasm
+    .ORG 0
+    JR MAIN
+    .ORG 2
+    MOV (0xF3), 0            ; acknowledge: clear the board's interrupt FF
+    INC R0
+    ST (0xFF), R0
+    RETI
+MAIN:
+    LDSP 0xEF
+    MOV (0xF2), 0b10000000   ; UDR: UIO1..UIO3 are inputs
+    MOV (0xF2), 0b11110001   ; DAICR: on, edge, rising, source UIO1
+    MOV (0xF9), 0b00100000   ; MICR: let the minibus interrupt in
+    MOV (0xF3), 0            ; drop any stale edge
+    EI
+LOOP:
+    JR LOOP
+";
+
+/// Counts the same edges by polling the board status register instead.
+const POLLING_COUNTER: &str = "#! mrasm
+    .ORG 0
+    MOV (0xF2), 0b10000000   ; UDR: UIO1..UIO3 are inputs
+    CLR R0                   ; event counter
+    CLR R2                   ; level seen on the previous pass
+WAIT:
+    LD R1, (0xF1)            ; board status register
+    BITC R1, 0xFE            ; keep bit 0 only, which is UIO1
+    CMP R1, R2
+    JZS WAIT                 ; level unchanged
+    MOV R2, R1               ; remember the new level
+    TST R1
+    JZS WAIT                 ; it fell to zero, so not a rising edge
+    INC R0
+    ST (0xFF), R0
+    JR WAIT
+";
+
+#[test]
+fn minibus_interrupt_counts_every_edge_of_a_square_wave() {
+    assert_eq!(count_square_wave(EDGE_COUNTER, 20, 200, 400), 20);
+    assert_eq!(count_square_wave(EDGE_COUNTER, 40, 100, 400), 40);
+}
+
+#[test]
+fn polling_counts_every_edge_of_a_square_wave() {
+    assert_eq!(count_square_wave(POLLING_COUNTER, 20, 200, 400), 20);
+}
+
+#[test]
+fn edge_counters_ignore_a_line_that_never_rises() {
+    // UIO1 is never driven, so neither counter may report an event.
+    for program in [EDGE_COUNTER, POLLING_COUNTER] {
+        let mut machine = Machine::new_with_program(MachineConfig::default(), compile!(program));
+        for _ in 0..5_000 {
+            machine.trigger_key_clock();
+        }
+        assert_eq!(machine.bus().output_ff(), 0);
+    }
+}
+
+#[test]
+fn an_interrupt_driven_counter_outruns_a_polling_one() {
+    // Both count 20 edges when the wave is slow.
+    assert_eq!(count_square_wave(EDGE_COUNTER, 20, 200, 400), 20);
+    assert_eq!(count_square_wave(POLLING_COUNTER, 20, 200, 400), 20);
+    // At 30 cycles per phase the ISR still keeps up and the poll loop does not.
+    assert_eq!(count_square_wave(EDGE_COUNTER, 20, 30, 400), 20);
+    assert!(
+        count_square_wave(POLLING_COUNTER, 20, 30, 400) < 20,
+        "the polling loop was expected to miss edges at this rate"
+    );
+}
+
+#[test]
+fn timer_interrupt_counts_at_the_configured_rate() {
+    // div3 = 100, div2 = 1, div1 = 1  =>  one interrupt every 100 cycles.
+    let program = "#! mrasm
+    .ORG 0
+    JR MAIN
+    .ORG 2
+    INC R0
+    ST (0xFF), R0
+    RETI
+MAIN:
+    LDSP 0xEF
+    MOV (0xFC), 100          ; divider 3, low byte
+    MOV (0xFD), 0            ; divider 3, upper bits
+    MOV (0xFD), 0b10010000   ; on, divider 2 = 1, divider 1 = 1
+    MOV (0xF9), 0b00000010   ; MICR: interrupt on timer
+    EI
+LOOP:
+    JR LOOP
+";
+    let mut machine = Machine::new_with_program(MachineConfig::default(), compile!(program));
+    for _ in 0..10_000 {
+        machine.trigger_key_clock();
+    }
+    // 10000 cycles at a period of 100 is 100 interrupts, less the handful of
+    // cycles the setup needs before `EI`.
+    let counted = machine.bus().output_ff();
+    assert!(
+        (98..=100).contains(&counted),
+        "expected roughly 100 timer interrupts, counted {}",
+        counted
+    );
+}
