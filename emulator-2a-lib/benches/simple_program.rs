@@ -1,9 +1,10 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use emulator_2a_lib::{
     compiler::Translator,
     machine::{Machine, MachineConfig, State},
     parser::AsmParser,
 };
+use std::hint::black_box;
 
 #[cfg(unix)]
 mod perf;

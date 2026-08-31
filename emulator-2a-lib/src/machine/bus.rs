@@ -61,7 +61,7 @@ pub struct InterruptTimer {
 
 bitflags! {
     /// Master Interrupt Control Register
-    #[cfg_attr(test, derive(Arbitrary))]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     struct MICR: u8 {
         const BUS_EDGE_INTERRUPT_ENABLE   = 0b00100000;
         const BUS_LEVEL_INTERRUPT_ENABLE  = 0b00010000;
@@ -74,7 +74,7 @@ bitflags! {
 
 bitflags! {
     /// Master Interrupt Status Register
-    #[cfg_attr(test, derive(Arbitrary))]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct MISR: u8 {
         const BUS_INTERRUPT_PENDING          = 0b10000000;
         const UART_INTERUPT_PENDING          = 0b01000000;
@@ -90,7 +90,7 @@ bitflags! {
 bitflags! {
     /// UART Control Register
     /// *This ignores the baudrate.*
-    #[cfg_attr(test, derive(Arbitrary))]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     struct UCR: u8 {
         const INT_ON_RX_READY = 0b10000000;
         const INT_ON_RX_FULL  = 0b01000000;
@@ -102,7 +102,7 @@ bitflags! {
 
 bitflags! {
     /// UART Status Register
-    #[cfg_attr(test, derive(Arbitrary))]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     struct USR: u8 {
         const TX_READY = 0b10000000;
         const TX_EMPTY = 0b01000000;
@@ -619,3 +619,6 @@ mod tests {
         assert_eq!(bus.output_ff(), 0xFF);
     }
 }
+
+#[cfg(test)]
+impl_arbitrary_for_bitflags!(MICR => u8, MISR => u8, UCR => u8, USR => u8);

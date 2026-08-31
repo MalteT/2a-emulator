@@ -54,7 +54,7 @@ impl InstructionRegister {
 
 bitflags! {
     /// A single byte handled by the instruction register.
-    #[cfg_attr(test, derive(Arbitrary))]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Instruction: u8 {
         const A8   = 0b10000000;
         const A7   = 0b01000000;
@@ -89,3 +89,6 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+impl_arbitrary_for_bitflags!(Instruction => u8);

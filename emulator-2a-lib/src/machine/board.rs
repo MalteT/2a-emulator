@@ -4,8 +4,6 @@ use enum_primitive::{
     enum_from_primitive, enum_from_primitive_impl, enum_from_primitive_impl_ty, FromPrimitive,
 };
 use log::{trace, warn};
-#[cfg(test)]
-use proptest_derive::Arbitrary;
 
 use std::u8;
 
@@ -76,7 +74,7 @@ pub struct Board {
 
 bitflags! {
     /// Digital Analog Status Register
-    #[cfg_attr(test, derive(Arbitrary))]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct DASR: u8 {
         const J2        = 0b10000000;
         const J1        = 0b01000000;
@@ -91,7 +89,7 @@ bitflags! {
 
 bitflags! {
     /// Digital Analog Interrupt Status Register
-    #[cfg_attr(test, derive(Arbitrary))]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct DAISR: u8 {
         const INTERRUPT_PENDING   = 0b00001000;
         const INTERRUPT_REQUESTED = 0b00000100;
@@ -102,7 +100,7 @@ bitflags! {
 
 bitflags! {
     /// Digital Analog Interrupt Control Register
-    #[cfg_attr(test, derive(Arbitrary))]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct DAICR: u8 {
         const IE            = 0b00100000;
         const EDGE          = 0b00010000;
@@ -658,3 +656,6 @@ mod tests {
         assert_eq!(board.dasr.bits(), 0b0010_0000);
     }
 }
+
+#[cfg(test)]
+impl_arbitrary_for_bitflags!(DASR => u8, DAISR => u8, DAICR => u8);
