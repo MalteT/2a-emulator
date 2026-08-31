@@ -369,7 +369,7 @@ impl Board {
     ///
     /// The fan period is mapped to the range \[0..255\].
     pub fn get_fan_period(&self) -> u8 {
-        u8::MAX - (u8::MAX as f32 / self.fan_rpm as f32 * MAX_FAN_RPM as f32) as u8
+        u8::MAX - (u8::MAX as f32 * self.fan_rpm as f32 / MAX_FAN_RPM as f32) as u8
     }
 
     /// Is there an interrupt?

@@ -106,7 +106,8 @@ impl Translator {
                 self.bytes.push((line.clone(), vec![]));
             }
             Line::Label(label, _) => {
-                self.known_labels.insert(label.to_string(), self.next_addr);
+                self.known_labels
+                    .insert(label.to_lowercase(), self.next_addr);
                 self.bytes.push((line.clone(), vec![]));
             }
             Line::Instruction(inst, comment) => self.push_instruction(inst, comment),
@@ -138,7 +139,10 @@ impl Translator {
                 skips
             }
             AsmByte(nr) => {
-                self.next_addr += nr;
+                // NOTE: Do not advance `next_addr` here. The emitted bytes are
+                // counted once for every instruction after this match, and
+                // advancing here as well would push every following label
+                // `nr` bytes too far.
                 let mut ret = vec![];
                 for _ in 0..nr {
                     ret.push(Byte(0b0000_0000));
@@ -157,7 +161,7 @@ impl Translator {
                 .collect(),
             AsmEquals(label, constant) => {
                 // Push Label!
-                self.known_labels.insert(label, constant);
+                self.known_labels.insert(label.to_lowercase(), constant);
                 vec![]
             }
             AsmStacksize(ss) => {
@@ -247,11 +251,11 @@ impl Translator {
                     .flat_map(|bol| match bol {
                         ByteOrLabel::Byte(byte) => vec![byte],
                         ByteOrLabel::Label(label) => vec![*labels
-                            .get(&label)
+                            .get(&label.to_lowercase())
                             .expect("infallible. Labels must be defined")],
                         ByteOrLabel::LabelFn(label, f) => {
                             let b = *labels
-                                .get(&label)
+                                .get(&label.to_lowercase())
                                 .expect("infallible. Labels must be defined");
                             vec![f.deref()(b)]
                         }

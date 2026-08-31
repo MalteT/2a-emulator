@@ -11,7 +11,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use super::{Board, Interrupt};
+use super::{Board, Interrupt, DAICR};
 
 /// The bus used in the Minirechner 2a.
 ///
@@ -57,6 +57,10 @@ pub struct InterruptTimer {
     div1: usize,
     div2: usize,
     div3: usize,
+    /// Clock cycles counted since the last time the timer elapsed.
+    counter: usize,
+    /// Has the timer elapsed since it was last polled?
+    fired: bool,
 }
 
 bitflags! {
@@ -77,7 +81,7 @@ bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct MISR: u8 {
         const BUS_INTERRUPT_PENDING          = 0b10000000;
-        const UART_INTERUPT_PENDING          = 0b01000000;
+        const UART_INTERRUPT_PENDING          = 0b01000000;
         const TIMER_INTERRUPT_PENDING        = 0b00100000;
         const KEY_INTERRUPT_PENDING          = 0b00010000;
         const BUS_INTERRUPT_REQUEST_ACTIVE   = 0b00001000;
@@ -244,7 +248,7 @@ impl Bus {
                     _ => unreachable!(),
                 };
                 let div1_select = byte & 0b0000_0011;
-                self.int_timer.div2 = match div1_select {
+                self.int_timer.div1 = match div1_select {
                     0b00 => 1,
                     0b01 => 16,
                     0b10 => 256,
@@ -252,9 +256,11 @@ impl Bus {
                     _ => unreachable!(),
                 };
             } else {
-                let upper = (byte as usize & 0b0111_1111) << 7;
+                // The write to 0xFC fills bits 7..0, so the upper half starts
+                // at bit 8. Shifting by 7 would make both halves overlap.
+                let upper = (byte as usize & 0b0111_1111) << 8;
                 let orig = self.int_timer.div3;
-                self.int_timer.div3 = upper + (orig & 0b0111_1111);
+                self.int_timer.div3 = upper + (orig & 0xFF);
             }
         } else if addr == 0xFE {
             self.output_reg[0] = byte;
@@ -325,36 +331,87 @@ impl Bus {
     pub fn output_ff(&self) -> u8 {
         self.output_reg[1]
     }
+    /// Advance the interrupt timer by one clock cycle.
+    ///
+    /// This must be called on *every* clock edge!
+    pub fn tick_timer(&mut self) {
+        if !self.int_timer.enabled {
+            return;
+        }
+        let period = self
+            .int_timer
+            .div1
+            .saturating_mul(self.int_timer.div2)
+            .saturating_mul(self.int_timer.div3.max(1));
+        if period == 0 {
+            return;
+        }
+        self.int_timer.counter += 1;
+        if self.int_timer.counter >= period {
+            trace!("Interrupt timer elapsed after {} cycles", period);
+            self.int_timer.counter = 0;
+            self.int_timer.fired = true;
+        }
+    }
+
     /// Is anything on the bus triggering a level interrupt?
     ///
-    /// TODO: Implement
+    /// Level interrupts are re-evaluated every cycle, so this tracks the level
+    /// of the source rather than latching it. The MR2DA2 keeps its own
+    /// interrupt flipflop, which software clears by writing to `0xF3`.
+    ///
+    /// # Note
+    ///
+    /// The UART is not emulated, so it never raises an interrupt.
     pub fn get_level_interrupt(&mut self) -> Option<Interrupt> {
-        warn!("Bus Interrupts are not implemented yet");
+        if self.micr.contains(MICR::BUS_LEVEL_INTERRUPT_ENABLE)
+            && !self.board.daicr().contains(DAICR::EDGE)
+            && self.board.fetch_interrupt()
+        {
+            trace!("Level interrupt from the MR2DA2");
+            // TODO: I don't actually know when this needs setting. See #34
+            self.misr.insert(MISR::BUS_INTERRUPT_PENDING);
+            self.misr.insert(MISR::BUS_INTERRUPT_REQUEST_ACTIVE);
+            return Some(Interrupt);
+        }
         None
-        //if self.micr.contains(MICR::UART_LEVEL_INTERRUPT_ENABLE) {
-        //    None
-        //} else if self.micr.contains(MICR::BUS_LEVEL_INTERRUPT_ENABLE) {
-        //    None
-        //} else {
-        //    None
-        //}
     }
+
     /// Did anything on the bus trigger an edge interrupt?
     ///
-    /// # Note:
-    /// Level intterupts can also be triggered by the timer and by key!
-    /// These are not checked here.
-    /// TODO: Implement
+    /// Checks the interrupt timer first, then the minibus (the MR2DA2
+    /// extension board). Both are gated by their enable bit in the MICR.
+    ///
+    /// # Note
+    ///
+    /// Key interrupts do not pass through here; they are raised directly by
+    /// [`RawMachine::trigger_key_edge_interrupt`](crate::machine::RawMachine::trigger_key_edge_interrupt).
+    /// The UART is not emulated, so it never raises an interrupt.
     pub fn take_edge_interrupt(&mut self) -> Option<Interrupt> {
-        warn!("Bus Interrupts are not implemented yet");
+        // The timer output is an edge: consume it whether or not anybody is
+        // listening, so that enabling the interrupt later does not immediately
+        // deliver a stale one.
+        if self.int_timer.fired {
+            self.int_timer.fired = false;
+            if self.micr.contains(MICR::TIMER_EDGE_INTERRUPT_ENABLE) {
+                trace!("Edge interrupt from the interrupt timer");
+                // TODO: I don't actually know when this needs setting. See #34
+                self.misr.insert(MISR::TIMER_INTERRUPT_PENDING);
+                self.misr.insert(MISR::TIMER_INTERRUPT_REQUEST_ACTIVE);
+                return Some(Interrupt);
+            }
+        }
+        if self.micr.contains(MICR::BUS_EDGE_INTERRUPT_ENABLE)
+            && self.board.daicr().contains(DAICR::EDGE)
+            && self.board.fetch_interrupt()
+        {
+            trace!("Edge interrupt from the minibus");
+            // TODO: I don't actually know when this needs setting. See #34
+            self.misr.insert(MISR::BUS_INTERRUPT_PENDING);
+            self.misr.insert(MISR::BUS_INTERRUPT_REQUEST_ACTIVE);
+            return Some(Interrupt);
+        }
         None
-        //if self.micr.contains(MICR::UART_EDGE_INTERRUPT_ENABLE) {
-        //    None
-        //} else if self.micr.contains(MICR::BUS_EDGE_INTERRUPT_ENABLE) {
-        //    None
-        //} else {
-        //    None
-        //}
     }
     /// Get read access to the board.
     pub fn board(&self) -> &Board {
@@ -450,6 +507,8 @@ impl InterruptTimer {
             div1: 0,
             div2: 0,
             div3: 0,
+            counter: 0,
+            fired: false,
         }
     }
     /// Reset the configuration of the interrupt timer.
