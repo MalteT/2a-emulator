@@ -1,6 +1,6 @@
 use clap::{builder::TypedValueParser, Args as ClapArgs, Parser, Subcommand};
 use emulator_2a_lib::{
-    machine::{MachineConfig, State},
+    machine::{half_period_for_frequency, MachineConfig, State, DEFAULT_CLOCK_FREQUENCY},
     runner::{RunExpectations, RunExpectationsBuilder},
 };
 use log::Level;
@@ -77,8 +77,88 @@ pub struct RunArgs {
     /// Triggers a key edge interrupt before this cycle is executed. Can be issued multiple times.
     #[arg(long = "interrupt", value_name = "CYCLE")]
     pub interrupts: Vec<usize>,
+    /// Drive a square wave onto the universal I/O port UIO1.
+    ///
+    /// CYCLES is the half-period: the pin is held low for that many clock
+    /// cycles, then high for that many, and so on, so a full period is twice
+    /// CYCLES. The pin starts low, so the first edge a program sees is a
+    /// rising one. Setting this does not configure the port as an input port;
+    /// a program has to do that.
+    #[arg(long = "uio1-square", value_name = "CYCLES")]
+    pub uio1_square: Option<usize>,
+    /// Drive a square wave of the given frequency onto the universal I/O port UIO1.
+    ///
+    /// An alternative to --uio1-square that takes a frequency instead of a
+    /// cycle count. Accepts plain Hertz or a k/M prefix, i.e. `1000`, `1kHz`,
+    /// `36.9kHz` or `1.5MHz`. The machine is clocked at 7.3728 MHz, so the
+    /// fastest wave it can carry is 3.6864 MHz.
+    #[arg(long = "uio1-freq", value_name = "FREQUENCY",
+          conflicts_with = "uio1_square", value_parser = parse_frequency)]
+    pub uio1_freq: Option<f64>,
+    /// Drive a square wave onto the universal I/O port UIO2.
+    ///
+    /// See --uio1-square for more.
+    #[arg(long = "uio2-square", value_name = "CYCLES")]
+    pub uio2_square: Option<usize>,
+    /// Drive a square wave of the given frequency onto the universal I/O port UIO2.
+    ///
+    /// An alternative to --uio2-square that takes a frequency instead of a
+    /// cycle count. Accepts plain Hertz or a k/M prefix, i.e. `1000`, `1kHz`,
+    /// `36.9kHz` or `1.5MHz`. The machine is clocked at 7.3728 MHz, so the
+    /// fastest wave it can carry is 3.6864 MHz.
+    ///
+    /// See --uio1-freq for more.
+    #[arg(long = "uio2-freq", value_name = "FREQUENCY",
+          conflicts_with = "uio2_square", value_parser = parse_frequency)]
+    pub uio2_freq: Option<f64>,
+    /// Drive a square wave onto the universal I/O port UIO3.
+    ///
+    /// See --uio1-square for more.
+    #[arg(long = "uio3-square", value_name = "CYCLES")]
+    pub uio3_square: Option<usize>,
+    /// Drive a square wave of the given frequency onto the universal I/O port UIO3.
+    ///
+    /// An alternative to --uio3-square that takes a frequency instead of a
+    /// cycle count. Accepts plain Hertz or a k/M prefix, i.e. `1000`, `1kHz`,
+    /// `36.9kHz` or `1.5MHz`. The machine is clocked at 7.3728 MHz, so the
+    /// fastest wave it can carry is 3.6864 MHz.
+    ///
+    /// See --uio1-freq for more.
+    #[arg(long = "uio3-freq", value_name = "FREQUENCY",
+          conflicts_with = "uio3_square", value_parser = parse_frequency)]
+    pub uio3_freq: Option<f64>,
+    /// The clock frequency of the emulated machine.
+    ///
+    /// The emulator is driven by cycles, not by time, so this changes neither
+    /// what a program does nor how many cycles it takes. It is the factor that
+    /// converts cycles into time: it sets the reported emulated time, and the
+    /// cycle counts that --uioN-freq works out.
+    ///
+    /// Accepts plain Hertz or a k/M prefix, i.e. `3686400`, `3.6864MHz`.
+    #[arg(long, value_name = "FREQUENCY", value_parser = parse_frequency,
+          default_value_t = DEFAULT_CLOCK_FREQUENCY)]
+    pub clock: f64,
     #[command(subcommand)]
     pub verify: Option<RunVerifySubcommand>,
+}
+
+impl RunArgs {
+    /// The square wave half-periods for UIO1..UIO3, in clock cycles.
+    ///
+    /// `--uioN-square` gives the half-period directly; `--uioN-freq` gives a
+    /// frequency, which is converted here. The two conflict, so at most one of
+    /// them is ever set.
+    pub fn uio_squares(&self) -> [Option<usize>; 3] {
+        let clock = self.clock;
+        let resolve = |cycles: Option<usize>, frequency: Option<f64>| {
+            cycles.or_else(|| frequency.map(|hz| half_period_for_frequency(clock, hz)))
+        };
+        [
+            resolve(self.uio1_square, self.uio1_freq),
+            resolve(self.uio2_square, self.uio2_freq),
+            resolve(self.uio3_square, self.uio3_freq),
+        ]
+    }
 }
 
 #[derive(Debug, Clone, Subcommand)]
@@ -139,6 +219,17 @@ pub struct InteractiveArgs {
     /// The program will be verified before execution.
     #[arg(value_name = "PROGRAM")]
     pub program: Option<PathBuf>,
+    /// The clock frequency of the emulated machine.
+    ///
+    /// The emulator is driven by cycles, not by time, so this changes neither
+    /// what a program does nor how many cycles it takes. It is the factor that
+    /// converts cycles into time: it sets the reported emulated time, and the
+    /// cycle counts that --uioN-freq works out.
+    ///
+    /// Accepts plain Hertz or a k/M prefix, i.e. `3686400`, `3.6864MHz`.
+    #[arg(long, value_name = "FREQUENCY", value_parser = parse_frequency,
+          default_value_t = DEFAULT_CLOCK_FREQUENCY)]
+    pub clock: f64,
     #[command(flatten)]
     pub init: InitialMachineConfiguration,
 }
@@ -259,6 +350,33 @@ impl From<RunVerifyArgs> for RunExpectations {
             .build()
             .expect("BUG: Couldn't create expectations")
     }
+}
+
+/// Parse a frequency such as `1000`, `1kHz`, `36.9kHz` or `1.5MHz`.
+///
+/// The `Hz` is optional; a bare number is read as Hertz.
+fn parse_frequency(frequency: &str) -> Result<f64, String> {
+    let trimmed = frequency.trim();
+    let without_unit = trimmed
+        .strip_suffix("Hz")
+        .or_else(|| trimmed.strip_suffix("hz"))
+        .or_else(|| trimmed.strip_suffix("HZ"))
+        .unwrap_or(trimmed)
+        .trim_end();
+    let (number, multiplier) = match without_unit.chars().last() {
+        Some('k') | Some('K') => (&without_unit[..without_unit.len() - 1], 1_000.0),
+        Some('M') => (&without_unit[..without_unit.len() - 1], 1_000_000.0),
+        _ => (without_unit, 1.0),
+    };
+    let number: f64 = number
+        .trim()
+        .parse()
+        .map_err(|_| format!("`{}` is not a frequency", frequency))?;
+    let hertz = number * multiplier;
+    if !(hertz > 0.0) {
+        return Err(format!("`{}` is not a positive frequency", frequency));
+    }
+    Ok(hertz)
 }
 
 fn parse_u8_auto_radix(num: &str) -> Result<u8, ParseIntError> {

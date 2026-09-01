@@ -40,6 +40,29 @@ pub enum InputRegister {
     Ff,
 }
 
+/// How much of a square wave to generate.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum WaveAmount {
+    /// A half-period given directly in clock cycles
+    Cycles(usize),
+    /// A frequency in Hertz, converted to a half-period using the machine's
+    /// clock.
+    Frequency(f64),
+}
+
+impl WaveAmount {
+    /// The half-period in clock cycles, on a machine clocked at
+    /// `clock_frequency` Hertz.
+    pub fn half_period(&self, clock_frequency: f64) -> usize {
+        match self {
+            WaveAmount::Cycles(cycles) => *cycles,
+            WaveAmount::Frequency(hertz) => {
+                emulator_2a_lib::machine::half_period_for_frequency(clock_frequency, *hertz)
+            }
+        }
+    }
+}
+
 /// Possible commands to enter in the input
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command<'a> {
@@ -65,6 +88,10 @@ pub enum Command<'a> {
     SetUio2(bool),
     /// Set the UIO3 to value .0.
     SetUio3(bool),
+    /// Drive a square wave onto UIO .0 (1, 2 or 3).
+    SquareUio(u8, WaveAmount),
+    /// Set the clock frequency of the emulated machine to .0 Hertz.
+    SetClock(f64),
     /// Show the machine part .0.
     Show(Part),
     /// Execute the next N cycles.

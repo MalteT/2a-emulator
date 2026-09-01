@@ -4,12 +4,12 @@ use nom::{
     bytes::complete::{is_a, tag, tag_no_case},
     character::complete::{digit1, hex_digit1},
     combinator::{complete, map, map_res, opt, rest, value},
-    number::complete::float,
+    number::complete::{double, float},
     sequence::{delimited, preceded, terminated, tuple},
     IResult,
 };
 
-use super::{Command, InputRegister};
+use super::{Command, InputRegister, WaveAmount};
 use crate::tui::Part;
 
 fn ws(input: &str) -> IResult<&str, &str> {
@@ -151,6 +151,50 @@ fn cmd_set_uiox(input: &str) -> IResult<&str, Command> {
     ))(input)
 }
 
+/// `set CLOCK = 3.6864MHz`
+fn cmd_set_clock(input: &str) -> IResult<&str, Command> {
+    let clock = tag_no_case("CLOCK");
+    map(
+        tuple((set_ws, clock, eq_ws, alt((frequency_hz, float_hz)))),
+        |(_, _, _, hertz)| Command::SetClock(hertz),
+    )(input)
+}
+
+/// A bare number, read as Hertz.
+fn float_hz(input: &str) -> IResult<&str, f64> {
+    double(input)
+}
+
+/// `1kHz`, `36.9 kHz`, `1000Hz`, `1.5MHz`
+///
+/// The `Hz` is is what tells a frequency from a half-period in cycles.
+fn frequency_hz(input: &str) -> IResult<&str, f64> {
+    let kilo = value(1_000.0_f64, tag_no_case("k"));
+    let mega = value(1_000_000.0_f64, tag_no_case("M"));
+    map(
+        tuple((double, ws_opt, opt(alt((kilo, mega))), tag_no_case("hz"))),
+        |(number, _, multiplier, _)| number * multiplier.unwrap_or(1.0),
+    )(input)
+}
+
+/// `square UIO1 = 250`, `square uio2 100`, `square UIO1 = 1kHz`
+fn cmd_square_uio(input: &str) -> IResult<&str, Command> {
+    let uio1 = value(1_u8, tag_no_case("UIO1"));
+    let uio2 = value(2_u8, tag_no_case("UIO2"));
+    let uio3 = value(3_u8, tag_no_case("UIO3"));
+    let pin = alt((uio1, uio2, uio3));
+    let sep = alt((eq_ws, ws));
+    // A frequency is a number too so it needs to be tried first otherwise the
+    // plain cycle count would leave the Hz behind.
+    let as_frequency = map(frequency_hz, WaveAmount::Frequency);
+    let as_cycles = map(nr_dec_usize, WaveAmount::Cycles);
+    let amount = alt((as_frequency, as_cycles));
+    map(
+        tuple((terminated(tag_no_case("square"), ws), pin, sep, amount)),
+        |(_, pin, _, amount)| Command::SquareUio(pin, amount),
+    )(input)
+}
+
 /// `show blub`
 fn cmd_show(input: &str) -> IResult<&str, Command> {
     map(
@@ -183,6 +227,8 @@ pub fn parse_cmd(input: &str) -> IResult<&str, Command> {
         cmd_set_ix,
         cmd_set_jx,
         cmd_set_uiox,
+        cmd_set_clock,
+        cmd_square_uio,
         cmd_show,
         cmd_next,
         cmd_quit,
@@ -328,6 +374,34 @@ mod tests {
         assert_eq!(parse("unset UIO1"), Ok(("", SetUio1(false))));
         assert_eq!(parse("unset UIO2 "), Ok(("", SetUio2(false))));
         assert_eq!(parse("unset UIO3"), Ok(("", SetUio3(false))));
+        use WaveAmount::*;
+        assert_eq!(
+            parse("square UIO1 = 250"),
+            Ok(("", SquareUio(1, Cycles(250))))
+        );
+        assert_eq!(
+            parse("square uio2 100"),
+            Ok(("", SquareUio(2, Cycles(100))))
+        );
+        assert_eq!(parse("SQUARE UIO3=1"), Ok(("", SquareUio(3, Cycles(1)))));
+        assert_eq!(parse("square UIO1 0"), Ok(("", SquareUio(1, Cycles(0)))));
+        assert_eq!(
+            parse("square UIO1 = 1000Hz"),
+            Ok(("", SquareUio(1, Frequency(1000.0))))
+        );
+        assert_eq!(
+            parse("square UIO1 = 1kHz"),
+            Ok(("", SquareUio(1, Frequency(1000.0))))
+        );
+        assert_eq!(
+            parse("set CLOCK = 3.6864MHz"),
+            Ok(("", SetClock(3_686_400.0)))
+        );
+        assert_eq!(parse("set clock = 1000"), Ok(("", SetClock(1000.0))));
+        assert_eq!(Frequency(1000.0).half_period(7_372_800.0), 3686);
+        assert_eq!(Cycles(250).half_period(7_372_800.0), 250);
+        assert!(parse("square UIO4 = 1").is_err());
+        assert!(parse("square UIO1").is_err());
         assert_eq!(parse(" show memory"), Ok(("", Show(Part::Memory))));
         assert_eq!(parse("quit"), Ok(("", Quit)));
     }

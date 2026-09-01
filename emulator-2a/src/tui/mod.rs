@@ -46,7 +46,6 @@ pub type Backend = CrosstermBackend<Stdout>;
 type AbortEmulation = bool;
 
 const FRAMES_PER_SECOND: u64 = 24;
-const CYCLES_PER_SECOND: u64 = 7_372_800;
 const DURATION_BETWEEN_FRAMES: Duration = Duration::from_micros(1_000_000 / FRAMES_PER_SECOND);
 
 /// The Terminal User Interface (TUI)
@@ -145,7 +144,7 @@ impl Tui {
             if self.machine.auto_run_mode {
                 // Do some calculations between frames
                 while last_draw.elapsed() < DURATION_BETWEEN_FRAMES
-                    && executed_cycles < CYCLES_PER_SECOND / FRAMES_PER_SECOND
+                    && executed_cycles < (self.machine.clock_frequency() as u64) / FRAMES_PER_SECOND
                 {
                     // Let the machine do some work
                     self.machine.trigger_key_clock();
@@ -261,9 +260,23 @@ impl Tui {
                 Command::SetI2(val) => self.machine.set_analog_input2(val),
                 Command::SetJ1(val) => self.machine.set_jumper1(val),
                 Command::SetJ2(val) => self.machine.set_jumper2(val),
-                Command::SetUio1(val) => self.machine.set_universal_input_output1(val),
-                Command::SetUio2(val) => self.machine.set_universal_input_output2(val),
-                Command::SetUio3(val) => self.machine.set_universal_input_output3(val),
+                Command::SetUio1(val) => {
+                    self.machine.clear_uio_square(1);
+                    self.machine.set_universal_input_output1(val)
+                }
+                Command::SetUio2(val) => {
+                    self.machine.clear_uio_square(2);
+                    self.machine.set_universal_input_output2(val)
+                }
+                Command::SetUio3(val) => {
+                    self.machine.clear_uio_square(3);
+                    self.machine.set_universal_input_output3(val)
+                }
+                Command::SquareUio(pin, amount) => {
+                    let half_period = amount.half_period(self.machine.clock_frequency());
+                    self.machine.set_uio_square(pin, half_period)
+                }
+                Command::SetClock(hertz) => self.machine.set_clock_frequency(hertz),
                 Command::Show(part) => self.machine.show(part),
                 Command::Next(cycles) => {
                     for _ in 0..cycles {

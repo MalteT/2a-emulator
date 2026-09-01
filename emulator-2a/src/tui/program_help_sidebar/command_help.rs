@@ -8,6 +8,7 @@ const COMMAND_HELP_DEFAULT: &[(&str, &str)] = &[
     ("load PATH", "Load asm program"),
     ("set …", "Change a settings"),
     ("unset …", "Unset a bool setting"),
+    ("square …", "Square wave on a UIO"),
     ("show …", "Select part to display"),
     ("next <N>", "Run N cycles"),
     ("quit", "Exit the program"),
@@ -21,6 +22,7 @@ const COMMAND_HELP_SET: &[(&str, &str)] = &[
     ("TEMP = x.x", "MR2DA2 Temp voltage"),
     ("I1 = x.x", "MR2DA2 analog input 1"),
     ("I2 = x.x", "MR2DA2 analog input 2"),
+    ("CLOCK = x", "CPU clock, i.e. 1MHz"),
     ("J1", "MR2DA2 jumper 1"),
     ("J2", "MR2DA2 jumper 2"),
     ("UIO1", "MR2DA2 universal IO1"),
@@ -37,6 +39,11 @@ const COMMAND_HELP_UNSET: &[(&str, &str)] = &[
 const COMMAND_HELP_SHOW: &[(&str, &str)] = &[
     ("memory", "Show the main memory"),
     ("register", "Show the registers"),
+];
+const COMMAND_HELP_SQUARE: &[(&str, &str)] = &[
+    ("UIO1 = <N>", "Half-period in cycles"),
+    ("UIO2 = <N>", "or a freq: 1kHz"),
+    ("UIO3 = <N>", "0 stops the wave"),
 ];
 const COMMAND_HELP_LOAD: &[(&str, &str)] = &[("PATH", "Path to the program")];
 const COMMAND_HELP_NEXT: &[(&str, &str)] = &[("<N>", "Optional number of cycles")];
@@ -66,6 +73,8 @@ impl<'a> CommandHelpWidget<'a> {
             COMMAND_HELP_SET.len()
         } else if input.starts_with("unset ") {
             COMMAND_HELP_UNSET.len()
+        } else if input.starts_with("square ") {
+            COMMAND_HELP_SQUARE.len()
         } else if input.starts_with("show ") {
             COMMAND_HELP_SHOW.len()
         } else if input.starts_with("next ") {
@@ -102,6 +111,8 @@ impl<'a> Widget for CommandHelpWidget<'a> {
             COMMAND_HELP_SET
         } else if input.starts_with("unset ") {
             COMMAND_HELP_UNSET
+        } else if input.starts_with("square ") {
+            COMMAND_HELP_SQUARE
         } else if input.starts_with("show ") {
             COMMAND_HELP_SHOW
         } else if input.starts_with("next ") {

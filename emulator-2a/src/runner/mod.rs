@@ -21,6 +21,7 @@ pub fn execute_runner_with_args_and_print_results(args: &RunArgs) -> Result<(), 
         .with_max_cycles(args.cycles)
         .with_resets(args.resets.clone())
         .with_interrupts(args.interrupts.clone())
+        .with_uio_squares(args.uio_squares())
         .with_program(&program)
         .build()
         .expect("Failed to create RunnerConfig");
@@ -97,11 +98,70 @@ mod tests {
             cycles: 1000,
             resets: vec![],
             interrupts: vec![],
+            uio1_square: None,
+            uio2_square: None,
+            uio3_square: None,
+            uio1_freq: None,
+            uio2_freq: None,
+            uio3_freq: None,
+            clock: emulator_2a_lib::machine::DEFAULT_CLOCK_FREQUENCY,
             verify: Some(RunVerifySubcommand::Verify(RunVerifyArgs {
                 state: Some(State::Running),
                 ..Default::default()
             })),
         };
         execute_runner_with_args_and_print_results(&run_args).unwrap();
+    }
+
+    #[test]
+    fn uio_square_wave_drives_the_pin() {
+        // The program counts rising edges on UIO1 into the output register FF
+        // by polling.
+        let run_args = RunArgs {
+            init: InitialMachineConfiguration::default(),
+            program: "../testing/programs/27-uio1-polling-counter.asm".into(),
+            cycles: 20_000,
+            resets: vec![],
+            interrupts: vec![],
+            uio1_square: Some(100),
+            uio2_square: None,
+            uio3_square: None,
+            uio1_freq: None,
+            uio2_freq: None,
+            uio3_freq: None,
+            clock: emulator_2a_lib::machine::DEFAULT_CLOCK_FREQUENCY,
+            verify: Some(RunVerifySubcommand::Verify(RunVerifyArgs {
+                ff: Some(100),
+                ..Default::default()
+            })),
+        };
+        execute_runner_with_args_and_print_results(&run_args).unwrap();
+    }
+
+    #[test]
+    fn the_clock_frequency_scales_a_requested_wave_frequency() {
+        let mut args = RunArgs {
+            init: InitialMachineConfiguration::default(),
+            program: "../testing/programs/07-minimal.asm".into(),
+            cycles: 1,
+            resets: vec![],
+            interrupts: vec![],
+            uio1_square: None,
+            uio2_square: None,
+            uio3_square: None,
+            uio1_freq: Some(1_000.0),
+            uio2_freq: None,
+            uio3_freq: None,
+            clock: 7_372_800.0,
+            verify: None,
+        };
+        // 7372800 / (2 * 1000)
+        assert_eq!(args.uio_squares()[0], Some(3686));
+        // Halving the clock halves the cycle count for the same wave.
+        args.clock = 3_686_400.0;
+        assert_eq!(args.uio_squares()[0], Some(1843));
+        // An explicit cycle count is not affected by the clock at all.
+        args.uio1_square = Some(500);
+        assert_eq!(args.uio_squares()[0], Some(500));
     }
 }
