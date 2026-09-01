@@ -69,6 +69,13 @@ pub struct MachineState {
     pub draw_counter: usize,
     /// Is the auto run mode active?
     pub auto_run_mode: bool,
+    /// Half-period, in clock cycles, of a square wave driven onto UIO1..UIO3.
+    /// `None` leaves the pin under manual control.
+    uio_squares: [Option<usize>; 3],
+    /// Clock cycles counted since a square wave was last (re)configured.
+    uio_square_cycle: usize,
+    /// The clock frequency of the emulated machine, in Hertz.
+    clock_frequency: f64,
     /// Currenly active program.
     program: Option<PathBuf>,
 }
@@ -94,6 +101,9 @@ impl MachineState {
             machine: Machine::new(conf.clone().into()),
             draw_counter: 0,
             auto_run_mode: false,
+            uio_squares: [None; 3],
+            uio_square_cycle: 0,
+            clock_frequency: emulator_2a_lib::machine::DEFAULT_CLOCK_FREQUENCY,
             program: None,
         }
     }
@@ -112,12 +122,83 @@ impl MachineState {
             machine: Machine::new_with_program(conf.clone().into(), program),
             draw_counter: 0,
             auto_run_mode: false,
+            uio_squares: [None; 3],
+            uio_square_cycle: 0,
+            clock_frequency: emulator_2a_lib::machine::DEFAULT_CLOCK_FREQUENCY,
             program: Some(path.into()),
         }
     }
     /// Select another part for display.
     pub fn show(&mut self, part: Part) {
         self.part = part;
+    }
+
+    /// The clock frequency of the emulated machine, in Hertz.
+    pub fn clock_frequency(&self) -> f64 {
+        self.clock_frequency
+    }
+
+    /// Set the clock frequency of the emulated machine, in Hertz.
+    ///
+    /// This changes no emulated behaviour — the machine is driven by cycles,
+    /// not by time. It sets how cycles are reported as time, how fast autorun
+    /// paces itself, and how a square wave given as a frequency is converted
+    /// into cycles.
+    pub fn set_clock_frequency(&mut self, clock_frequency: f64) {
+        if clock_frequency > 0.0 {
+            self.clock_frequency = clock_frequency;
+        }
+    }
+
+    /// Drive a square wave onto UIO `pin` (1, 2 or 3).
+    ///
+    /// `half_period` is the number of clock cycles the pin is held at each
+    /// level, so a full period is twice that. A `half_period` of zero stops
+    /// the wave and leaves the pin where it is.
+    pub fn set_uio_square(&mut self, pin: u8, half_period: usize) {
+        if let Some(slot) = self.uio_squares.get_mut(pin as usize - 1) {
+            *slot = if half_period == 0 {
+                None
+            } else {
+                Some(half_period)
+            };
+            self.uio_square_cycle = 0;
+        }
+    }
+
+    /// Stop driving a square wave onto UIO `pin`, if one is running.
+    ///
+    /// Used when the user sets the pin by hand, which has to win over the
+    /// generator; otherwise the next clock edge would immediately overwrite it.
+    pub fn clear_uio_square(&mut self, pin: u8) {
+        if let Some(slot) = self.uio_squares.get_mut(pin as usize - 1) {
+            *slot = None;
+        }
+    }
+
+    /// Emulate a rising CLK edge, driving any configured square waves first.
+    ///
+    /// This deliberately shadows [`Machine::trigger_key_clock`], which is
+    /// otherwise reachable through this type's [`Deref`] impl. Inherent
+    /// methods take precedence over `Deref`, so every existing caller picks
+    /// this up and no clock edge can bypass the wave generator.
+    pub fn trigger_key_clock(&mut self) {
+        for (index, half_period) in self.uio_squares.iter().enumerate() {
+            let half_period = match half_period {
+                Some(half_period) => *half_period,
+                None => continue,
+            };
+            // Start low, so the first edge a program sees is a rising one.
+            let level = (self.uio_square_cycle / half_period) % 2 == 1;
+            match index {
+                0 => self.machine.set_universal_input_output1(level),
+                1 => self.machine.set_universal_input_output2(level),
+                2 => self.machine.set_universal_input_output3(level),
+                _ => unreachable!("there are only three UIO pins"),
+            }
+        }
+        self.uio_square_cycle = self.uio_square_cycle.wrapping_add(1);
+        self.machine.trigger_key_clock();
     }
 
     pub fn toggle_auto_run_mode(&mut self) {
@@ -333,5 +414,120 @@ impl Deref for MachineState {
 impl DerefMut for MachineState {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.machine
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use emulator_2a_lib::{compiler::Translator, machine::DASR, parser::AsmParser};
+
+    /// A program that does nothing but spin, so that the only thing moving the
+    /// UIO pins is the square wave generator.
+    const IDLE: &str = "#! mrasm\nLOOP:\n    JR LOOP\n";
+
+    fn idle_machine() -> MachineState {
+        let bytecode = Translator::compile(&AsmParser::parse(IDLE).expect("failed to parse"));
+        MachineState::new_with_program(&InitialMachineConfiguration::default(), "<idle>", bytecode)
+    }
+
+    /// Clock `cycles` times, sampling a UIO pin before every edge.
+    ///
+    /// The pins default to inputs, so what the generator drives shows up
+    /// directly in the board's status register.
+    fn sample(machine: &mut MachineState, pin: DASR, cycles: usize) -> String {
+        let mut levels = String::new();
+        for _ in 0..cycles {
+            machine.trigger_key_clock();
+            levels.push(if machine.bus().board().dasr().contains(pin) {
+                '1'
+            } else {
+                '0'
+            });
+        }
+        levels
+    }
+
+    #[test]
+    fn a_square_wave_toggles_the_pin_every_half_period() {
+        let mut machine = idle_machine();
+        machine.set_uio_square(1, 4);
+        // Starts low, so a program sees a rising edge first.
+        assert_eq!(
+            sample(&mut machine, DASR::UIO_1, 24),
+            "000011110000111100001111"
+        );
+    }
+
+    #[test]
+    fn the_half_period_sets_the_width_of_each_phase() {
+        let mut machine = idle_machine();
+        machine.set_uio_square(1, 2);
+        assert_eq!(sample(&mut machine, DASR::UIO_1, 12), "001100110011");
+    }
+
+    #[test]
+    fn a_half_period_of_zero_stops_the_wave() {
+        let mut machine = idle_machine();
+        machine.set_uio_square(1, 4);
+        assert_eq!(sample(&mut machine, DASR::UIO_1, 8), "00001111");
+        machine.set_uio_square(1, 0);
+        // The pin keeps whatever level it had and stops moving.
+        assert_eq!(sample(&mut machine, DASR::UIO_1, 8), "11111111");
+    }
+
+    #[test]
+    fn setting_the_pin_by_hand_cancels_a_running_wave() {
+        let mut machine = idle_machine();
+        machine.set_uio_square(1, 4);
+        assert_eq!(sample(&mut machine, DASR::UIO_1, 8), "00001111");
+        // This is what the `set UIO1` / `unset UIO1` commands do: the manual
+        // level has to win, or the next clock edge would overwrite it.
+        machine.clear_uio_square(1);
+        machine.set_universal_input_output1(false);
+        assert_eq!(sample(&mut machine, DASR::UIO_1, 8), "00000000");
+    }
+
+    #[test]
+    fn each_pin_carries_its_own_wave() {
+        let mut machine = idle_machine();
+        machine.set_uio_square(1, 2);
+        machine.set_uio_square(2, 4);
+        // UIO3 is left alone entirely.
+        let mut levels = (String::new(), String::new(), String::new());
+        for _ in 0..8 {
+            machine.trigger_key_clock();
+            let dasr = *machine.bus().board().dasr();
+            levels
+                .0
+                .push(if dasr.contains(DASR::UIO_1) { '1' } else { '0' });
+            levels
+                .1
+                .push(if dasr.contains(DASR::UIO_2) { '1' } else { '0' });
+            levels
+                .2
+                .push(if dasr.contains(DASR::UIO_3) { '1' } else { '0' });
+        }
+        assert_eq!(levels.0, "00110011");
+        assert_eq!(levels.1, "00001111");
+        assert_eq!(levels.2, "00000000");
+    }
+
+    #[test]
+    fn the_clock_frequency_scales_a_wave_given_as_a_frequency() {
+        let mut machine = idle_machine();
+        assert_eq!(
+            machine.clock_frequency(),
+            emulator_2a_lib::machine::DEFAULT_CLOCK_FREQUENCY
+        );
+        let amount = crate::tui::input::WaveAmount::Frequency(1_000.0);
+        // 7372800 / (2 * 1000)
+        assert_eq!(amount.half_period(machine.clock_frequency()), 3686);
+        // Halving the clock halves the cycle count for the same wave.
+        machine.set_clock_frequency(3_686_400.0);
+        assert_eq!(amount.half_period(machine.clock_frequency()), 1843);
+        // A cycle count is not affected by the clock at all.
+        let amount = crate::tui::input::WaveAmount::Cycles(250);
+        assert_eq!(amount.half_period(machine.clock_frequency()), 250);
     }
 }

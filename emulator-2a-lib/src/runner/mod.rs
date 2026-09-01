@@ -29,6 +29,9 @@ pub struct RunnerConfig<'a> {
     /// A list of cycles at which to trigger a cpu reset.
     #[builder(default, setter(into))]
     pub resets: Vec<usize>,
+    /// Square waves to drive onto the universal I/O pins UIO1, UIO2 and UIO3.
+    #[builder(default, setter(into))]
+    pub uio_squares: [Option<usize>; 3],
     /// Prevent the manual creation of this struct for the purpose of extension
     #[builder(setter(skip), default)]
     _phantom: PhantomData<u8>,
@@ -76,6 +79,24 @@ impl<'a> RunnerConfig<'a> {
     /// Execute the runner.
     ///
     /// This executes the runner and checks all verifications.
+    /// Drive the configured square waves onto UIO1..UIO3 for `cycle`.
+    fn drive_square_waves(&self, machine: &mut Machine, cycle: usize) {
+        for (index, half_period) in self.uio_squares.iter().enumerate() {
+            let half_period = match half_period {
+                Some(half_period) if *half_period > 0 => *half_period,
+                _ => continue,
+            };
+            // Start low so that the first edge a program sees is a rising one.
+            let level = (cycle / half_period) % 2 == 1;
+            match index {
+                0 => machine.set_universal_input_output1(level),
+                1 => machine.set_universal_input_output2(level),
+                2 => machine.set_universal_input_output3(level),
+                _ => unreachable!("there are only three UIO pins"),
+            }
+        }
+    }
+
     pub fn run(&self) -> Result<RunResults, ParserError> {
         // Prepare the machine
         let parsed = AsmParser::parse(self.program)?;
@@ -93,6 +114,7 @@ impl<'a> RunnerConfig<'a> {
             if self.resets.contains(&emulated_cycles) {
                 machine.cpu_reset();
             }
+            self.drive_square_waves(&mut machine, emulated_cycles);
             // Trigger the next cycle
             machine.trigger_key_clock();
             emulated_cycles += 1;
