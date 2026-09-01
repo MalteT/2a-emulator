@@ -61,6 +61,7 @@ enum_from_primitive! {
 
 bitflags! {
     /// Flag bitmask for R4
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct Flags: u8 {
         const CARRY_FLAG = 0b0000_0001;
         const ZERO_FLAG = 0b0000_0010;

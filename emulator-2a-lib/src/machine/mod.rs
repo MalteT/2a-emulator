@@ -6,6 +6,69 @@ use proptest_derive::Arbitrary;
 
 use std::ops::Deref;
 
+/// The default clock frequency of the Minirechner 2a, in Hertz.
+///
+/// Frontends let the user override it, so prefer taking the clock as a
+/// parameter over reaching for this constant.
+pub const DEFAULT_CLOCK_FREQUENCY: f64 = 7_372_800.0;
+
+/// The half-period, in clock cycles, of a square wave of `frequency` Hertz on
+/// a machine clocked at `clock_frequency` Hertz.
+///
+/// A square wave spends half of each period at each level.
+///
+/// ```
+/// # use emulator_2a_lib::machine::{half_period_for_frequency, DEFAULT_CLOCK_FREQUENCY};
+/// // The machine runs at 7.3728 MHz by default.
+/// assert_eq!(DEFAULT_CLOCK_FREQUENCY, 7_372_800.0);
+/// // At that clock, 1 kHz needs 3686 cycles at each level.
+/// assert_eq!(half_period_for_frequency(DEFAULT_CLOCK_FREQUENCY, 1_000.0), 3686);
+/// // Halve the clock and the same wave needs half as many cycles.
+/// assert_eq!(half_period_for_frequency(3_686_400.0, 1_000.0), 1843);
+/// // The fastest representable wave is half the clock.
+/// assert_eq!(half_period_for_frequency(DEFAULT_CLOCK_FREQUENCY, 3_686_400.0), 1);
+/// // Nonsense arguments mean "no wave".
+/// assert_eq!(half_period_for_frequency(DEFAULT_CLOCK_FREQUENCY, 0.0), 0);
+/// assert_eq!(half_period_for_frequency(0.0, 1_000.0), 0);
+/// ```
+pub fn half_period_for_frequency(clock_frequency: f64, frequency: f64) -> usize {
+    if !(frequency > 0.0) || !(clock_frequency > 0.0) {
+        return 0;
+    }
+    let half_period = (clock_frequency / (2.0 * frequency)).round();
+    if half_period < 1.0 {
+        1
+    } else if half_period >= usize::MAX as f64 {
+        usize::MAX
+    } else {
+        half_period as usize
+    }
+}
+
+/// Implement [`proptest::arbitrary::Arbitrary`] for `bitflags` types.
+///
+/// `bitflags` 2 hides the backing integer behind an opaque `InternalBitFlags`
+/// type, so `#[derive(Arbitrary)]` cannot see through it. Generating the
+/// backing integer and truncating to the defined flags is both possible and
+/// more correct: it never produces undefined bits.
+#[cfg(test)]
+macro_rules! impl_arbitrary_for_bitflags {
+    ($($ty:ty => $repr:ty),* $(,)?) => {
+        $(
+            impl proptest::arbitrary::Arbitrary for $ty {
+                type Parameters = ();
+                type Strategy = proptest::strategy::BoxedStrategy<Self>;
+                fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
+                    use proptest::strategy::Strategy;
+                    proptest::arbitrary::any::<$repr>()
+                        .prop_map(<$ty>::from_bits_truncate)
+                        .boxed()
+                }
+            }
+        )*
+    };
+}
+
 mod alu;
 mod board;
 mod bus;

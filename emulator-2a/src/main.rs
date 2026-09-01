@@ -253,6 +253,8 @@ mod runner;
 mod tui;
 
 use args::{Args, RunArgs, SubCommand, VerifyArgs};
+
+use clap::Parser;
 use error::Error;
 
 use colored::Colorize;
@@ -260,13 +262,14 @@ use log::error;
 
 use std::{
     fs::{self, File},
+    io::IsTerminal,
     panic,
     path::Path,
     process,
 };
 
-#[paw::main]
-fn main(args: Args) {
+fn main() {
+    let args = Args::parse();
     let temp_path = std::env::temp_dir().join("2a-emulator.log");
     initialize_logger(&args, &temp_path).expect("Failed to initialize logger");
     register_panic_logger();
@@ -324,7 +327,7 @@ fn initialize_logger(args: &Args, path: &Path) -> Result<(), fern::InitError> {
                 message
             ))
         })
-        .level(args.verbosity.to_level_filter())
+        .level(args.log_level().to_level_filter())
         .chain(File::create(path)?);
     match args.subcommand {
         Some(SubCommand::Run(_)) | Some(SubCommand::Verify(_)) => {
@@ -334,7 +337,7 @@ fn initialize_logger(args: &Args, path: &Path) -> Result<(), fern::InitError> {
         _ => {
             // Only output the logs in interactive mode if stderr is not a tty
             // This way redirecting the output should still work
-            if !atty::is(atty::Stream::Stderr) {
+            if !std::io::stderr().is_terminal() {
                 dispatch = dispatch.chain(std::io::stderr())
             }
         }
@@ -356,8 +359,8 @@ fn run_interactive_session(args: &args::InteractiveArgs, logfile: &Path) -> Resu
     // Even if the TUI panics, logs should be printed correctly
     scopeguard::defer! {
         // If stderr is a tty, then we still owe the user his logs
-        if atty::is(atty::Stream::Stderr) {
-            let logs = fs::read_to_string(logfile).expect("Failed to read logfile for outputting");
+        if std::io::stderr().is_terminal() {
+            let logs = fs::read_to_string(logfile).expect("Failed to rea logfile for outputting");
             eprintln!("{}", logs);
         }
     }

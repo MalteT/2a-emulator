@@ -237,7 +237,7 @@ impl RawMachine {
     ///  - The output register
     ///  - The MICR
     ///  - The UCR
-    ///  - Edge interrupts
+    ///  - Pending interrupts (both edge and level)
     ///  - The machine state back to Running
     pub fn cpu_reset(&mut self) {
         self.microprogram_ram.reset();
@@ -246,6 +246,7 @@ impl RawMachine {
         self.pending_register_write = None;
         self.pending_flag_write = None;
         self.pending_edge_interrupt = None;
+        self.pending_level_interrupt = None;
         self.state = State::Running;
         self.pending_wait_for_memory = None;
         self.alu_output = AluOutput::default();
@@ -267,6 +268,11 @@ impl RawMachine {
 
     /// Emulate a rising CLK edge.
     pub fn trigger_clock_edge(&mut self) {
+        // The interrupt timer is a counter in hardware: it counts every clock,
+        // including the ones swallowed by a memory wait state and the ones
+        // that arrive while the machine is halted. It must therefore be ticked
+        // before any of the early returns below.
+        self.bus.tick_timer();
         if self.state != State::Running {
             trace!("Ignoring clock. Machine halted.");
             return;
@@ -373,14 +379,14 @@ impl<'a> MachineAfterRegWrite<'a> {
                 // We need to clear some MISR flags once the program returns from interrupt
                 trace!("RETI detected. Removing MISR flags");
                 // TODO: I don't actually know when this needs setting. See #34
-                machine
-                    .bus_mut()
-                    .misr_mut()
-                    .remove(MISR::KEY_INTERRUPT_PENDING);
-                machine
-                    .bus_mut()
-                    .misr_mut()
-                    .remove(MISR::KEY_INTERRUPT_REQUEST_ACTIVE);
+                machine.bus_mut().misr_mut().remove(
+                    MISR::KEY_INTERRUPT_PENDING
+                        | MISR::KEY_INTERRUPT_REQUEST_ACTIVE
+                        | MISR::TIMER_INTERRUPT_PENDING
+                        | MISR::TIMER_INTERRUPT_REQUEST_ACTIVE
+                        | MISR::BUS_INTERRUPT_PENDING
+                        | MISR::BUS_INTERRUPT_REQUEST_ACTIVE,
+                );
             }
             machine.instruction_register.set_raw(machine.last_bus_read);
             trace!("Next instruction: {:?}", machine.instruction_register);
@@ -398,10 +404,10 @@ impl<'a> MachineAfterInstructionUpdate<'a> {
             .pending_edge_interrupt
             .take()
             .or_else(|| machine.bus.take_edge_interrupt());
-        machine.pending_level_interrupt = machine
-            .pending_level_interrupt
-            .take()
-            .or_else(|| machine.bus.get_level_interrupt());
+        // A level interrupt follows the level of its source, so it is sampled
+        // fresh every cycle rather than latched. Latching it would leave the
+        // interrupt asserted forever once the source went high a single time.
+        machine.pending_level_interrupt = machine.bus.get_level_interrupt();
         MachineAfterInterruptFetching(machine)
     }
 }
@@ -579,6 +585,22 @@ mod tests {
             assert_eq!(
                 machine.pending_edge_interrupt,
                 RawMachine::new().pending_edge_interrupt
+            );
+        }
+
+        #[test]
+        fn pending_level_interrupt_is_cleared_during_reset(mut machine in RawMachine::arbitrary()) {
+            let pristine = machine.clone();
+            machine.cpu_reset();
+            assert_eq!(
+                machine.pending_level_interrupt,
+                RawMachine::new().pending_level_interrupt
+            );
+            machine = pristine;
+            machine.master_reset();
+            assert_eq!(
+                machine.pending_level_interrupt,
+                RawMachine::new().pending_level_interrupt
             );
         }
 

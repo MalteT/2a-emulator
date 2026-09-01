@@ -36,7 +36,7 @@ impl<'a> ProgramInfoWidget<'a> {
     /// Read all necessary information from the given [`Tui`].
     pub fn from(tui: &'a Tui) -> Self {
         let program = tui.machine.program_path();
-        let freq = super::super::CYCLES_PER_SECOND as f32;
+        let freq = tui.machine.clock_frequency() as f32;
         let freq_measured = tui.measured_freq;
         let state = tui.machine.state();
         ProgramInfoWidget {
