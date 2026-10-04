@@ -8,9 +8,6 @@ readme = "README.md"
 repository = "https://github.com/MalteT/2a-emulator"
 autobenches = false
 
-[package.metadata.nix]
-build = true
-
 [lib]
 name = "emulator_2a_lib"
 path = "src/lib.rs"
